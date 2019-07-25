@@ -1,6 +1,11 @@
 module Main where
 
-import Lib
+import Brick (defaultMain)
+import UI.App
+import Types.AppState
 
 main :: IO ()
-main = someFunc
+main = do
+  let initialState = AppState { allProjects = [] }
+  finalState <- defaultMain uiApp initialState
+  return ()
