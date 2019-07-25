@@ -5,10 +5,11 @@ import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Brick.Widgets.Center (center)
 import Types.AppState
+import Types.CustomEvent
+import Types.Name
 import qualified Graphics.Vty as V
 
-data CustomEvent = CustomEvent
-type Name = ()
+import UI.Projects.Add
 
 uiApp :: App AppState CustomEvent Name
 uiApp = App { appDraw = drawUI
@@ -19,7 +20,8 @@ uiApp = App { appDraw = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
+drawUI _ = [addProjectWidget]
+-- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
