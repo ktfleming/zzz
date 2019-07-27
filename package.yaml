@@ -33,6 +33,7 @@ library:
     - Types.Screen
     - UI.App
     - UI.MainScreen
+    - UI.Projects.Add
 
 executables:
   zzz-exe:

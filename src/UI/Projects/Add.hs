@@ -17,5 +17,5 @@ makeLenses ''ProjectAddState
 mkForm :: ProjectAddState -> Form ProjectAddState CustomEvent Name
 mkForm = newForm [ (str "Project Name: " <+>) @@= editTextField projectName ProjectNameField (Just 1) ]
 
-addProjectWidget :: Widget Name
-addProjectWidget = renderForm $ mkForm $ ProjectAddState { _projectName = "New Project" }
+--addProjectWidget :: Widget Name
+--addProjectWidget = renderForm $ mkForm $ ProjectAddState { _projectName = "New Project" }
