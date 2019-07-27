@@ -9,6 +9,7 @@ import Brick.Types (Next)
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Brick.Widgets.Center (center)
+import Control.Monad.IO.Class (liftIO)
 import Lens.Micro.Platform
 import Types.AppState
 import Types.CustomEvent
@@ -18,6 +19,8 @@ import qualified Graphics.Vty as V
 import Graphics.Vty.Input.Events
 import UI.HelpScreen
 import UI.Projects.Add
+
+import Debug.Trace
 
 makeLenses ''AppState
 
@@ -41,11 +44,16 @@ chooseCursor _ _ = Nothing
 
 handleEvent :: forall a. AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
+
+-- When a form is active, use `handleFormEvent` to send events to the form, unless the Enter key is pressed, in which case
+-- we activate the form's submit handler
 handleEvent s @ AppState { _activeForm = ActiveForm (Just form) } ev =
-  let newForm = fmap (ActiveForm . Just) (handleFormEvent ev form)
-      mapper :: ActiveForm -> EventM Name (Next AppState)
-      mapper form = continue $ activeForm .~ form $ s
-  in newForm >>= mapper
+  case ev of
+    VtyEvent (EvKey KEnter []) -> (liftIO $ handleSubmit form) >> continue s
+    _ -> let newForm = fmap (ActiveForm . Just) (handleFormEvent ev form)
+             mapper :: ActiveForm -> EventM Name (Next AppState)
+             mapper form = continue $ activeForm .~ form $ s
+         in newForm >>= mapper
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) = continue $ activeScreen .~ HelpScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'q') [])) = halt s  -- 'q' to quit
 handleEvent s _ = continue s
