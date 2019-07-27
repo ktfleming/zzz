@@ -1,5 +1,8 @@
 module Types.AppState where
 
 import Types.Project
+import Types.Screen
 
-data AppState = AppState { allProjects :: [Project] }
+data AppState = AppState { _activeScreen :: Screen
+                         , _allProjects :: [Project]
+                         }
