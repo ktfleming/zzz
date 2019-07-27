@@ -24,6 +24,7 @@ dependencies:
 - vty
 - microlens-platform
 - text
+- aeson
 
 library:
   source-dirs:

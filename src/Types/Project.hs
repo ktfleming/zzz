@@ -1,3 +1,11 @@
+{-# LANGUAGE DeriveGeneric #-}
+
 module Types.Project where
 
-data Project = Project { projectName :: String }
+import Data.Aeson
+import qualified Data.Text as T
+import GHC.Generics
+
+data Project = Project { projectName :: T.Text } deriving (Show, Generic)
+
+instance ToJSON Project
