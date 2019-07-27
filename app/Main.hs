@@ -12,7 +12,7 @@ main :: IO ()
 main = do
   let initialState = AppState { _activeScreen = ProjectScreen
                               , _allProjects = []
-                              , _activeForm = Just $ mkForm ProjectAddState { _projectName = "New Project" }
+                              , _activeForm = ActiveForm $ Just $ mkForm ProjectAddState { _projectName = "New Project" }
                               }
   finalState <- defaultMain uiApp initialState
   return ()

@@ -1,7 +1,5 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module UI.App where
 
@@ -32,7 +30,7 @@ uiApp = App { appDraw = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI AppState { _activeForm = Just form } = [renderForm form]
+drawUI AppState { _activeForm = ActiveForm (Just form) } = [renderForm form]
 drawUI s = case _activeScreen s of
   HelpScreen -> [helpWidget]
   ProjectScreen -> [helpWidget] -- TODO: this is just temporary
@@ -42,10 +40,11 @@ chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
 
 handleEvent :: forall a. AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
-handleEvent s @ AppState { _activeScreen, _allProjects, _activeForm = Just form } ev =
-  let newForm = handleFormEvent ev form
-      mapper :: forall a. Form a CustomEvent Name -> EventM Name (Next AppState)
-      mapper form = continue $ AppState { _activeScreen, _allProjects, _activeForm = Just form }
+handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
+handleEvent s @ AppState { _activeForm = ActiveForm (Just form) } ev =
+  let newForm = fmap (ActiveForm . Just) (handleFormEvent ev form)
+      mapper :: ActiveForm -> EventM Name (Next AppState)
+      mapper form = continue $ activeForm .~ form $ s
   in newForm >>= mapper
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) = continue $ activeScreen .~ HelpScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'q') [])) = halt s  -- 'q' to quit
