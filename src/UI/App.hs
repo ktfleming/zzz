@@ -43,12 +43,12 @@ chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
 
 handleEvent :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
-handleEvent s@(AppState { _addProjectForm = Just form }) ev =
+handleEvent s @ (AppState { _addProjectForm = Just form }) ev =
   let newForm :: EventM Name (Form ProjectAddState CustomEvent Name) = handleFormEvent ev form
       mapper :: Form ProjectAddState CustomEvent Name -> EventM Name (Next AppState)
-      mapper form = continue $ addProjectForm %~ const (Just form) $ s
+      mapper form = continue $ addProjectForm ?~ form $ s
   in newForm >>= mapper
-handleEvent s (VtyEvent (EvKey (KChar 'h') [])) = continue $ activeScreen %~ const HelpScreen $ s
+handleEvent s (VtyEvent (EvKey (KChar 'h') [])) = continue $ activeScreen .~ HelpScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'q') [])) = halt s  -- 'q' to quit
 handleEvent s _ = continue s
 
