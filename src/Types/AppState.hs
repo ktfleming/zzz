@@ -1,3 +1,5 @@
+{-# LANGUAGE ExistentialQuantification #-}
+
 module Types.AppState where
 
 import Brick.Forms
@@ -7,7 +9,7 @@ import Types.Project
 import Types.Screen
 import UI.Projects.Add
 
-data AppState = AppState { _activeScreen :: Screen
-                         , _allProjects :: [Project]
-                         , _addProjectForm :: Maybe (Form ProjectAddState CustomEvent Name)
-                         }
+data AppState = forall a. AppState { _activeScreen :: Screen
+                                   , _allProjects :: [Project]
+                                   , _activeForm :: Maybe (Form a CustomEvent Name) -- The form to send events to, if one is currently active
+                                   }

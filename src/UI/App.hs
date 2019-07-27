@@ -1,5 +1,7 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module UI.App where
 
@@ -30,23 +32,20 @@ uiApp = App { appDraw = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI s =
-  let activeScreenWidget = case _activeScreen s of
-        ProjectScreen -> case _addProjectForm s of
-          Just form -> renderForm form
-          Nothing -> helpWidget -- TODO: this is just a default for now
-        HelpScreen -> helpWidget
-  in [activeScreenWidget]
+drawUI AppState { _activeForm = Just form } = [renderForm form]
+drawUI s = case _activeScreen s of
+  HelpScreen -> [helpWidget]
+  ProjectScreen -> [helpWidget] -- TODO: this is just temporary
 -- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
 
-handleEvent :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
-handleEvent s @ (AppState { _addProjectForm = Just form }) ev =
-  let newForm :: EventM Name (Form ProjectAddState CustomEvent Name) = handleFormEvent ev form
-      mapper :: Form ProjectAddState CustomEvent Name -> EventM Name (Next AppState)
-      mapper form = continue $ addProjectForm ?~ form $ s
+handleEvent :: forall a. AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
+handleEvent s @ AppState { _activeScreen, _allProjects, _activeForm = Just form } ev =
+  let newForm = handleFormEvent ev form
+      mapper :: forall a. Form a CustomEvent Name -> EventM Name (Next AppState)
+      mapper form = continue $ AppState { _activeScreen, _allProjects, _activeForm = Just form }
   in newForm >>= mapper
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) = continue $ activeScreen .~ HelpScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'q') [])) = halt s  -- 'q' to quit
