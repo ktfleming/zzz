@@ -6,7 +6,7 @@
 module Types.AppState where
 
 import Brick.Forms
-import Data.Aeson (ToJSON, toJSON, object, (.=))
+import Data.Aeson (ToJSON, toJSON, FromJSON, parseJSON, object, (.=), (.:), withObject)
 import Lens.Micro.Platform (makeLenses)
 import Types.CustomEvent
 import Types.Name
@@ -32,7 +32,24 @@ makeLenses ''AppState
 handleSubmit :: forall x. FormState x => AppState -> Form x CustomEvent Name -> AppState
 handleSubmit appState form = submitValid appState (formState form)
 
+-- TODO: this is just to make the default "empty" ActiveForm line in AppState's `FromJSON` instance
+-- compile. Will have to revisit to figure out how to get rid of it.
+data FakeFormState = FakeFormState
+instance FormState FakeFormState where
+  submitValid s _ = s
+
+noActiveForm :: ActiveForm
+noActiveForm = ActiveForm (Nothing :: Maybe (Form FakeFormState CustomEvent Name))
+
 instance ToJSON AppState where
   toJSON AppState{..} = object [
     "allProjects" .= _allProjects
     ]
+
+instance FromJSON AppState where
+  parseJSON = withObject "AppState" $ \o -> do
+    projects <- o .: "allProjects"
+    return AppState { _activeScreen = ProjectScreen
+                    , _allProjects = projects
+                    , _activeForm = noActiveForm
+                    }
