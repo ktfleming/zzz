@@ -27,6 +27,8 @@ dependencies:
 - aeson
 - aeson-pretty
 - bytestring
+- directory
+- transformers
 
 library:
   source-dirs:

@@ -92,4 +92,4 @@ myMap = attrMap V.defAttr []
 saveState :: AppState -> IO ()
 saveState s =
   let jsonified :: ByteString = encodePretty s
-  in  trace "writing file" $ writeFile "out.json" jsonified
+  in  writeFile "zzz.json" jsonified

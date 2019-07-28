@@ -30,7 +30,9 @@ class FormState a where
 -- of which form it is.
 data ActiveForm = forall x. FormState x => ActiveForm (Maybe (Form x CustomEvent Name))
 instance Show ActiveForm where
-  show a = "(ActiveForm)"
+  show (ActiveForm a) = case a of
+    Just _ -> "(Form is active)"
+    Nothing -> "(No active form)"
 
 data AppState = AppState { _activeScreen :: Screen
                          , _allProjects :: [Project]
