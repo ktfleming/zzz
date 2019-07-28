@@ -2,12 +2,17 @@
 
 module UI.App where
 
+import Prelude hiding (writeFile)
+
 import Brick (BrickEvent(VtyEvent), attrMap, AttrMap, Next, EventM, BrickEvent, CursorLocation, (<+>), str, withBorderStyle, Widget, App(..), continue, halt)
 import Brick.Forms
 import Brick.Types (Next)
 import Brick.Widgets.Border
 import Brick.Widgets.Border.Style
 import Brick.Widgets.Center (center)
+import Control.Monad.IO.Class (liftIO)
+import Data.Aeson.Encode.Pretty (encodePretty)
+import Data.ByteString.Lazy (ByteString, writeFile)
 import Lens.Micro.Platform
 import Types.AppState
 import Types.CustomEvent
@@ -40,7 +45,8 @@ chooseCursor _ _ = Nothing
 
 handleEvent :: forall a. AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
-handleEvent s (VtyEvent (EvKey KEsc [])) = trace (show s) $ continue s
+handleEvent s (VtyEvent (EvKey KEsc [])) = trace (show s) $ continue s -- For debugging
+handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) = liftIO (saveState s) >> continue s
 
 -- When a form is active, use `handleFormEvent` to send events to the form, unless the Enter key is pressed, in which case
 -- we activate the form's submit handler
@@ -60,3 +66,8 @@ startEvent = return
 
 myMap :: AttrMap
 myMap = attrMap V.defAttr []
+
+saveState :: AppState -> IO ()
+saveState s =
+  let jsonified :: ByteString = encodePretty s
+  in trace "writing file" $ writeFile "out.json" jsonified

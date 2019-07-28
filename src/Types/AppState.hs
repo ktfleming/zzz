@@ -1,10 +1,13 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE RecordWildCards #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module Types.AppState where
 
 import Brick.Forms
-import Lens.Micro.Platform
+import Data.Aeson (ToJSON, toJSON, object, (.=))
+import Lens.Micro.Platform (makeLenses)
 import Types.CustomEvent
 import Types.Name
 import Types.Project
@@ -28,3 +31,8 @@ makeLenses ''AppState
 
 handleSubmit :: forall x. FormState x => AppState -> Form x CustomEvent Name -> AppState
 handleSubmit appState form = submitValid appState (formState form)
+
+instance ToJSON AppState where
+  toJSON AppState{..} = object [
+    "allProjects" .= _allProjects
+    ]
