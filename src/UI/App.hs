@@ -21,6 +21,7 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 )
 import           Brick.Forms
 import           Brick.Types                    ( Next )
+import           Brick.Util
 import           Brick.Widgets.Border
 import           Brick.Widgets.Border.Style
 import           Brick.Widgets.Center           ( center )
@@ -36,6 +37,7 @@ import           Types.AppState
 import           Types.CustomEvent
 import           Types.Name
 import           Types.Screen
+import           UI.Attr
 import           UI.HelpScreen
 import           UI.Projects.Add
 import           UI.Projects.List               ( renderProjectList )
@@ -91,7 +93,7 @@ startEvent :: AppState -> EventM Name AppState
 startEvent = return
 
 myMap :: AttrMap
-myMap = attrMap V.defAttr []
+myMap = attrMap V.defAttr [(highlighted, Brick.Util.bg V.blue)]
 
 saveState :: AppState -> IO ()
 saveState s =
