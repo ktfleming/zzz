@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
@@ -13,8 +14,6 @@ import           Data.ByteString.Lazy           ( readFile )
 import           Data.Aeson                     ( eitherDecode )
 import           Control.Monad.Trans.Except
 
-import           Debug.Trace
-
 getAppStateFromFile :: ExceptT String IO AppState
 getAppStateFromFile = ExceptT $ eitherDecode <$> (readFile "zzz.json")
 
@@ -25,10 +24,13 @@ blankAppState = AppState { _activeScreen = ProjectScreen
                          }
 
 main :: IO ()
-main = fmap (\_ -> ()) $ runExceptT $ do
-  fileExists   <- ExceptT $ Right <$> doesFileExist "zzz.json"
-  initialState <- if fileExists
-    then getAppStateFromFile
-    else return blankAppState
-  _ <- ExceptT $ Right <$> putStrLn (show initialState)
-  ExceptT $ Right <$> defaultMain uiApp initialState
+main = do
+  runOrError :: Either String AppState <- runExceptT $ do
+    fileExists   <- ExceptT $ Right <$> doesFileExist "zzz.json"
+    initialState <- if fileExists
+      then getAppStateFromFile
+      else return blankAppState
+    ExceptT $ Right <$> defaultMain uiApp initialState
+  case runOrError of
+    Left  e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e
+    Right s -> putStrLn $ "Final state:\n" ++ (show s)
