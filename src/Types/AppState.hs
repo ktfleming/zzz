@@ -5,13 +5,21 @@
 
 module Types.AppState where
 
-import Brick.Forms
-import Data.Aeson (ToJSON, toJSON, FromJSON, parseJSON, object, (.=), (.:), withObject)
-import Lens.Micro.Platform (makeLenses)
-import Types.CustomEvent
-import Types.Name
-import Types.Project
-import Types.Screen
+import           Brick.Forms
+import           Data.Aeson                     ( ToJSON
+                                                , toJSON
+                                                , FromJSON
+                                                , parseJSON
+                                                , object
+                                                , (.=)
+                                                , (.:)
+                                                , withObject
+                                                )
+import           Lens.Micro.Platform            ( makeLenses )
+import           Types.CustomEvent
+import           Types.Name
+import           Types.Project
+import           Types.Screen
 
 class FormState a where
   -- Use the valid model contained in the form to modify the global AppState
@@ -21,7 +29,8 @@ class FormState a where
 -- `ActiveForm` is used generically in `handleEvent` to send events to the form, regardless
 -- of which form it is.
 data ActiveForm = forall x. FormState x => ActiveForm (Maybe (Form x CustomEvent Name))
-instance Show ActiveForm where show a = "(ActiveForm)"
+instance Show ActiveForm where
+  show a = "(ActiveForm)"
 
 data AppState = AppState { _activeScreen :: Screen
                          , _allProjects :: [Project]
@@ -29,7 +38,8 @@ data AppState = AppState { _activeScreen :: Screen
                          } deriving (Show)
 makeLenses ''AppState
 
-handleSubmit :: forall x. FormState x => AppState -> Form x CustomEvent Name -> AppState
+handleSubmit
+  :: forall x . FormState x => AppState -> Form x CustomEvent Name -> AppState
 handleSubmit appState form = submitValid appState (formState form)
 
 -- TODO: this is just to make the default "empty" ActiveForm line in AppState's `FromJSON` instance
@@ -39,17 +49,16 @@ instance FormState FakeFormState where
   submitValid s _ = s
 
 noActiveForm :: ActiveForm
-noActiveForm = ActiveForm (Nothing :: Maybe (Form FakeFormState CustomEvent Name))
+noActiveForm =
+  ActiveForm (Nothing :: Maybe (Form FakeFormState CustomEvent Name))
 
 instance ToJSON AppState where
-  toJSON AppState{..} = object [
-    "allProjects" .= _allProjects
-    ]
+  toJSON AppState {..} = object ["allProjects" .= _allProjects]
 
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     projects <- o .: "allProjects"
     return AppState { _activeScreen = ProjectScreen
-                    , _allProjects = projects
-                    , _activeForm = noActiveForm
+                    , _allProjects  = projects
+                    , _activeForm   = noActiveForm
                     }
