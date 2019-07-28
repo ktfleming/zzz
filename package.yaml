@@ -29,6 +29,7 @@ dependencies:
 - bytestring
 - directory
 - transformers
+- vector
 
 library:
   source-dirs:

@@ -10,12 +10,12 @@ import           Brick                          ( Widget
                                                 , (<+>)
                                                 )
 import           Brick.Forms
+import qualified Data.Text                     as T
 import           Lens.Micro.Platform
 import           Types.AppState
-import           Types.Name
 import           Types.CustomEvent
+import           Types.Name
 import           Types.Project
-import qualified Data.Text                     as T
 
 data ProjectAddState = ProjectAddState { _projectName :: T.Text }
 

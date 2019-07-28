@@ -3,22 +3,22 @@
 
 module Main where
 
-import           Prelude                 hiding ( readFile )
 import           Brick                          ( defaultMain )
-import           UI.App
-import           UI.Projects.Add
+import           Control.Monad.Trans.Except
+import           Data.Aeson                     ( eitherDecode )
+import           Data.ByteString.Lazy           ( readFile )
+import           Prelude                 hiding ( readFile )
+import           System.Directory               ( doesFileExist )
 import           Types.AppState
 import           Types.Screen
-import           System.Directory               ( doesFileExist )
-import           Data.ByteString.Lazy           ( readFile )
-import           Data.Aeson                     ( eitherDecode )
-import           Control.Monad.Trans.Except
+import           UI.App
+import           UI.Projects.Add
 
 getAppStateFromFile :: ExceptT String IO AppState
 getAppStateFromFile = ExceptT $ eitherDecode <$> (readFile "zzz.json")
 
 blankAppState :: AppState
-blankAppState = AppState { _activeScreen = ProjectScreen
+blankAppState = AppState { _activeScreen = ProjectListScreen
                          , _allProjects  = []
                          , _activeForm   = noActiveForm
                          }

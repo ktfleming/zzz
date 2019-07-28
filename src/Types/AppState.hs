@@ -60,7 +60,7 @@ instance ToJSON AppState where
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     projects <- o .: "allProjects"
-    return AppState { _activeScreen = ProjectScreen
+    return AppState { _activeScreen = ProjectListScreen
                     , _allProjects  = projects
                     , _activeForm   = noActiveForm
                     }

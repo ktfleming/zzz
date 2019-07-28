@@ -29,15 +29,16 @@ import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( ByteString
                                                 , writeFile
                                                 )
+import qualified Graphics.Vty                  as V
+import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.CustomEvent
 import           Types.Name
 import           Types.Screen
-import qualified Graphics.Vty                  as V
-import           Graphics.Vty.Input.Events
 import           UI.HelpScreen
 import           UI.Projects.Add
+import           UI.Projects.List               ( renderProjectList )
 
 import           Debug.Trace
 
@@ -52,8 +53,9 @@ uiApp = App { appDraw         = drawUI
 drawUI :: AppState -> [Widget Name]
 drawUI AppState { _activeForm = ActiveForm (Just form) } = [renderForm form]
 drawUI s = case _activeScreen s of
-  HelpScreen    -> [helpWidget]
-  ProjectScreen -> [helpWidget] -- TODO: this is just temporary
+  ProjectListScreen -> [renderProjectList $ _allProjects s]
+  HelpScreen        -> [helpWidget]
+  ProjectScreen     -> [helpWidget] -- TODO: this is just temporary
 -- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
@@ -78,6 +80,8 @@ handleEvent s@AppState { _activeForm = ActiveForm (Just form) } ev = case ev of
         mapper :: ActiveForm -> EventM Name (Next AppState)
         mapper form = continue $ activeForm .~ form $ s
     in  newForm >>= mapper
+handleEvent s (VtyEvent (EvKey (KChar 'p') [])) =
+  continue $ activeScreen .~ ProjectListScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) =
   continue $ activeScreen .~ HelpScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'q') [])) = halt s  -- 'q' to quit
