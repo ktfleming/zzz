@@ -25,6 +25,10 @@ import           Brick.Util
 import           Brick.Widgets.Border
 import           Brick.Widgets.Border.Style
 import           Brick.Widgets.Center           ( center )
+import           Brick.Widgets.List             ( handleListEvent
+                                                , renderList
+                                                , listSelectedFocusedAttr
+                                                )
 import           Control.Monad.IO.Class         ( liftIO )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( ByteString
@@ -40,8 +44,8 @@ import           Types.Name
 import           Types.Screen
 import           UI.Attr
 import           UI.HelpScreen
+import           UI.List                        ( renderGenericList )
 import           UI.Projects.Add
-import           UI.Projects.List               ( renderProjectList )
 
 import           Debug.Trace
 
@@ -55,10 +59,13 @@ uiApp = App { appDraw         = drawUI
 
 drawUI :: AppState -> [Widget Name]
 drawUI AppState { _activeForm = ActiveForm (Just form) } = [renderForm form]
+drawUI AppState { _activeList = ActiveList (Just list) } =
+  [renderGenericList list]
 drawUI s = case _activeScreen s of
-  ProjectListScreen -> [renderProjectList $ _allProjects s]
-  HelpScreen        -> [helpWidget]
-  ProjectScreen     -> [helpWidget] -- TODO: this is just temporary
+  -- ProjectListScreen -> [renderProjectList $ _allProjects s]
+  HelpScreen    -> [helpWidget]
+  ProjectScreen -> [helpWidget] -- TODO: this is just temporary
+  _             -> [str "something went wrong!"]
 -- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
@@ -90,9 +97,15 @@ handleEvent s@AppState { _activeForm = ActiveForm (Just form) } ev = case ev of
     in  newForm >>= mapper
 
 -- If a list is active, delete events with `handleListEvent`
-handleEvent s@AppState { _activeScreen = ProjectListScreen } ev = case ev of
+handleEvent s@AppState { _activeList = ActiveList (Just list) } ev = case ev of
   VtyEvent (EvKey KEnter []) -> continue s -- TODO: select item
-  _                          -> continue s
+  VtyEvent vtyEvent ->
+    let newList :: EventM Name ActiveList =
+            fmap (ActiveList . Just) (handleListEvent vtyEvent list)
+        mapper :: ActiveList -> EventM Name (Next AppState)
+        mapper list = continue $ activeList .~ list $ s
+    in  newList >>= mapper
+  _ -> continue s -- non-vty events won't affect the list
 handleEvent s (VtyEvent (EvKey (KChar 'p') [])) =
   continue $ activeScreen .~ ProjectListScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) =
@@ -104,7 +117,11 @@ startEvent :: AppState -> EventM Name AppState
 startEvent = return
 
 myMap :: AttrMap
-myMap = attrMap V.defAttr [(highlighted, Brick.Util.bg V.blue)]
+myMap = attrMap
+  V.defAttr
+  [ (listSelectedFocusedAttr, Brick.Util.bg V.green)
+  , (highlighted            , Brick.Util.bg V.blue)
+  ]
 
 saveState :: AppState -> IO ()
 saveState s =

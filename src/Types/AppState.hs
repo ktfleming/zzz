@@ -22,6 +22,7 @@ import           Types.CustomEvent
 import           Types.Name
 import           Types.Project
 import           Types.Screen
+import           UI.Projects.List               ( makeProjectList )
 
 class FormState a where
   -- Use the valid model contained in the form to modify the global AppState
@@ -37,7 +38,7 @@ instance Show ActiveForm where
     Nothing -> "(No active form)"
 
 -- Similar to `ActiveForm`, but for Brick lists
-data ActiveList = forall x. ActiveList (Maybe (GenericList Name Vector x))
+data ActiveList = forall x. Show x => ActiveList (Maybe (GenericList Name Vector x))
 instance Show ActiveList where
   show (ActiveList a) = case a of
     Just _  -> "(List is active)"
@@ -65,17 +66,18 @@ noActiveForm =
   ActiveForm (Nothing :: Maybe (Form FakeFormState CustomEvent Name))
 
 noActiveList :: ActiveList
-noActiveList = ActiveList Nothing
+noActiveList = ActiveList (Nothing :: Maybe (GenericList Name Vector String))
 
 -- Create the app's initial state; used when either reading the state
 -- from a JSON file, or for creating a completely new state when
--- no such file exists
+-- no such file exists.
 initialAppState :: [Project] -> AppState
-initialAppState p = AppState { _activeScreen = ProjectListScreen
-                             , _allProjects  = p
-                             , _activeForm   = noActiveForm
-                             , _activeList   = noActiveList
-                             }
+initialAppState ps = AppState
+  { _activeScreen = ProjectListScreen
+  , _allProjects  = ps
+  , _activeForm   = noActiveForm
+  , _activeList   = ActiveList $ Just $ makeProjectList ps
+  }
 
 instance ToJSON AppState where
   toJSON AppState {..} = object ["allProjects" .= _allProjects]
