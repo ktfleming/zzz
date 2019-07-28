@@ -34,6 +34,7 @@ import qualified Graphics.Vty                  as V
 import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
 import           Types.AppState
+import           Types.Constants                ( mainSettingsFile )
 import           Types.CustomEvent
 import           Types.Name
 import           Types.Screen
@@ -78,10 +79,20 @@ handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
 handleEvent s@AppState { _activeForm = ActiveForm (Just form) } ev = case ev of
   VtyEvent (EvKey KEnter []) -> continue $ handleSubmit s form
   _ ->
-    let newForm = fmap (ActiveForm . Just) (handleFormEvent ev form)
+    -- Use handleFormEvent to update the form (reflect text entered, control focused, etc)
+    -- Then we need to bind over the new form, using a lens to update the `_activeForm` field
+    -- in our AppState in order to get the new AppState (so it will be rendered properly in `drawUI`),
+    -- then finally `continue` with the updated AppState
+    let newForm :: EventM Name ActiveForm =
+            fmap (ActiveForm . Just) (handleFormEvent ev form)
         mapper :: ActiveForm -> EventM Name (Next AppState)
         mapper form = continue $ activeForm .~ form $ s
     in  newForm >>= mapper
+
+-- If a list is active, delete events with `handleListEvent`
+handleEvent s@AppState { _activeScreen = ProjectListScreen } ev = case ev of
+  VtyEvent (EvKey KEnter []) -> continue s -- TODO: select item
+  _                          -> continue s
 handleEvent s (VtyEvent (EvKey (KChar 'p') [])) =
   continue $ activeScreen .~ ProjectListScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) =
@@ -98,4 +109,4 @@ myMap = attrMap V.defAttr [(highlighted, Brick.Util.bg V.blue)]
 saveState :: AppState -> IO ()
 saveState s =
   let jsonified :: ByteString = encodePretty s
-  in  writeFile "zzz.json" jsonified
+  in  writeFile mainSettingsFile jsonified

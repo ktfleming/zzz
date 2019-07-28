@@ -6,6 +6,7 @@
 module Types.AppState where
 
 import           Brick.Forms
+import           Brick.Widgets.List             ( GenericList )
 import           Data.Aeson                     ( ToJSON
                                                 , toJSON
                                                 , FromJSON
@@ -15,6 +16,7 @@ import           Data.Aeson                     ( ToJSON
                                                 , (.:)
                                                 , withObject
                                                 )
+import           Data.Vector                    ( Vector )
 import           Lens.Micro.Platform            ( makeLenses )
 import           Types.CustomEvent
 import           Types.Name
@@ -31,12 +33,20 @@ class FormState a where
 data ActiveForm = forall x. FormState x => ActiveForm (Maybe (Form x CustomEvent Name))
 instance Show ActiveForm where
   show (ActiveForm a) = case a of
-    Just _ -> "(Form is active)"
+    Just _  -> "(Form is active)"
     Nothing -> "(No active form)"
+
+-- Similar to `ActiveForm`, but for Brick lists
+data ActiveList = forall x. ActiveList (Maybe (GenericList Name Vector x))
+instance Show ActiveList where
+  show (ActiveList a) = case a of
+    Just _  -> "(List is active)"
+    Nothing -> "(No active list)"
 
 data AppState = AppState { _activeScreen :: Screen
                          , _allProjects :: [Project]
                          , _activeForm :: ActiveForm -- The form to send events to, if one is currently active
+                         , _activeList :: ActiveList
                          } deriving (Show)
 makeLenses ''AppState
 
@@ -54,13 +64,23 @@ noActiveForm :: ActiveForm
 noActiveForm =
   ActiveForm (Nothing :: Maybe (Form FakeFormState CustomEvent Name))
 
+noActiveList :: ActiveList
+noActiveList = ActiveList Nothing
+
+-- Create the app's initial state; used when either reading the state
+-- from a JSON file, or for creating a completely new state when
+-- no such file exists
+initialAppState :: [Project] -> AppState
+initialAppState p = AppState { _activeScreen = ProjectListScreen
+                             , _allProjects  = p
+                             , _activeForm   = noActiveForm
+                             , _activeList   = noActiveList
+                             }
+
 instance ToJSON AppState where
   toJSON AppState {..} = object ["allProjects" .= _allProjects]
 
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     projects <- o .: "allProjects"
-    return AppState { _activeScreen = ProjectListScreen
-                    , _allProjects  = projects
-                    , _activeForm   = noActiveForm
-                    }
+    return $ initialAppState projects

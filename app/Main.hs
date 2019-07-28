@@ -10,27 +10,20 @@ import           Data.ByteString.Lazy           ( readFile )
 import           Prelude                 hiding ( readFile )
 import           System.Directory               ( doesFileExist )
 import           Types.AppState
-import           Types.Screen
-import           UI.App
-import           UI.Projects.Add
+import           Types.Constants                ( mainSettingsFile )
+import           UI.App                         ( uiApp )
 
 getAppStateFromFile :: ExceptT String IO AppState
-getAppStateFromFile = ExceptT $ eitherDecode <$> (readFile "zzz.json")
-
-blankAppState :: AppState
-blankAppState = AppState { _activeScreen = ProjectListScreen
-                         , _allProjects  = []
-                         , _activeForm   = noActiveForm
-                         }
+getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile
 
 main :: IO ()
 main = do
   runOrError :: Either String AppState <- runExceptT $ do
-    fileExists   <- ExceptT $ Right <$> doesFileExist "zzz.json"
+    fileExists   <- ExceptT $ Right <$> doesFileExist mainSettingsFile
     initialState <- if fileExists
       then getAppStateFromFile
-      else return blankAppState
+      else return $ initialAppState []
     ExceptT $ Right <$> defaultMain uiApp initialState
   case runOrError of
     Left  e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e
-    Right s -> putStrLn $ "Final state:\n" ++ (show s)
+    Right s -> putStrLn $ "Final state:\n" ++ show s

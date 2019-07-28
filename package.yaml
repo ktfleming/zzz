@@ -36,10 +36,8 @@ library:
     - src
   exposed-modules:
     - Types.AppState
-    - Types.Screen
+    - Types.Constants
     - UI.App
-    - UI.MainScreen
-    - UI.Projects.Add
 
 executables:
   zzz-exe:
