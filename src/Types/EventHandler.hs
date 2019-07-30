@@ -1,5 +1,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE DisambiguateRecordFields #-}
+{-# LANGUAGE InstanceSigs #-}
 
 module Types.EventHandler where
 
@@ -8,14 +10,20 @@ import           Brick.Forms                    ( Form
                                                 )
 import           Brick.Widgets.List             ( GenericList )
 import           Data.Vector
-import           Lens.Micro.Platform            ( (.~) )
+import           Lens.Micro.Platform            ( (.~)
+                                                , (<>~)
+                                                )
 import           Types.AppState                 ( AppState(..)
                                                 , activeScreen
+                                                , allProjects
                                                 )
 import           Types.CustomEvent
 import           Types.Name
 import           Types.Project
 import           Types.Screen
+import           UI.Form                        ( ZZZForm )
+import           UI.List                        ( ZZZList )
+import           UI.Projects.Add                ( ProjectAddState(..) )
 import           UI.Projects.List               ( makeProjectList )
 
 class FormState a where
@@ -24,17 +32,16 @@ class FormState a where
 
 type SelectItemHandler a = AppState -> a -> AppState
 
-handleSubmit
-  :: forall x . FormState x => AppState -> Form x CustomEvent Name -> AppState
+handleSubmit :: forall x . FormState x => AppState -> ZZZForm x -> AppState
 handleSubmit appState form = submitValid appState (formState form)
 
 -- The `x` here is the form's state; it's not exposed in the `ActiveForm` type since
 -- `ActiveForm` is used generically in `handleEvent` to send events to the form, regardless
 -- of which form it is.
-data ActiveForm = forall x. FormState x => ActiveForm (Form x CustomEvent Name)
+data ActiveForm = forall x. FormState x => ActiveForm (ZZZForm x)
 
 -- Similar to `ActiveForm`, but for Brick lists
-data ActiveList = forall x. Show x => ActiveList (SelectItemHandler x) (GenericList Name Vector x)
+data ActiveList = forall x. Show x => ActiveList (SelectItemHandler x) (ZZZList x)
 
 instance Show ActiveForm where
   show _ = "(Form is active)"
@@ -51,9 +58,8 @@ data EventHandler = FormHandler ActiveForm | ListHandler ActiveList | NoHandler 
 projectListSelectHandler :: SelectItemHandler Project
 projectListSelectHandler s p = (activeScreen .~ ProjectDetailsScreen p) s
 
-getEventHandler :: AppState -> EventHandler
-getEventHandler AppState { _allProjects, _activeScreen } =
-  case _activeScreen of
-    ProjectListScreen -> ListHandler
-      $ ActiveList projectListSelectHandler (makeProjectList _allProjects)
-    _ -> NoHandler
+instance FormState ProjectAddState where
+  submitValid :: AppState -> ProjectAddState -> AppState
+  submitValid appState ProjectAddState { _projectName = newName } =
+    let newProject = Project { _projectName = newName }
+    in  (allProjects <>~ [newProject]) appState

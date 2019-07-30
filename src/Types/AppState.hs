@@ -35,8 +35,10 @@ makeLenses ''AppState
 -- from a JSON file, or for creating a completely new state when
 -- no such file exists.
 initialAppState :: [Project] -> AppState
-initialAppState ps =
-  AppState { _activeScreen = ProjectListScreen, _allProjects = ps }
+initialAppState ps = AppState
+  { _activeScreen = ProjectListScreen $ ListingProjects $ makeProjectList ps
+  , _allProjects  = ps
+  }
 
 instance ToJSON AppState where
   toJSON AppState {..} = object ["allProjects" .= _allProjects]
@@ -45,4 +47,3 @@ instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     projects <- o .: "allProjects"
     return $ initialAppState projects
-
