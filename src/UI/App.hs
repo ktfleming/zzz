@@ -11,22 +11,16 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 , EventM
                                                 , BrickEvent
                                                 , CursorLocation
-                                                , (<+>)
-                                                , str
-                                                , withBorderStyle
                                                 , Widget
                                                 , App(..)
                                                 , continue
                                                 , halt
                                                 )
-import           Brick.Forms
-import           Brick.Types                    ( Next )
+import           Brick.Forms                    ( renderForm
+                                                , handleFormEvent
+                                                )
 import           Brick.Util
-import           Brick.Widgets.Border
-import           Brick.Widgets.Border.Style
-import           Brick.Widgets.Center           ( center )
 import           Brick.Widgets.List             ( handleListEvent
-                                                , renderList
                                                 , listSelectedFocusedAttr
                                                 )
 import           Control.Monad.IO.Class         ( liftIO )
@@ -45,7 +39,6 @@ import           Types.Screen
 import           UI.Attr
 import           UI.HelpScreen
 import           UI.List                        ( renderGenericList )
-import           UI.Projects.Add
 import           UI.Projects.Details            ( projectDetailsWidget )
 
 import           Debug.Trace
@@ -64,19 +57,15 @@ drawUI AppState { _eventHandler = FormHandler (ActiveForm form) } =
 drawUI AppState { _eventHandler = ListHandler (ActiveList _ list) } =
   [renderGenericList list]
 drawUI s = case _activeScreen s of
-  -- ProjectListScreen -> [renderProjectList $ _allProjects s]
+  ProjectListScreen      -> []
   HelpScreen             -> [helpWidget]
   ProjectDetailsScreen p -> [projectDetailsWidget p]
--- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
 
 handleEvent
-  :: forall a
-   . AppState
-  -> BrickEvent Name CustomEvent
-  -> EventM Name (Next AppState)
+  :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
 handleEvent s (VtyEvent (EvKey KEsc [])) = trace (show s) $ continue s -- For debugging
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
@@ -95,7 +84,7 @@ handleEvent s@AppState { _eventHandler = FormHandler (ActiveForm form) } ev =
       let newForm :: EventM Name EventHandler =
               fmap (FormHandler . ActiveForm) (handleFormEvent ev form)
           mapper :: EventHandler -> EventM Name (Next AppState)
-          mapper form = continue $ eventHandler .~ form $ s
+          mapper _form = continue $ eventHandler .~ _form $ s
       in  newForm >>= mapper
 
 -- If a list is active, delete events with `handleListEvent`
@@ -107,7 +96,7 @@ handleEvent s@AppState { _eventHandler = ListHandler (ActiveList selectHandler l
             (ListHandler . ActiveList selectHandler)
             (handleListEvent vtyEvent list)
           mapper :: EventHandler -> EventM Name (Next AppState)
-          mapper list = continue $ eventHandler .~ list $ s
+          mapper _list = continue $ eventHandler .~ _list $ s
       in  newList >>= mapper
     _ -> continue s -- non-vty events won't affect the list
 handleEvent s (VtyEvent (EvKey (KChar 'p') [])) =
