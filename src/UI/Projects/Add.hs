@@ -14,6 +14,9 @@ import qualified Data.Text                     as T
 import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.CustomEvent
+import           Types.EventHandler             ( FormState
+                                                , submitValid
+                                                )
 import           Types.Name
 import           Types.Project
 
