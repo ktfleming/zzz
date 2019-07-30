@@ -5,7 +5,7 @@ import           UI.List                        ( ZZZList )
 import           UI.Form                        ( ZZZForm )
 import           UI.Projects.Add                ( ProjectAddState )
 
-data ProjectListSubscreen = AddingProject (ZZZForm Project) | ListingProjects (ZZZList Project)
+data ProjectListSubscreen = AddingProject (ZZZForm ProjectAddState) | ListingProjects (ZZZList Project)
 
 instance Show ProjectListSubscreen where
   show _ = "TODO"

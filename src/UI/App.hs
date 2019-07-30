@@ -86,8 +86,10 @@ handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
 handleEvent s@AppState { _activeScreen } ev = case _activeScreen of
 
   -- "Add project" form is showing: delegate to handleFormEvent, then put the updated form back in the state
-  ProjectListScreen (AddingProject form) -> handleFormEvent ev form >>= \f ->
-    continue $ (activeScreen .~ ProjectListScreen (AddingProject f)) s
+  ProjectListScreen (AddingProject form) -> case ev of
+    VtyEvent (EvKey KEnter []) -> continue $ handleSubmit s form
+    _                          -> handleFormEvent ev form >>= \f ->
+      continue $ (activeScreen .~ ProjectListScreen (AddingProject f)) s
 
   -- Project list is showing: delegate to handleListEvent, then put the updated list back in the state
   -- ...unless the ENTER key is pressed, which case run the appropriate select handler
