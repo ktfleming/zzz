@@ -58,8 +58,9 @@ uiApp = App { appDraw         = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI AppState { _activeForm = ActiveForm (Just form) } = [renderForm form]
-drawUI AppState { _activeList = ActiveList (Just list) } =
+drawUI AppState { _eventHandler = FormHandler (ActiveForm form) } =
+  [renderForm form]
+drawUI AppState { _eventHandler = ListHandler (ActiveList list) } =
   [renderGenericList list]
 drawUI s = case _activeScreen s of
   -- ProjectListScreen -> [renderProjectList $ _allProjects s]
@@ -83,29 +84,31 @@ handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
 
 -- When a form is active, use `handleFormEvent` to send events to the form, unless the Enter key is pressed, in which case
 -- we activate the form's submit handler
-handleEvent s@AppState { _activeForm = ActiveForm (Just form) } ev = case ev of
-  VtyEvent (EvKey KEnter []) -> continue $ handleSubmit s form
-  _ ->
-    -- Use handleFormEvent to update the form (reflect text entered, control focused, etc)
-    -- Then we need to bind over the new form, using a lens to update the `_activeForm` field
-    -- in our AppState in order to get the new AppState (so it will be rendered properly in `drawUI`),
-    -- then finally `continue` with the updated AppState
-    let newForm :: EventM Name ActiveForm =
-            fmap (ActiveForm . Just) (handleFormEvent ev form)
-        mapper :: ActiveForm -> EventM Name (Next AppState)
-        mapper form = continue $ activeForm .~ form $ s
-    in  newForm >>= mapper
+handleEvent s@AppState { _eventHandler = FormHandler (ActiveForm form) } ev =
+  case ev of
+    VtyEvent (EvKey KEnter []) -> continue $ handleSubmit s form
+    _ ->
+      -- Use handleFormEvent to update the form (reflect text entered, control focused, etc)
+      -- Then we need to bind over the new form, using a lens to update the `_activeForm` field
+      -- in our AppState in order to get the new AppState (so it will be rendered properly in `drawUI`),
+      -- then finally `continue` with the updated AppState
+      let newForm :: EventM Name EventHandler =
+              fmap (FormHandler . ActiveForm) (handleFormEvent ev form)
+          mapper :: EventHandler -> EventM Name (Next AppState)
+          mapper form = continue $ eventHandler .~ form $ s
+      in  newForm >>= mapper
 
 -- If a list is active, delete events with `handleListEvent`
-handleEvent s@AppState { _activeList = ActiveList (Just list) } ev = case ev of
-  VtyEvent (EvKey KEnter []) -> continue s -- TODO: select item
-  VtyEvent vtyEvent ->
-    let newList :: EventM Name ActiveList =
-            fmap (ActiveList . Just) (handleListEvent vtyEvent list)
-        mapper :: ActiveList -> EventM Name (Next AppState)
-        mapper list = continue $ activeList .~ list $ s
-    in  newList >>= mapper
-  _ -> continue s -- non-vty events won't affect the list
+handleEvent s@AppState { _eventHandler = ListHandler (ActiveList list) } ev =
+  case ev of
+    VtyEvent (EvKey KEnter []) -> continue s -- TODO: select item
+    VtyEvent vtyEvent ->
+      let newList :: EventM Name EventHandler =
+              fmap (ListHandler . ActiveList) (handleListEvent vtyEvent list)
+          mapper :: EventHandler -> EventM Name (Next AppState)
+          mapper list = continue $ eventHandler .~ list $ s
+      in  newList >>= mapper
+    _ -> continue s -- non-vty events won't affect the list
 handleEvent s (VtyEvent (EvKey (KChar 'p') [])) =
   continue $ activeScreen .~ ProjectListScreen $ s
 handleEvent s (VtyEvent (EvKey (KChar 'h') [])) =

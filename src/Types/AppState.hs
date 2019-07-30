@@ -31,42 +31,27 @@ class FormState a where
 -- The `x` here is the form's state; it's not exposed in the `ActiveForm` type since
 -- `ActiveForm` is used generically in `handleEvent` to send events to the form, regardless
 -- of which form it is.
-data ActiveForm = forall x. FormState x => ActiveForm (Maybe (Form x CustomEvent Name))
+data ActiveForm = forall x. FormState x => ActiveForm (Form x CustomEvent Name)
 instance Show ActiveForm where
-  show (ActiveForm a) = case a of
-    Just _  -> "(Form is active)"
-    Nothing -> "(No active form)"
+  show _ = "(Form is active)"
 
 -- Similar to `ActiveForm`, but for Brick lists
-data ActiveList = forall x. Show x => ActiveList (Maybe (GenericList Name Vector x))
+data ActiveList = forall x. Show x => ActiveList (GenericList Name Vector x)
 instance Show ActiveList where
-  show (ActiveList a) = case a of
-    Just _  -> "(List is active)"
-    Nothing -> "(No active list)"
+  show _ = "(List is active)"
+
+-- Represents the widget that should receive input events
+data EventHandler = FormHandler ActiveForm | ListHandler ActiveList | NoHandler deriving (Show)
 
 data AppState = AppState { _activeScreen :: Screen
                          , _allProjects :: [Project]
-                         , _activeForm :: ActiveForm -- The form to send events to, if one is currently active
-                         , _activeList :: ActiveList
+                         , _eventHandler :: EventHandler
                          } deriving (Show)
 makeLenses ''AppState
 
 handleSubmit
   :: forall x . FormState x => AppState -> Form x CustomEvent Name -> AppState
 handleSubmit appState form = submitValid appState (formState form)
-
--- TODO: this is just to make the default "empty" ActiveForm line in AppState's `FromJSON` instance
--- compile. Will have to revisit to figure out how to get rid of it.
-data FakeFormState = FakeFormState
-instance FormState FakeFormState where
-  submitValid s _ = s
-
-noActiveForm :: ActiveForm
-noActiveForm =
-  ActiveForm (Nothing :: Maybe (Form FakeFormState CustomEvent Name))
-
-noActiveList :: ActiveList
-noActiveList = ActiveList (Nothing :: Maybe (GenericList Name Vector String))
 
 -- Create the app's initial state; used when either reading the state
 -- from a JSON file, or for creating a completely new state when
@@ -75,8 +60,7 @@ initialAppState :: [Project] -> AppState
 initialAppState ps = AppState
   { _activeScreen = ProjectListScreen
   , _allProjects  = ps
-  , _activeForm   = noActiveForm
-  , _activeList   = ActiveList $ Just $ makeProjectList ps
+  , _eventHandler = ListHandler $ ActiveList $ makeProjectList ps
   }
 
 instance ToJSON AppState where
