@@ -46,6 +46,7 @@ import           UI.Attr
 import           UI.HelpScreen
 import           UI.List                        ( renderGenericList )
 import           UI.Projects.Add
+import           UI.Projects.Details            ( projectDetailsWidget )
 
 import           Debug.Trace
 
@@ -60,13 +61,12 @@ uiApp = App { appDraw         = drawUI
 drawUI :: AppState -> [Widget Name]
 drawUI AppState { _eventHandler = FormHandler (ActiveForm form) } =
   [renderForm form]
-drawUI AppState { _eventHandler = ListHandler (ActiveList list) } =
+drawUI AppState { _eventHandler = ListHandler (ActiveList _ list) } =
   [renderGenericList list]
 drawUI s = case _activeScreen s of
   -- ProjectListScreen -> [renderProjectList $ _allProjects s]
-  HelpScreen    -> [helpWidget]
-  ProjectScreen -> [helpWidget] -- TODO: this is just temporary
-  _             -> [str "something went wrong!"]
+  HelpScreen             -> [helpWidget]
+  ProjectDetailsScreen p -> [projectDetailsWidget p]
 -- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
@@ -99,12 +99,13 @@ handleEvent s@AppState { _eventHandler = FormHandler (ActiveForm form) } ev =
       in  newForm >>= mapper
 
 -- If a list is active, delete events with `handleListEvent`
-handleEvent s@AppState { _eventHandler = ListHandler (ActiveList list) } ev =
-  case ev of
+handleEvent s@AppState { _eventHandler = ListHandler (ActiveList selectHandler list) } ev
+  = case ev of
     VtyEvent (EvKey KEnter []) -> continue s -- TODO: select item
     VtyEvent vtyEvent ->
-      let newList :: EventM Name EventHandler =
-              fmap (ListHandler . ActiveList) (handleListEvent vtyEvent list)
+      let newList :: EventM Name EventHandler = fmap
+            (ListHandler . ActiveList selectHandler)
+            (handleListEvent vtyEvent list)
           mapper :: EventHandler -> EventM Name (Next AppState)
           mapper list = continue $ eventHandler .~ list $ s
       in  newList >>= mapper

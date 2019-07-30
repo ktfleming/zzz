@@ -17,12 +17,14 @@ import           Data.Aeson                     ( ToJSON
                                                 , withObject
                                                 )
 import           Data.Vector                    ( Vector )
-import           Lens.Micro.Platform            ( makeLenses )
+import           Lens.Micro.Platform            ( makeLenses
+                                                , (.~)
+                                                )
 import           Types.CustomEvent
 import           Types.Name
 import           Types.Project
 import           Types.Screen
-import           UI.Projects.List               ( makeProjectList )
+import           UI.Projects.List
 
 class FormState a where
   -- Use the valid model contained in the form to modify the global AppState
@@ -35,8 +37,10 @@ data ActiveForm = forall x. FormState x => ActiveForm (Form x CustomEvent Name)
 instance Show ActiveForm where
   show _ = "(Form is active)"
 
+type SelectItemHandler a = AppState -> a -> AppState
+
 -- Similar to `ActiveForm`, but for Brick lists
-data ActiveList = forall x. Show x => ActiveList (GenericList Name Vector x)
+data ActiveList = forall x. Show x => ActiveList (SelectItemHandler x) (GenericList Name Vector x)
 instance Show ActiveList where
   show _ = "(List is active)"
 
@@ -53,6 +57,12 @@ handleSubmit
   :: forall x . FormState x => AppState -> Form x CustomEvent Name -> AppState
 handleSubmit appState form = submitValid appState (formState form)
 
+-- TODO: this is defined here instead of in the UI.Projects.List module
+-- to void cyclic imports for now. Have to figure out how to restructure modules
+-- to avoid this.
+projectListSelectHandler :: SelectItemHandler Project
+projectListSelectHandler s p = (activeScreen .~ ProjectDetailsScreen p) s
+
 -- Create the app's initial state; used when either reading the state
 -- from a JSON file, or for creating a completely new state when
 -- no such file exists.
@@ -60,7 +70,8 @@ initialAppState :: [Project] -> AppState
 initialAppState ps = AppState
   { _activeScreen = ProjectListScreen
   , _allProjects  = ps
-  , _eventHandler = ListHandler $ ActiveList $ makeProjectList ps
+  , _eventHandler = ListHandler
+                      $ ActiveList projectListSelectHandler (makeProjectList ps)
   }
 
 instance ToJSON AppState where

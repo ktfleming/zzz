@@ -23,8 +23,8 @@ makeLenses ''ProjectAddState
 
 instance FormState ProjectAddState where
   submitValid :: AppState -> ProjectAddState -> AppState
-  submitValid appState newProjectState =
-    let newProject = Project $ _projectName newProjectState
+  submitValid appState ProjectAddState { _projectName = newName } =
+    let newProject = Project { _projectName = newName }
     in  (allProjects <>~ [newProject]) appState
 
 mkForm :: ProjectAddState -> Form ProjectAddState CustomEvent Name
