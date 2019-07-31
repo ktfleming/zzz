@@ -4,8 +4,6 @@
 
 module Types.AppState where
 
-import           Brick.Forms
-import           Brick.Widgets.List             ( GenericList )
 import           Data.Aeson                     ( ToJSON
                                                 , toJSON
                                                 , FromJSON
@@ -15,12 +13,7 @@ import           Data.Aeson                     ( ToJSON
                                                 , (.:)
                                                 , withObject
                                                 )
-import           Data.Vector                    ( Vector )
-import           Lens.Micro.Platform            ( makeLenses
-                                                , (.~)
-                                                )
-import           Types.CustomEvent
-import           Types.Name
+import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Project
 import           Types.Screen
 import           UI.Projects.List
