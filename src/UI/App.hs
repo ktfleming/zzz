@@ -19,6 +19,7 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 )
 import           Brick.Forms                    ( renderForm
                                                 , handleFormEvent
+                                                , formState
                                                 )
 import           Brick.Util
 import           Brick.Widgets.List             ( handleListEvent
@@ -36,12 +37,11 @@ import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.CustomEvent
-import           Types.EventHandler             ( handleSubmit
-                                                , onSelect
-                                                )
+import           Types.EventHandler             ( onSelect )
 import           Types.Name
 import           Types.Screen
 import           UI.Attr
+import           UI.EventHandlers.ActiveForm    ( onSubmit )
 import           UI.HelpScreen
 import           UI.List                        ( renderGenericList )
 import           UI.Projects.Details            ( projectDetailsWidget )
@@ -78,7 +78,7 @@ handleEvent s@AppState { _activeScreen } ev = case _activeScreen of
 
   -- "Add project" form is showing: delegate to handleFormEvent, then put the updated form back in the state
   ProjectListScreen (AddingProject form) -> case ev of
-    VtyEvent (EvKey KEnter []) -> continue $ handleSubmit s form
+    VtyEvent (EvKey KEnter []) -> continue $ onSubmit s (formState form)
     _                          -> handleFormEvent ev form >>= \f ->
       continue $ (activeScreen .~ ProjectListScreen (AddingProject f)) s
 

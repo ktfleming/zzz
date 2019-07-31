@@ -1,8 +1,8 @@
 module Types.Screen where
 
 import           Types.Project
-import           UI.List                        ( ZZZList )
 import           UI.Form                        ( ZZZForm )
+import           UI.List                        ( ZZZList )
 import           UI.Projects.Add                ( ProjectAddState )
 
 data ProjectListSubscreen = AddingProject (ZZZForm ProjectAddState) | ListingProjects (ZZZList Project)
