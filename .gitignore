@@ -2,6 +2,7 @@
 zzz.cabal
 *~
 *.json
+.idea
 
 
 # Created by https://www.gitignore.io/api/macos,emacs,haskell
