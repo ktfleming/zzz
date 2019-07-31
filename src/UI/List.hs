@@ -10,7 +10,8 @@ import           Brick.Widgets.List             ( GenericList
 import           Data.Vector                    ( Vector )
 import           Types.Name
 
-renderGenericList
-  :: forall x . Show x => GenericList Name Vector x -> Widget Name
+type ZZZList x = GenericList Name Vector x
+
+renderGenericList :: forall x . Show x => ZZZList x -> Widget Name
 renderGenericList = renderList renderFn True
   where renderFn _ item = str $ show item

@@ -1,4 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module UI.App where
 
@@ -11,22 +12,18 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 , EventM
                                                 , BrickEvent
                                                 , CursorLocation
-                                                , (<+>)
-                                                , str
-                                                , withBorderStyle
                                                 , Widget
                                                 , App(..)
                                                 , continue
                                                 , halt
                                                 )
-import           Brick.Forms
-import           Brick.Types                    ( Next )
+import           Brick.Forms                    ( renderForm
+                                                , handleFormEvent
+                                                , formState
+                                                )
 import           Brick.Util
-import           Brick.Widgets.Border
-import           Brick.Widgets.Border.Style
-import           Brick.Widgets.Center           ( center )
 import           Brick.Widgets.List             ( handleListEvent
-                                                , renderList
+                                                , listSelectedElement
                                                 , listSelectedFocusedAttr
                                                 )
 import           Control.Monad.IO.Class         ( liftIO )
@@ -43,9 +40,11 @@ import           Types.CustomEvent
 import           Types.Name
 import           Types.Screen
 import           UI.Attr
+import           UI.EventHandlers.ActiveForm    ( onSubmit )
+import           UI.EventHandlers.ActiveList    ( onSelect )
 import           UI.HelpScreen
 import           UI.List                        ( renderGenericList )
-import           UI.Projects.Add
+import           UI.Projects.Details            ( projectDetailsWidget )
 
 import           Debug.Trace
 
@@ -58,60 +57,41 @@ uiApp = App { appDraw         = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI AppState { _activeForm = ActiveForm (Just form) } = [renderForm form]
-drawUI AppState { _activeList = ActiveList (Just list) } =
-  [renderGenericList list]
-drawUI s = case _activeScreen s of
-  -- ProjectListScreen -> [renderProjectList $ _allProjects s]
-  HelpScreen    -> [helpWidget]
-  ProjectScreen -> [helpWidget] -- TODO: this is just temporary
-  _             -> [str "something went wrong!"]
--- drawUI s = [withBorderStyle unicode $ borderWithLabel (str "Hello!") $ (center (str "Left") <+> vBorder <+> center (str "Right"))]
+drawUI AppState { _allProjects, _activeScreen } = case _activeScreen of
+  ProjectDetailsScreen p                   -> [projectDetailsWidget p]
+  HelpScreen                               -> [helpWidget]
+  ProjectListScreen (AddingProject   form) -> [renderForm form]
+  ProjectListScreen (ListingProjects list) -> [renderGenericList list]
+
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
 
 handleEvent
-  :: forall a
-   . AppState
-  -> BrickEvent Name CustomEvent
-  -> EventM Name (Next AppState)
+  :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
 handleEvent s (VtyEvent (EvKey KEsc [])) = trace (show s) $ continue s -- For debugging
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
 
--- When a form is active, use `handleFormEvent` to send events to the form, unless the Enter key is pressed, in which case
--- we activate the form's submit handler
-handleEvent s@AppState { _activeForm = ActiveForm (Just form) } ev = case ev of
-  VtyEvent (EvKey KEnter []) -> continue $ handleSubmit s form
-  _ ->
-    -- Use handleFormEvent to update the form (reflect text entered, control focused, etc)
-    -- Then we need to bind over the new form, using a lens to update the `_activeForm` field
-    -- in our AppState in order to get the new AppState (so it will be rendered properly in `drawUI`),
-    -- then finally `continue` with the updated AppState
-    let newForm :: EventM Name ActiveForm =
-            fmap (ActiveForm . Just) (handleFormEvent ev form)
-        mapper :: ActiveForm -> EventM Name (Next AppState)
-        mapper form = continue $ activeForm .~ form $ s
-    in  newForm >>= mapper
+handleEvent s@AppState { _activeScreen } ev = case _activeScreen of
 
--- If a list is active, delete events with `handleListEvent`
-handleEvent s@AppState { _activeList = ActiveList (Just list) } ev = case ev of
-  VtyEvent (EvKey KEnter []) -> continue s -- TODO: select item
-  VtyEvent vtyEvent ->
-    let newList :: EventM Name ActiveList =
-            fmap (ActiveList . Just) (handleListEvent vtyEvent list)
-        mapper :: ActiveList -> EventM Name (Next AppState)
-        mapper list = continue $ activeList .~ list $ s
-    in  newList >>= mapper
-  _ -> continue s -- non-vty events won't affect the list
-handleEvent s (VtyEvent (EvKey (KChar 'p') [])) =
-  continue $ activeScreen .~ ProjectListScreen $ s
-handleEvent s (VtyEvent (EvKey (KChar 'h') [])) =
-  continue $ activeScreen .~ HelpScreen $ s
-handleEvent s (VtyEvent (EvKey (KChar 'q') [])) = halt s  -- 'q' to quit
-handleEvent s _ = continue s
+  -- "Add project" form is showing: delegate to handleFormEvent, then put the updated form back in the state
+  ProjectListScreen (AddingProject form) -> case ev of
+    VtyEvent (EvKey KEnter []) -> continue $ onSubmit s (formState form)
+    _                          -> handleFormEvent ev form >>= \f ->
+      continue $ (activeScreen .~ ProjectListScreen (AddingProject f)) s
+
+  -- Project list is showing: delegate to handleListEvent, then put the updated list back in the state
+  -- ...unless the ENTER key is pressed, which case run the appropriate select handler
+  ProjectListScreen (ListingProjects list) -> case ev of
+    VtyEvent (EvKey KEnter []) -> case listSelectedElement list of
+      Just (_, selected) -> continue $ onSelect s selected
+      Nothing            -> continue s
+    VtyEvent vtyEvent -> handleListEvent vtyEvent list >>= \l ->
+      continue $ (activeScreen .~ ProjectListScreen (ListingProjects l)) s
+    _ -> continue s -- non-vty events won't affect the list
+  _ -> continue s
 
 startEvent :: AppState -> EventM Name AppState
 startEvent = return
