@@ -37,11 +37,11 @@ import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.CustomEvent
-import           Types.EventHandler             ( onSelect )
 import           Types.Name
 import           Types.Screen
 import           UI.Attr
 import           UI.EventHandlers.ActiveForm    ( onSubmit )
+import           UI.EventHandlers.ActiveList    ( onSelect )
 import           UI.HelpScreen
 import           UI.List                        ( renderGenericList )
 import           UI.Projects.Details            ( projectDetailsWidget )
