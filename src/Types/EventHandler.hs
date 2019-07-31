@@ -1,15 +1,10 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE NamedFieldPuns #-}
 {-# LANGUAGE DisambiguateRecordFields #-}
 {-# LANGUAGE InstanceSigs #-}
 
 module Types.EventHandler where
 
-import           Brick.Forms                    ( Form
-                                                , formState
-                                                )
-import           Brick.Widgets.List             ( GenericList )
-import           Data.Vector
+import           Brick.Forms                    ( formState )
 import           Lens.Micro.Platform            ( (.~)
                                                 , (<>~)
                                                 )
@@ -17,14 +12,11 @@ import           Types.AppState                 ( AppState(..)
                                                 , activeScreen
                                                 , allProjects
                                                 )
-import           Types.CustomEvent
-import           Types.Name
 import           Types.Project
 import           Types.Screen
 import           UI.Form                        ( ZZZForm )
 import           UI.List                        ( ZZZList )
 import           UI.Projects.Add                ( ProjectAddState(..) )
-import           UI.Projects.List               ( makeProjectList )
 
 class FormState a where
   -- Use the valid model contained in the form to modify the global AppState

@@ -8,7 +8,8 @@ import           UI.Projects.Add                ( ProjectAddState )
 data ProjectListSubscreen = AddingProject (ZZZForm ProjectAddState) | ListingProjects (ZZZList Project)
 
 instance Show ProjectListSubscreen where
-  show _ = "TODO"
+  show (AddingProject   _) = "AddingProject"
+  show (ListingProjects _) = "ListingProjects"
 
 -- Represents what main "view" of the app the user is looking at
 data Screen =

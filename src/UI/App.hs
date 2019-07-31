@@ -19,8 +19,6 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 )
 import           Brick.Forms                    ( renderForm
                                                 , handleFormEvent
-                                                , formState
-                                                , Form
                                                 )
 import           Brick.Util
 import           Brick.Widgets.List             ( handleListEvent
@@ -38,10 +36,7 @@ import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.CustomEvent
-import           Types.EventHandler             ( EventHandler(..)
-                                                , ActiveForm(..)
-                                                , ActiveList(..)
-                                                , handleSubmit
+import           Types.EventHandler             ( handleSubmit
                                                 , projectListSelectHandler
                                                 )
 import           Types.Name
@@ -49,11 +44,7 @@ import           Types.Screen
 import           UI.Attr
 import           UI.HelpScreen
 import           UI.List                        ( renderGenericList )
-import           UI.Projects.Add                ( mkForm
-                                                , ProjectAddState
-                                                )
 import           UI.Projects.Details            ( projectDetailsWidget )
-import           UI.Projects.List               ( makeProjectList )
 
 import           Debug.Trace
 
@@ -70,7 +61,7 @@ drawUI AppState { _allProjects, _activeScreen } = case _activeScreen of
   ProjectDetailsScreen p                   -> [projectDetailsWidget p]
   HelpScreen                               -> [helpWidget]
   ProjectListScreen (AddingProject   form) -> [renderForm form]
-  ProjectListScreen (ListingProjects list) -> [renderGenericList $ list]
+  ProjectListScreen (ListingProjects list) -> [renderGenericList list]
 
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
