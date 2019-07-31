@@ -37,7 +37,7 @@ import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.CustomEvent
 import           Types.EventHandler             ( handleSubmit
-                                                , projectListSelectHandler
+                                                , onSelect
                                                 )
 import           Types.Name
 import           Types.Screen
@@ -86,7 +86,7 @@ handleEvent s@AppState { _activeScreen } ev = case _activeScreen of
   -- ...unless the ENTER key is pressed, which case run the appropriate select handler
   ProjectListScreen (ListingProjects list) -> case ev of
     VtyEvent (EvKey KEnter []) -> case listSelectedElement list of
-      Just (_, selected) -> continue $ projectListSelectHandler s selected
+      Just (_, selected) -> continue $ onSelect s selected
       Nothing            -> continue s
     VtyEvent vtyEvent -> handleListEvent vtyEvent list >>= \l ->
       continue $ (activeScreen .~ ProjectListScreen (ListingProjects l)) s
