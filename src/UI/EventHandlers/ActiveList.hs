@@ -1,23 +1,33 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module UI.EventHandlers.ActiveList where
 
-import           Lens.Micro.Platform            ( (.~) )
-import           Types.AppState
-import           Types.Project
-import           Types.Screen
 import           UI.List                        ( ZZZList )
+import           UI.ShowDetails                 ( ShowDetails )
+import           Types.WithID                   ( HasID )
+import           Types.Project                  ( Project
+                                                , ProjectListItem
+                                                )
+import           Types.RequestDefinition        ( RequestDefinition
+                                                , RequestDefinitionListItem
+                                                )
 
-class ListSelectable a where
-  onSelect :: AppState -> a -> AppState
+class HasID a => Listable a where
+  type family ListItem a = b | b -> a -- The type that represents an `a` shown in a list
 
--- Similar to `ActiveForm`, but for Brick lists
-data ActiveList = forall x. ListSelectable x => ActiveList (ZZZList x)
+-- Similar to `ActiveForm`, but for Brick lists. Any item in the list must
+-- be able to have its details shown to the user.
+data ActiveList = forall a. (ShowDetails a, Listable a) => ActiveList (ZZZList a)
 
-instance ListSelectable Project where
-  onSelect :: AppState -> Project -> AppState
-  onSelect s p = (activeScreen .~ ProjectDetailsScreen p) s
+instance Listable Project where
+  type ListItem Project = ProjectListItem
+
+instance Listable RequestDefinition where
+  type ListItem RequestDefinition = RequestDefinitionListItem
 
 instance Show ActiveList where
   show _ = "(List is active)"

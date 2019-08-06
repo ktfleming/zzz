@@ -1,3 +1,8 @@
 module Types.Name where
 
-data Name = ProjectNameField | ProjectList deriving (Eq, Ord, Show)
+data Name = ProjectAddNameField
+          | ProjectEditNameField
+          | ProjectList
+          | RequestDefinitionList
+          | RequestDefinitionNameField
+          deriving (Eq, Ord, Show)

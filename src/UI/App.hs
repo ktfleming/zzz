@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module UI.App where
 
@@ -16,6 +17,12 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 , App(..)
                                                 , continue
                                                 , halt
+                                                , txt
+                                                , (<=>)
+                                                , withBorderStyle
+                                                , joinBorders
+                                                , padBottom
+                                                , BrickEvent
                                                 )
 import           Brick.Forms                    ( renderForm
                                                 , handleFormEvent
@@ -28,9 +35,7 @@ import           Brick.Widgets.List             ( handleListEvent
                                                 )
 import           Control.Monad.IO.Class         ( liftIO )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
-import           Data.ByteString.Lazy           ( ByteString
-                                                , writeFile
-                                                )
+import           Data.ByteString.Lazy           ( writeFile )
 import qualified Graphics.Vty                  as V
 import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
@@ -40,13 +45,37 @@ import           Types.CustomEvent
 import           Types.Name
 import           Types.Screen
 import           UI.Attr
-import           UI.EventHandlers.ActiveForm    ( onSubmit )
-import           UI.EventHandlers.ActiveList    ( onSelect )
+import           UI.EventHandlers.ActiveForm    ( finishEditing
+                                                , showEditScreen
+                                                , Editable
+                                                , EditState
+                                                , updateForm
+                                                )
+import           UI.ShowDetails                 ( showDetails
+                                                , ShowDetails
+                                                )
 import           UI.HelpScreen
-import           UI.List                        ( renderGenericList )
-import           UI.Projects.Details            ( projectDetailsWidget )
+import           UI.List                        ( renderGenericList
+                                                , ZZZList
+                                                )
+import           Types.Displayable              ( display )
 
-import           Debug.Trace
+--import           Debug.Trace
+import           Brick.Widgets.Border           ( border
+                                                , hBorder
+                                                )
+import           Brick.Widgets.Border.Style     ( unicodeRounded )
+import           Brick.Types                    ( Padding(Max) )
+import           Types.Project
+import           Types.RequestDefinition
+import           Graphics.Vty                   ( withForeColor )
+import qualified Data.Map.Strict               as Map
+import           UI.Projects.List               ( makeProjectList )
+import           UI.Form                        ( ZZZForm )
+import           Types.WithID
+import           UI.EventHandlers.ActiveList    ( Listable
+                                                , ListItem
+                                                )
 
 uiApp :: App AppState CustomEvent Name
 uiApp = App { appDraw         = drawUI
@@ -57,41 +86,103 @@ uiApp = App { appDraw         = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI AppState { _allProjects, _activeScreen } = case _activeScreen of
-  ProjectDetailsScreen p                   -> [projectDetailsWidget p]
-  HelpScreen                               -> [helpWidget]
-  ProjectListScreen (AddingProject   form) -> [renderForm form]
-  ProjectListScreen (ListingProjects list) -> [renderGenericList list]
-
+drawUI s@AppState { _projects, _activeScreen } =
+  let
+    mainWidget = case _activeScreen of
+      HelpScreen                  -> helpWidget
+      ProjectAddScreen  form      -> renderForm form
+      ProjectListScreen list      -> renderGenericList list
+      ProjectEditScreen    _ form -> renderForm form
+      ProjectDetailsScreen _ list -> renderGenericList list
+      RequestDetailsScreen c ->
+        let r = lookupRequestDefinition s c in txt $ display r
+      RequestEditScreen _ form -> renderForm form
+    helpText = case _activeScreen of
+      ProjectListScreen{} -> "Enter: View project"
+      ProjectDetailsScreen{} ->
+        "Enter: View request definition | Left: back | e: Edit Project"
+      RequestDetailsScreen{} -> "Left: back | e: Edit request definition"
+      ProjectEditScreen{}    -> "Enter: Save | ESC: Return without saving"
+      RequestEditScreen{}    -> "Enter: Save | ESC: Return without saving"
+      _                      -> "todo"
+    titleLine = txt $ title s _activeScreen
+    helpLine  = txt helpText
+    everything =
+      titleLine
+        <=> hBorder
+        <=> padBottom Max mainWidget
+        <=> hBorder
+        <=> helpLine
+  in
+    [withBorderStyle unicodeRounded $ (joinBorders . border) everything]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
 
+interceptFormEvent
+  :: Editable a
+  => AppState
+  -> Context a
+  -> BrickEvent Name CustomEvent
+  -> ZZZForm (EditState a)
+  -> EventM Name (Next AppState)
+interceptFormEvent s c ev form =
+  handleFormEvent ev form >>= \f -> continue $ updateForm s c f
+
+interceptListEvent
+  :: (ShowDetails a, Listable a)
+  => AppState
+  -> Key
+  -> ZZZList (ListItem a)
+  -> (ZZZList (ListItem a) -> Screen)
+  -> EventM Name (Next AppState)
+interceptListEvent s key list screenMaker = handleListEvent (EvKey key []) list
+  >>= \l -> continue $ (activeScreen .~ screenMaker l) s
+
 handleEvent
   :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
-handleEvent s (VtyEvent (EvKey KEsc [])) = trace (show s) $ continue s -- For debugging
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
 
-handleEvent s@AppState { _activeScreen } ev = case _activeScreen of
+handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
+  = case _activeScreen of
+    RequestDetailsScreen context@(RequestDefinitionContext pid _) ->
+      case key of
+        KLeft     -> continue $ showDetails s (ProjectContext pid)
+        KChar 'e' -> continue $ showEditScreen s context
+        _         -> continue s
 
-  -- "Add project" form is showing: delegate to handleFormEvent, then put the updated form back in the state
-  ProjectListScreen (AddingProject form) -> case ev of
-    VtyEvent (EvKey KEnter []) -> continue $ onSubmit s (formState form)
-    _                          -> handleFormEvent ev form >>= \f ->
-      continue $ (activeScreen .~ ProjectListScreen (AddingProject f)) s
+    RequestEditScreen context form -> case key of
+      KEnter -> continue $ finishEditing s context (formState form)
+      KEsc   -> continue $ showDetails s context
+      _      -> interceptFormEvent s context ev form
 
-  -- Project list is showing: delegate to handleListEvent, then put the updated list back in the state
-  -- ...unless the ENTER key is pressed, which case run the appropriate select handler
-  ProjectListScreen (ListingProjects list) -> case ev of
-    VtyEvent (EvKey KEnter []) -> case listSelectedElement list of
-      Just (_, selected) -> continue $ onSelect s selected
-      Nothing            -> continue s
-    VtyEvent vtyEvent -> handleListEvent vtyEvent list >>= \l ->
-      continue $ (activeScreen .~ ProjectListScreen (ListingProjects l)) s
-    _ -> continue s -- non-vty events won't affect the list
-  _ -> continue s
+    ProjectListScreen list -> case key of
+      KEnter -> case listSelectedElement list of
+        Just (_, ProjectListItem context _) -> continue $ showDetails s context
+        Nothing                             -> continue s
+      _ -> interceptListEvent s key list ProjectListScreen
+
+    ProjectDetailsScreen c list -> case key of
+      KEnter -> case listSelectedElement list of
+        Just (_, RequestDefinitionListItem reqContext _) ->
+          continue $ showDetails s reqContext
+        Nothing -> continue s
+      KChar 'e' -> continue $ showEditScreen s c
+      KLeft ->
+        let projectList = makeProjectList (Map.elems _projects)
+        in  continue $ (activeScreen .~ ProjectListScreen projectList) s
+      _ -> interceptListEvent s key list (ProjectDetailsScreen c)
+
+    ProjectEditScreen context form -> case key of
+      KEnter -> continue $ finishEditing s context (formState form)
+      KEsc   -> continue $ showDetails s context
+      _      -> interceptFormEvent s context ev form
+
+    _ -> continue s
+
+handleEvent s _ = continue s
 
 startEvent :: AppState -> EventM Name AppState
 startEvent = return
@@ -99,11 +190,9 @@ startEvent = return
 myMap :: AttrMap
 myMap = attrMap
   V.defAttr
-  [ (listSelectedFocusedAttr, Brick.Util.bg V.green)
+  [ (listSelectedFocusedAttr, withForeColor (Brick.Util.bg V.green) V.black)
   , (highlighted            , Brick.Util.bg V.blue)
   ]
 
 saveState :: AppState -> IO ()
-saveState s =
-  let jsonified :: ByteString = encodePretty s
-  in  writeFile mainSettingsFile jsonified
+saveState s = writeFile mainSettingsFile (encodePretty s)

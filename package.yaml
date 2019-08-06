@@ -30,6 +30,8 @@ dependencies:
 - directory
 - transformers
 - vector
+- uuid
+- containers
 
 library:
   source-dirs:
@@ -37,6 +39,7 @@ library:
   exposed-modules:
     - Types.AppState
     - Types.Constants
+    - Types.Screen
     - UI.App
 
 executables:
