@@ -1,17 +1,22 @@
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE FlexibleContexts #-}
+
 module UI.List where
 
 import           Brick                          ( Widget
-                                                , str
+                                                , txt
+                                                , padRight
                                                 )
 import           Brick.Widgets.List             ( GenericList
                                                 , renderList
                                                 )
 import           Data.Vector                    ( Vector )
 import           Types.Name
+import           Types.Displayable
+import           Brick.Types                    ( Padding(Max) )
 
 type ZZZList x = GenericList Name Vector x
 
-renderGenericList :: forall x . Show x => ZZZList x -> Widget Name
-renderGenericList = renderList renderFn True
-  where renderFn _ item = str $ show item
+renderGenericList :: Displayable x => ZZZList x -> Widget Name
+renderGenericList = renderList f True
+  where f _ item = padRight Max $ txt $ display item

@@ -1,6 +1,8 @@
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE RecordWildCards #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module Types.AppState where
 
@@ -17,26 +19,46 @@ import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Project
 import           Types.Screen
 import           UI.Projects.List
-
+import           Data.Map.Strict                ( (!) )
+import qualified Data.Map.Strict               as Map
+import qualified Data.Text                     as T
+import           Types.RequestDefinition
+import           Types.ID                       ( ProjectID )
 
 data AppState = AppState { _activeScreen :: Screen
-                         , _allProjects :: [Project]
+                         , _projects :: Map.Map ProjectID Project
                          } deriving (Show)
+
 makeLenses ''AppState
 
--- Create the app's initial state; used when either reading the state
--- from a JSON file, or for creating a completely new state when
--- no such file exists.
-initialAppState :: [Project] -> AppState
-initialAppState ps = AppState
-  { _activeScreen = ProjectListScreen $ ListingProjects $ makeProjectList ps
-  , _allProjects  = ps
-  }
-
 instance ToJSON AppState where
-  toJSON AppState {..} = object ["allProjects" .= _allProjects]
+  toJSON AppState { _projects } = object ["projects" .= _projects]
 
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
-    projects <- o .: "allProjects"
-    return $ initialAppState projects
+    ps <- o .: "projects"
+    return $ AppState
+      { _activeScreen = ProjectListScreen $ makeProjectList (Map.elems ps)
+      , _projects     = ps
+      }
+
+lookupProject :: AppState -> ProjectContext -> Project
+lookupProject AppState { _projects } (ProjectContext pid) = _projects ! pid
+
+lookupRequestDefinition
+  :: AppState -> RequestDefinitionContext -> RequestDefinition
+lookupRequestDefinition s (RequestDefinitionContext pid rid) =
+  let Project { _requestDefinitions } = lookupProject s (ProjectContext pid)
+  in  _requestDefinitions ! rid
+
+title :: AppState -> Screen -> T.Text
+title _ (ProjectAddScreen  _  ) = "New Project"
+title _ (ProjectListScreen _  ) = "All Projects"
+title s (ProjectEditScreen c _) = let p = lookupProject s c in _projectName p
+title s (ProjectDetailsScreen c _) =
+  let p = lookupProject s c in _projectName p
+title s (RequestDetailsScreen c) =
+  let r = lookupRequestDefinition s c in _requestDefinitionName r
+title s (RequestEditScreen c _) =
+  let req = lookupRequestDefinition s c in _requestDefinitionName req
+title _ HelpScreen = "Help"

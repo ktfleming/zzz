@@ -5,6 +5,9 @@ import           Data.Vector                    ( fromList )
 import           Types.Name
 import           Types.Project
 import           UI.List                        ( ZZZList )
+import           Types.ContextTransformers      ( projectListItem )
 
-makeProjectList :: [Project] -> ZZZList Project
-makeProjectList ps = list ProjectList (fromList ps) 1
+makeProjectList :: [Project] -> ZZZList ProjectListItem
+makeProjectList ps =
+  let listItems = fmap projectListItem (fromList ps)
+  in  list ProjectList listItems 1

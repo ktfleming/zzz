@@ -8,7 +8,7 @@ import           Brick                          ( str
                                                 )
 import           Brick.Forms
 import qualified Data.Text                     as T
-import           Lens.Micro.Platform
+import           Lens.Micro.Platform            ( makeLenses )
 import           Types.CustomEvent
 import           Types.Name
 
@@ -19,5 +19,5 @@ makeLenses ''ProjectAddState
 mkForm :: ProjectAddState -> Form ProjectAddState CustomEvent Name
 mkForm = newForm
   [ (str "Project Name: " <+>)
-      @@= editTextField UI.Projects.Add.projectName ProjectNameField (Just 1)
+      @@= editTextField UI.Projects.Add.projectName ProjectAddNameField (Just 1)
   ]
