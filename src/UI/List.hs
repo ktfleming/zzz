@@ -1,6 +1,3 @@
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleContexts          #-}
-
 module UI.List where
 
 import           Brick              (Widget, padRight, txt)

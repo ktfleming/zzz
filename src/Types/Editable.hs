@@ -1,9 +1,6 @@
-{-# LANGUAGE DisambiguateRecordFields  #-}
-{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE InstanceSigs              #-}
 {-# LANGUAGE NamedFieldPuns            #-}
 {-# LANGUAGE OverloadedStrings         #-}
-{-# LANGUAGE ScopedTypeVariables       #-}
 {-# LANGUAGE TypeFamilyDependencies    #-}
 
 module Types.Editable where
