@@ -1,19 +1,14 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleContexts          #-}
 
 module UI.List where
 
-import           Brick                          ( Widget
-                                                , txt
-                                                , padRight
-                                                )
-import           Brick.Widgets.List             ( GenericList
-                                                , renderList
-                                                )
-import           Data.Vector                    ( Vector )
-import           Types.Name
+import           Brick              (Widget, padRight, txt)
+import           Brick.Types        (Padding (Max))
+import           Brick.Widgets.List (GenericList, renderList)
+import           Data.Vector        (Vector)
 import           Types.Displayable
-import           Brick.Types                    ( Padding(Max) )
+import           Types.Name
 
 type ZZZList x = GenericList Name Vector x
 

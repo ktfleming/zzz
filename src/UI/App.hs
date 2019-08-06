@@ -1,89 +1,60 @@
+{-# LANGUAGE NamedFieldPuns      #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
 
 module UI.App where
 
-import           Prelude                 hiding ( writeFile )
+import           Prelude                    hiding (writeFile)
 
-import           Brick                          ( BrickEvent(VtyEvent)
-                                                , attrMap
-                                                , AttrMap
-                                                , Next
-                                                , EventM
-                                                , BrickEvent
-                                                , CursorLocation
-                                                , Widget
-                                                , App(..)
-                                                , continue
-                                                , halt
-                                                , txt
-                                                , (<=>)
-                                                , withBorderStyle
-                                                , joinBorders
-                                                , padBottom
-                                                , BrickEvent
-                                                )
-import           Brick.Forms                    ( renderForm
-                                                , handleFormEvent
-                                                , formState
-                                                )
+import           Brick                      (App (..), AttrMap,
+                                             BrickEvent (VtyEvent), BrickEvent,
+                                             BrickEvent, CursorLocation, EventM,
+                                             Next, Widget, attrMap, continue,
+                                             halt, joinBorders, padBottom, txt,
+                                             withBorderStyle, (<=>))
+import           Brick.Forms                (formState, handleFormEvent,
+                                             renderForm)
+import           Brick.Types                (Padding (Max))
 import           Brick.Util
-import           Brick.Widgets.List             ( handleListEvent
-                                                , listSelectedElement
-                                                , listSelectedFocusedAttr
-                                                )
-import           Control.Monad.IO.Class         ( liftIO )
-import           Data.Aeson.Encode.Pretty       ( encodePretty )
-import           Data.ByteString.Lazy           ( writeFile )
-import qualified Graphics.Vty                  as V
+import           Brick.Widgets.Border       (border, hBorder)
+import           Brick.Widgets.Border.Style (unicodeRounded)
+import           Brick.Widgets.List         (handleListEvent,
+                                             listSelectedElement,
+                                             listSelectedFocusedAttr)
+import           Control.Monad.IO.Class     (liftIO)
+import           Data.Aeson.Encode.Pretty   (encodePretty)
+import           Data.ByteString.Lazy       (writeFile)
+import qualified Data.Map.Strict            as Map
+import           Graphics.Vty               (withForeColor)
+import qualified Graphics.Vty               as V
 import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
+import           Types.Addable              (finishAdding, makeAddForm,
+                                             updateAddForm)
 import           Types.AppState
-import           Types.Constants                ( mainSettingsFile )
+import           Types.Constants            (mainSettingsFile)
 import           Types.CustomEvent
+import           Types.Displayable          (display)
+import           Types.Editable             (finishEditing, showEditScreen,
+                                             updateEditForm)
 import           Types.Name
-import           Types.Screen
-import           UI.Attr
-import           UI.EventHandlers.ActiveForm    ( finishEditing
-                                                , showEditScreen
-                                                , Editable
-                                                , EditState
-                                                , updateForm
-                                                )
-import           UI.ShowDetails                 ( showDetails
-                                                , ShowDetails
-                                                )
-import           UI.HelpScreen
-import           UI.List                        ( renderGenericList
-                                                , ZZZList
-                                                )
-import           Types.Displayable              ( display )
-
---import           Debug.Trace
-import           Brick.Widgets.Border           ( border
-                                                , hBorder
-                                                )
-import           Brick.Widgets.Border.Style     ( unicodeRounded )
-import           Brick.Types                    ( Padding(Max) )
 import           Types.Project
 import           Types.RequestDefinition
-import           Graphics.Vty                   ( withForeColor )
-import qualified Data.Map.Strict               as Map
-import           UI.Projects.List               ( makeProjectList )
-import           UI.Form                        ( ZZZForm )
-import           Types.WithID
-import           UI.EventHandlers.ActiveList    ( Listable
-                                                , ListItem
-                                                )
+import           Types.Screen
+import           UI.Attr
+import           UI.HelpScreen
+import           UI.List                    (renderGenericList)
+import           UI.Projects.List           (makeProjectList)
+import           UI.ShowDetails             (showDetails)
 
 uiApp :: App AppState CustomEvent Name
-uiApp = App { appDraw         = drawUI
-            , appChooseCursor = chooseCursor
-            , appHandleEvent  = handleEvent
-            , appStartEvent   = startEvent
-            , appAttrMap      = const myMap
-            }
+uiApp = App
+  { appDraw         = drawUI
+  , appChooseCursor = chooseCursor
+  , appHandleEvent  = handleEvent
+  , appStartEvent   = startEvent
+  , appAttrMap      = const myMap
+  }
 
 drawUI :: AppState -> [Widget Name]
 drawUI s@AppState { _projects, _activeScreen } =
@@ -98,13 +69,14 @@ drawUI s@AppState { _projects, _activeScreen } =
         let r = lookupRequestDefinition s c in txt $ display r
       RequestEditScreen _ form -> renderForm form
     helpText = case _activeScreen of
-      ProjectListScreen{} -> "Enter: View project"
+      ProjectAddScreen{} -> "Enter: Finish adding | ESC: Return without adding"
+      ProjectListScreen{} -> "Enter: View project | a: Add Project"
       ProjectDetailsScreen{} ->
         "Enter: View request definition | Left: back | e: Edit Project"
       RequestDetailsScreen{} -> "Left: back | e: Edit request definition"
       ProjectEditScreen{}    -> "Enter: Save | ESC: Return without saving"
       RequestEditScreen{}    -> "Enter: Save | ESC: Return without saving"
-      _                      -> "todo"
+      HelpScreen             -> "todo"
     titleLine = txt $ title s _activeScreen
     helpLine  = txt helpText
     everything =
@@ -113,31 +85,10 @@ drawUI s@AppState { _projects, _activeScreen } =
         <=> padBottom Max mainWidget
         <=> hBorder
         <=> helpLine
-  in
-    [withBorderStyle unicodeRounded $ (joinBorders . border) everything]
+  in [withBorderStyle unicodeRounded $ (joinBorders . border) everything]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
-
-interceptFormEvent
-  :: Editable a
-  => AppState
-  -> Context a
-  -> BrickEvent Name CustomEvent
-  -> ZZZForm (EditState a)
-  -> EventM Name (Next AppState)
-interceptFormEvent s c ev form =
-  handleFormEvent ev form >>= \f -> continue $ updateForm s c f
-
-interceptListEvent
-  :: (ShowDetails a, Listable a)
-  => AppState
-  -> Key
-  -> ZZZList (ListItem a)
-  -> (ZZZList (ListItem a) -> Screen)
-  -> EventM Name (Next AppState)
-interceptListEvent s key list screenMaker = handleListEvent (EvKey key []) list
-  >>= \l -> continue $ (activeScreen .~ screenMaker l) s
 
 handleEvent
   :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
@@ -153,16 +104,18 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
         KChar 'e' -> continue $ showEditScreen s context
         _         -> continue s
 
-    RequestEditScreen context form -> case key of
-      KEnter -> continue $ finishEditing s context (formState form)
-      KEsc   -> continue $ showDetails s context
-      _      -> interceptFormEvent s context ev form
+    RequestEditScreen c form -> case key of
+      KEnter -> continue $ finishEditing s c (formState form)
+      KEsc -> continue $ showDetails s c
+      _ -> handleFormEvent ev form >>= \f -> continue $ updateEditForm s c f
 
     ProjectListScreen list -> case key of
       KEnter -> case listSelectedElement list of
         Just (_, ProjectListItem context _) -> continue $ showDetails s context
         Nothing                             -> continue s
-      _ -> interceptListEvent s key list ProjectListScreen
+      KChar 'a' -> continue $ (activeScreen .~ ProjectAddScreen makeAddForm) s
+      _         -> handleListEvent (EvKey key []) list
+        >>= \l -> continue $ (activeScreen .~ ProjectListScreen l) s
 
     ProjectDetailsScreen c list -> case key of
       KEnter -> case listSelectedElement list of
@@ -172,13 +125,19 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
       KChar 'e' -> continue $ showEditScreen s c
       KLeft ->
         let projectList = makeProjectList (Map.elems _projects)
-        in  continue $ (activeScreen .~ ProjectListScreen projectList) s
-      _ -> interceptListEvent s key list (ProjectDetailsScreen c)
+        in continue $ (activeScreen .~ ProjectListScreen projectList) s
+      _ -> handleListEvent (EvKey key []) list
+        >>= \l -> continue $ (activeScreen .~ ProjectDetailsScreen c l) s
 
-    ProjectEditScreen context form -> case key of
-      KEnter -> continue $ finishEditing s context (formState form)
-      KEsc   -> continue $ showDetails s context
-      _      -> interceptFormEvent s context ev form
+    ProjectEditScreen c form -> case key of
+      KEnter -> continue $ finishEditing s c (formState form)
+      KEsc -> continue $ showDetails s c
+      _ -> handleFormEvent ev form >>= \f -> continue $ updateEditForm s c f
+
+    ProjectAddScreen form -> case key of
+      KEnter -> liftIO (finishAdding s (formState form)) >>= continue
+      KEsc -> continue $ (activeScreen .~ ProjectListScreen (makeProjectList (Map.elems _projects))) s
+      _      -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s f
 
     _ -> continue s
 

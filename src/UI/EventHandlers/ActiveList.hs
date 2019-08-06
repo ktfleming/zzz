@@ -1,20 +1,17 @@
 {-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE TypeFamilyDependencies #-}
-{-# LANGUAGE InstanceSigs #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE FlexibleInstances         #-}
+{-# LANGUAGE InstanceSigs              #-}
+{-# LANGUAGE NamedFieldPuns            #-}
+{-# LANGUAGE TypeFamilyDependencies    #-}
 
 module UI.EventHandlers.ActiveList where
 
-import           UI.List                        ( ZZZList )
-import           UI.ShowDetails                 ( ShowDetails )
-import           Types.WithID                   ( HasID )
-import           Types.Project                  ( Project
-                                                , ProjectListItem
-                                                )
-import           Types.RequestDefinition        ( RequestDefinition
-                                                , RequestDefinitionListItem
-                                                )
+import           Types.Project           (Project, ProjectListItem)
+import           Types.RequestDefinition (RequestDefinition,
+                                          RequestDefinitionListItem)
+import           Types.WithID            (HasID)
+import           UI.List                 (ZZZList)
+import           UI.ShowDetails          (ShowDetails)
 
 class HasID a => Listable a where
   type family ListItem a = b | b -> a -- The type that represents an `a` shown in a list

@@ -1,28 +1,19 @@
-{-# LANGUAGE NamedFieldPuns #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE InstanceSigs               #-}
+{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE TypeFamilies               #-}
 
 module Types.RequestDefinition where
 
-import           Data.Aeson                     ( ToJSON
-                                                , FromJSON
-                                                , toJSON
-                                                , parseJSON
-                                                , object
-                                                , (.=)
-                                                , withObject
-                                                , (.:)
-                                                )
-import qualified Data.Text                     as T
+import           Data.Aeson          (FromJSON, ToJSON, object, parseJSON,
+                                      toJSON, withObject, (.:), (.=))
+import qualified Data.Text           as T
+import           Lens.Micro.Platform (makeLenses)
 import           Types.Displayable
-import           Types.ID                       ( ProjectID
-                                                , RequestDefinitionID
-                                                )
-import           Lens.Micro.Platform            ( makeLenses )
+import           Types.ID            (ProjectID, RequestDefinitionID)
 
 
 data RequestDefinition = RequestDefinition { requestDefinitionID :: RequestDefinitionID, _requestDefinitionName :: T.Text } deriving (Show)
@@ -37,9 +28,10 @@ instance FromJSON RequestDefinition where
   parseJSON = withObject "RequestDefinition" $ \o -> do
     rid  <- o .: "id"
     name <- o .: "name"
-    return $ RequestDefinition { requestDefinitionID    = rid
-                               , _requestDefinitionName = name
-                               }
+    return $ RequestDefinition
+      { requestDefinitionID    = rid
+      , _requestDefinitionName = name
+      }
 
 data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text

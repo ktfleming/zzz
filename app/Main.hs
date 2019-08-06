@@ -1,19 +1,19 @@
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
 
-import           Brick                          ( defaultMain )
+import           Brick                      (defaultMain)
 import           Control.Monad.Trans.Except
-import           Data.Aeson                     ( eitherDecode )
-import           Data.ByteString.Lazy           ( readFile )
-import           Prelude                 hiding ( readFile )
-import           System.Directory               ( doesFileExist )
+import           Data.Aeson                 (eitherDecode)
+import           Data.ByteString.Lazy       (readFile)
+import qualified Data.Map.Strict            as Map
+import           Prelude                    hiding (readFile)
+import           System.Directory           (doesFileExist)
 import           Types.AppState
-import           Types.Constants                ( mainSettingsFile )
+import           Types.Constants            (mainSettingsFile)
 import           Types.Screen
-import           UI.App                         ( uiApp )
-import qualified Data.Map.Strict               as Map
+import           UI.App                     (uiApp)
 
 getAppStateFromFile :: ExceptT String IO AppState
 getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile

@@ -1,29 +1,18 @@
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE TypeFamilies      #-}
 
 module Types.Project where
 
-import           Data.Aeson                     ( ToJSON
-                                                , FromJSON
-                                                , toJSON
-                                                , parseJSON
-                                                , object
-                                                , (.=)
-                                                , (.:)
-                                                , withObject
-                                                )
-import qualified Data.Text                     as T
+import           Data.Aeson              (FromJSON, ToJSON, object, parseJSON,
+                                          toJSON, withObject, (.:), (.=))
+import           Data.Map.Strict         (Map)
+import qualified Data.Text               as T
+import           Lens.Micro.Platform     (makeLenses)
+import           Types.Displayable       (Displayable, display)
+import           Types.ID                (ProjectID, RequestDefinitionID)
 import           Types.RequestDefinition
-import           Types.Displayable              ( Displayable
-                                                , display
-                                                )
-import           Types.ID                       ( ProjectID
-                                                , RequestDefinitionID
-                                                )
-import           Data.Map.Strict                ( Map )
-import           Lens.Micro.Platform            ( makeLenses )
 
 
 data Project = Project { projectID :: ProjectID
@@ -45,10 +34,11 @@ instance FromJSON Project where
     pid     <- o .: "id"
     name    <- o .: "name"
     reqDefs <- o .: "request_definitions"
-    return $ Project { projectID           = pid
-                     , _projectName        = name
-                     , _requestDefinitions = reqDefs
-                     }
+    return $ Project
+      { projectID           = pid
+      , _projectName        = name
+      , _requestDefinitions = reqDefs
+      }
 
 data ProjectContext = ProjectContext ProjectID
 data ProjectListItem = ProjectListItem ProjectContext T.Text

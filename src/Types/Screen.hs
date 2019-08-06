@@ -2,11 +2,11 @@ module Types.Screen where
 
 import           Types.Project
 import           Types.RequestDefinition
-import           UI.Form                        ( ZZZForm )
-import           UI.List                        ( ZZZList )
-import           UI.Projects.Add                ( ProjectAddState )
-import           UI.Projects.Edit               ( ProjectEditState )
-import           UI.RequestDefinitions.Edit     ( RequestDefinitionEditState )
+import           UI.Form                    (ZZZForm)
+import           UI.List                    (ZZZList)
+import           UI.Projects.Add            (ProjectAddState)
+import           UI.Projects.Edit           (ProjectEditState)
+import           UI.RequestDefinitions.Edit (RequestDefinitionEditState)
 
 -- Represents what main "view" of the app the user is looking at
 data Screen =

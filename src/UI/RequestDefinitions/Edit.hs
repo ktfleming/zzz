@@ -2,8 +2,8 @@
 
 module UI.RequestDefinitions.Edit where
 
-import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( makeLenses )
+import qualified Data.Text           as T
+import           Lens.Micro.Platform (makeLenses)
 
 data RequestDefinitionEditState = RequestDefinitionEditState { _requestDefinitionEditName :: T.Text }
 

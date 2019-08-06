@@ -1,29 +1,22 @@
-{-# LANGUAGE TemplateHaskell #-}
-{-# LANGUAGE RecordWildCards #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns      #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RecordWildCards     #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TemplateHaskell     #-}
 
 module Types.AppState where
 
-import           Data.Aeson                     ( ToJSON
-                                                , toJSON
-                                                , FromJSON
-                                                , parseJSON
-                                                , object
-                                                , (.=)
-                                                , (.:)
-                                                , withObject
-                                                )
-import           Lens.Micro.Platform            ( makeLenses )
+import           Data.Aeson              (FromJSON, ToJSON, object, parseJSON,
+                                          toJSON, withObject, (.:), (.=))
+import           Data.Map.Strict         ((!))
+import qualified Data.Map.Strict         as Map
+import qualified Data.Text               as T
+import           Lens.Micro.Platform     (makeLenses)
+import           Types.ID                (ProjectID)
 import           Types.Project
+import           Types.RequestDefinition
 import           Types.Screen
 import           UI.Projects.List
-import           Data.Map.Strict                ( (!) )
-import qualified Data.Map.Strict               as Map
-import qualified Data.Text                     as T
-import           Types.RequestDefinition
-import           Types.ID                       ( ProjectID )
 
 data AppState = AppState { _activeScreen :: Screen
                          , _projects :: Map.Map ProjectID Project
@@ -49,7 +42,7 @@ lookupRequestDefinition
   :: AppState -> RequestDefinitionContext -> RequestDefinition
 lookupRequestDefinition s (RequestDefinitionContext pid rid) =
   let Project { _requestDefinitions } = lookupProject s (ProjectContext pid)
-  in  _requestDefinitions ! rid
+  in _requestDefinitions ! rid
 
 title :: AppState -> Screen -> T.Text
 title _ (ProjectAddScreen  _  ) = "New Project"

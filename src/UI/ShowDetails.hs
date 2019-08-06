@@ -1,24 +1,23 @@
-{-# LANGUAGE InstanceSigs #-}
+{-# LANGUAGE InstanceSigs        #-}
+{-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module UI.ShowDetails where
 
+import           Types.RequestDefinition   (RequestDefinition,
+                                            RequestDefinitionContext,
+                                            RequestDefinitionListItem)
 import           Types.WithID
-import           Types.RequestDefinition        ( RequestDefinition
-                                                , RequestDefinitionContext
-                                                , RequestDefinitionListItem
-                                                )
 
-import           Types.Project
-import qualified Data.Map.Strict               as Map
-import           Types.Name
-import           Brick.Widgets.List             ( list )
-import           Data.Vector                    ( fromList )
+import           Brick.Widgets.List        (list)
+import qualified Data.Map.Strict           as Map
+import           Data.Vector               (fromList)
+import           Lens.Micro.Platform       ((.~))
 import           Types.AppState
-import           Lens.Micro.Platform            ( (.~) )
-import           Types.Screen
 import           Types.ContextTransformers
+import           Types.Name
+import           Types.Project
+import           Types.Screen
 
 
 -- Types in this typeclass are able to have their details shown to the
@@ -32,14 +31,15 @@ class HasID a => ShowDetails a where
 instance ShowDetails Project where
   showDetails :: AppState -> ProjectContext -> AppState
   showDetails s c =
-    let Project { _requestDefinitions } = model s c
-        rds = fromList $ Map.elems _requestDefinitions
-        fn :: RequestDefinition -> RequestDefinitionListItem
-        fn r =
-            let rc :: RequestDefinitionContext = requestDefinitionContext c r
-            in  requestDefinitionListItem rc r
-        reqList = list RequestDefinitionList (fmap fn rds) 1
-    in  (activeScreen .~ ProjectDetailsScreen c reqList) s
+    let
+      Project { _requestDefinitions } = model s c
+      rds                             = fromList $ Map.elems _requestDefinitions
+      fn :: RequestDefinition -> RequestDefinitionListItem
+      fn r =
+        let rc :: RequestDefinitionContext = requestDefinitionContext c r
+        in requestDefinitionListItem rc r
+      reqList = list RequestDefinitionList (fmap fn rds) 1
+    in (activeScreen .~ ProjectDetailsScreen c reqList) s
 
 instance ShowDetails RequestDefinition where
   showDetails :: AppState -> RequestDefinitionContext -> AppState
