@@ -29,7 +29,7 @@ import qualified Graphics.Vty               as V
 import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
 import           Types.Addable              (finishAdding, makeAddForm,
-                                             updateAddForm)
+                                             updateAddForm, NoContext(..))
 import           Types.AppState
 import           Types.Constants            (mainSettingsFile)
 import           Types.CustomEvent
@@ -64,6 +64,7 @@ drawUI s@AppState { _projects, _activeScreen } =
       ProjectListScreen list      -> renderGenericList list
       ProjectEditScreen    _ form -> renderForm form
       ProjectDetailsScreen _ list -> renderGenericList list
+      RequestAddScreen _ form -> renderForm form
       RequestDetailsScreen c ->
         let r = lookupRequestDefinition s c in txt $ display r
       RequestEditScreen _ form -> renderForm form
@@ -71,9 +72,10 @@ drawUI s@AppState { _projects, _activeScreen } =
       ProjectAddScreen{} -> "Enter: Finish adding | ESC: Return without adding"
       ProjectListScreen{} -> "Enter: View project | a: Add Project"
       ProjectDetailsScreen{} ->
-        "Enter: View request definition | Left: back | e: Edit Project"
+        "Enter: View request definition | Left: back | e: Edit Project | a: Add request definition"
       RequestDetailsScreen{} -> "Left: back | e: Edit request definition"
       ProjectEditScreen{}    -> "Enter: Save | ESC: Return without saving"
+      RequestAddScreen{}     -> "Enter: Finsh adding | ESC: Return without adding"
       RequestEditScreen{}    -> "Enter: Save | ESC: Return without saving"
       HelpScreen             -> "todo"
     titleLine = txt $ title s _activeScreen
@@ -122,6 +124,7 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
           continue $ showDetails s reqContext
         Nothing -> continue s
       KChar 'e' -> continue $ showEditScreen s c
+      KChar 'a' -> continue $ (activeScreen .~ RequestAddScreen c makeAddForm) s
       KLeft ->
         let projectList = makeProjectList (Map.toList _projects)
         in continue $ (activeScreen .~ ProjectListScreen projectList) s
@@ -134,11 +137,16 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
       _ -> handleFormEvent ev form >>= \f -> continue $ updateEditForm s c f
 
     ProjectAddScreen form -> case key of
-      KEnter -> liftIO (finishAdding s (formState form)) >>= continue
+      KEnter -> liftIO (finishAdding s NoContext (formState form)) >>= continue
       KEsc -> continue $ (activeScreen .~ ProjectListScreen (makeProjectList (Map.toList _projects))) s
-      _      -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s f
+      _      -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s NoContext f
 
-    _ -> continue s
+    RequestAddScreen c form -> case key of
+      KEnter -> liftIO (finishAdding s c (formState form)) >>= continue
+      KEsc -> continue $ showDetails s c
+      _ -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s c f
+
+    HelpScreen -> continue s
 
 handleEvent s _ = continue s
 
