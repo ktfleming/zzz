@@ -10,10 +10,10 @@ import           Data.Map.Strict         (Map, (!))
 import qualified Data.Map.Strict         as Map
 import qualified Data.Text               as T
 import           Lens.Micro.Platform     (makeLenses)
-import           Types.ID                (ProjectID)
-import           Types.Project
-import           Types.RequestDefinition
-import           Types.Screen
+import           Types.Models.ID                (ProjectID)
+import           Types.Models.Project
+import           Types.Models.RequestDefinition
+import           Types.Models.Screen
 import           UI.Projects.List
 
 data AppState = AppState { _activeScreen :: Screen

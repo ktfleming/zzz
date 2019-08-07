@@ -1,4 +1,4 @@
-module Types.Displayable where
+module Types.Classes.Displayable where
 
 import qualified Data.Text as T
 

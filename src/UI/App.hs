@@ -28,23 +28,22 @@ import           Graphics.Vty               (withForeColor)
 import qualified Graphics.Vty               as V
 import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
-import           Types.Addable              (finishAdding, makeAddForm,
+import           Types.Classes.Addable              (finishAdding, makeAddForm,
                                              updateAddForm, NoContext(..))
 import           Types.AppState
 import           Types.Constants            (mainSettingsFile)
-import           Types.CustomEvent
-import           Types.Displayable          (display)
-import           Types.Editable             (finishEditing, showEditScreen,
+import           Types.Brick.CustomEvent
+import           Types.Classes.Displayable          (display)
+import           Types.Classes.Editable             (finishEditing, showEditScreen,
                                              updateEditForm)
-import           Types.Name
-import           Types.Project
-import           Types.RequestDefinition
-import           Types.Screen
+import           Types.Brick.Name
+import           Types.Models.Project
+import           Types.Models.RequestDefinition
+import           Types.Models.Screen
 import           UI.Attr
-import           UI.HelpScreen
 import           UI.List                    (renderGenericList)
 import           UI.Projects.List           (makeProjectList)
-import           UI.ShowDetails             (showDetails)
+import           Types.Classes.ShowDetails             (showDetails)
 
 uiApp :: App AppState CustomEvent Name
 uiApp = App
@@ -59,7 +58,7 @@ drawUI :: AppState -> [Widget Name]
 drawUI s@AppState { _projects, _activeScreen } =
   let
     mainWidget = case _activeScreen of
-      HelpScreen                  -> helpWidget
+      HelpScreen                  -> txt "Todo"
       ProjectAddScreen  form      -> renderForm form
       ProjectListScreen list      -> renderGenericList list
       ProjectEditScreen    _ form -> renderForm form

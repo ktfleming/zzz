@@ -12,7 +12,7 @@ import           Prelude                    hiding (readFile)
 import           System.Directory           (doesFileExist)
 import           Types.AppState
 import           Types.Constants            (mainSettingsFile)
-import           Types.Screen
+import           Types.Models.Screen
 import           UI.App                     (uiApp)
 
 getAppStateFromFile :: ExceptT String IO AppState

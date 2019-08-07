@@ -4,8 +4,8 @@ import           Brick              (Widget, padRight, txt)
 import           Brick.Types        (Padding (Max))
 import           Brick.Widgets.List (GenericList, renderList)
 import           Data.Vector        (Vector)
-import           Types.Displayable
-import           Types.Name
+import           Types.Classes.Displayable
+import           Types.Brick.Name
 
 type ZZZList x = GenericList Name Vector x
 

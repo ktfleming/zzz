@@ -1,6 +1,6 @@
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
 
-module Types.ID where
+module Types.Models.ID where
 
 import           Data.Aeson
 import           Data.UUID  (UUID)

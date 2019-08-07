@@ -39,7 +39,7 @@ library:
   exposed-modules:
     - Types.AppState
     - Types.Constants
-    - Types.Screen
+    - Types.Models.Screen
     - UI.App
 
 executables:

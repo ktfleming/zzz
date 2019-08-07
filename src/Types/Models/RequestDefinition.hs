@@ -2,14 +2,14 @@
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
-module Types.RequestDefinition where
+module Types.Models.RequestDefinition where
 
 import           Data.Aeson          (FromJSON, ToJSON, object, parseJSON,
                                       toJSON, withObject, (.:), (.=))
 import qualified Data.Text           as T
 import           Lens.Micro.Platform (makeLenses)
-import           Types.Displayable
-import           Types.ID            (ProjectID, RequestDefinitionID)
+import           Types.Classes.Displayable
+import           Types.Models.ID            (ProjectID, RequestDefinitionID)
 
 
 data RequestDefinition = RequestDefinition { _requestDefinitionName :: T.Text } deriving (Show)

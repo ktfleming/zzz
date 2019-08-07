@@ -2,9 +2,9 @@
 
 module Types.ContextTransformers where
 
-import           Types.Project
-import           Types.RequestDefinition
-import Types.ID (RequestDefinitionID, ProjectID)
+import           Types.Models.Project
+import           Types.Models.RequestDefinition
+import Types.Models.ID (RequestDefinitionID, ProjectID)
 
 projectListItem :: ProjectID -> Project -> ProjectListItem
 projectListItem pid Project { _projectName } =

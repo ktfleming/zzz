@@ -1,7 +1,7 @@
-module Types.Screen where
+module Types.Models.Screen where
 
-import           Types.Project
-import           Types.RequestDefinition
+import           Types.Models.Project
+import           Types.Models.RequestDefinition
 import           UI.Form                    (ZZZForm)
 import           UI.List                    (ZZZList)
 import           UI.Projects.Add            (ProjectAddState)

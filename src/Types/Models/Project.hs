@@ -2,16 +2,16 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell   #-}
 
-module Types.Project where
+module Types.Models.Project where
 
 import           Data.Aeson              (FromJSON, ToJSON, object, parseJSON,
                                           toJSON, withObject, (.:), (.=))
 import           Data.Map.Strict         (Map)
 import qualified Data.Text               as T
 import           Lens.Micro.Platform     (makeLenses)
-import           Types.Displayable       (Displayable, display)
-import           Types.ID                (ProjectID, RequestDefinitionID)
-import           Types.RequestDefinition
+import           Types.Classes.Displayable       (Displayable, display)
+import           Types.Models.ID                (ProjectID, RequestDefinitionID)
+import           Types.Models.RequestDefinition
 
 
 data Project = Project { _projectName :: T.Text

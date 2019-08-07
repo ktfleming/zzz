@@ -3,17 +3,17 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE TypeFamilyDependencies    #-}
 
-module Types.Editable where
+module Types.Classes.Editable where
 
 import           Brick                      (txt, (<+>))
 import           Brick.Forms                (editTextField, newForm, (@@=))
 import           Lens.Micro.Platform        (at, (&), (.~), _Just)
 import           Types.AppState
-import           Types.Name
-import           Types.Project
-import           Types.RequestDefinition
-import           Types.Screen
-import           Types.WithID               (HasID (..))
+import           Types.Brick.Name
+import           Types.Models.Project
+import           Types.Models.RequestDefinition
+import           Types.Models.Screen
+import           Types.Classes.WithID               (HasID (..))
 import           UI.Form                    (ZZZForm)
 import           UI.Projects.Edit
 import           UI.RequestDefinitions.Edit

@@ -2,13 +2,13 @@
 {-# LANGUAGE NamedFieldPuns      #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module UI.ShowDetails where
+module Types.Classes.ShowDetails where
 
-import           Types.RequestDefinition   (RequestDefinition,
+import           Types.Models.RequestDefinition   (RequestDefinition,
                                             RequestDefinitionContext,
                                             RequestDefinitionListItem(..),
                                             RequestDefinitionListItem)
-import           Types.WithID
+import           Types.Classes.WithID
 
 import           Brick.Widgets.List        (list)
 import qualified Data.Map.Strict           as Map
@@ -16,9 +16,9 @@ import           Data.Vector               (fromList)
 import           Lens.Micro.Platform       ((.~))
 import           Types.AppState
 import           Types.ContextTransformers
-import           Types.Name
-import           Types.Project
-import           Types.Screen
+import           Types.Brick.Name
+import           Types.Models.Project
+import           Types.Models.Screen
 
 
 -- Types in this typeclass are able to have their details shown to the

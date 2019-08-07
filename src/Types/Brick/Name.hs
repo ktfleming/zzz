@@ -1,4 +1,4 @@
-module Types.Name where
+module Types.Brick.Name where
 
 data Name = ProjectAddNameField
           | ProjectEditNameField

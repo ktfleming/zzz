@@ -2,7 +2,7 @@
 {-# LANGUAGE OverloadedStrings         #-}
 {-# LANGUAGE TypeFamilyDependencies    #-}
 
-module Types.Addable where
+module Types.Classes.Addable where
 
 import           Brick               (txt, (<+>))
 import           Brick.Forms         (editTextField, newForm, (@@=))
@@ -10,15 +10,15 @@ import qualified Data.Map.Strict     as Map
 import           Data.UUID.V4        (nextRandom)
 import           Lens.Micro.Platform ((.~), (<>~), at, _Just)
 import           Types.AppState
-import           Types.ID
-import           Types.Name
-import           Types.Project
-import           Types.Screen
-import           Types.WithID        (HasID (..))
+import           Types.Models.ID
+import           Types.Brick.Name
+import           Types.Models.Project
+import           Types.Models.Screen
+import           Types.Classes.WithID        (HasID (..))
 import           UI.Form             (ZZZForm)
 import           UI.Projects.Add     (ProjectAddState (..), projectAddName)
 import UI.RequestDefinitions.Add (RequestDefinitionAddState, RequestDefinitionAddState(..), requestDefinitionAddName)
-import Types.RequestDefinition (RequestDefinition(..))
+import Types.Models.RequestDefinition (RequestDefinition(..))
 
 -- This is the "context" required when adding a Project or other top-level model, which doesn't actually
 -- need a context at all since these models exist at the roots of the model map(s).

@@ -1,11 +1,11 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 
-module Types.WithID where
+module Types.Classes.WithID where
 
 import           Types.AppState
-import           Types.ID
-import           Types.Project
-import           Types.RequestDefinition
+import           Types.Models.ID
+import           Types.Models.Project
+import           Types.Models.RequestDefinition
 
 class HasID a where
   -- All these type families are injective, so that, for example, only one type can have an ID of type `ProjectID`
