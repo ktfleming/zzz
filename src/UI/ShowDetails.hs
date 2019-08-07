@@ -6,6 +6,7 @@ module UI.ShowDetails where
 
 import           Types.RequestDefinition   (RequestDefinition,
                                             RequestDefinitionContext,
+                                            RequestDefinitionListItem(..),
                                             RequestDefinitionListItem)
 import           Types.WithID
 
@@ -33,12 +34,11 @@ instance ShowDetails Project where
   showDetails s c =
     let
       Project { _requestDefinitions } = model s c
-      rds                             = fromList $ Map.elems _requestDefinitions
-      fn :: RequestDefinition -> RequestDefinitionListItem
-      fn r =
-        let rc :: RequestDefinitionContext = requestDefinitionContext c r
-        in requestDefinitionListItem rc r
-      reqList = list RequestDefinitionList (fmap fn rds) 1
+      listItems :: [RequestDefinitionListItem] = foldr f [] (Map.toList _requestDefinitions)
+        where f (rid, r ) items =
+                let rc = requestDefinitionContext c rid
+                in items ++ [requestDefinitionListItem rc r]
+      reqList = list RequestDefinitionList (fromList listItems) 1
     in (activeScreen .~ ProjectDetailsScreen c reqList) s
 
 instance ShowDetails RequestDefinition where

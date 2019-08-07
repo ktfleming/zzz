@@ -6,8 +6,9 @@ import           Types.ContextTransformers (projectListItem)
 import           Types.Name
 import           Types.Project
 import           UI.List                   (ZZZList)
+import Types.ID (ProjectID)
 
-makeProjectList :: [Project] -> ZZZList ProjectListItem
+makeProjectList :: [(ProjectID, Project)] -> ZZZList ProjectListItem
 makeProjectList ps =
-  let listItems = fmap projectListItem (fromList ps)
+  let listItems = fmap (uncurry projectListItem) (fromList ps)
   in list ProjectList listItems 1

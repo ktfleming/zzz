@@ -123,7 +123,7 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
         Nothing -> continue s
       KChar 'e' -> continue $ showEditScreen s c
       KLeft ->
-        let projectList = makeProjectList (Map.elems _projects)
+        let projectList = makeProjectList (Map.toList _projects)
         in continue $ (activeScreen .~ ProjectListScreen projectList) s
       _ -> handleListEvent (EvKey key []) list
         >>= \l -> continue $ (activeScreen .~ ProjectDetailsScreen c l) s
@@ -135,7 +135,7 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
 
     ProjectAddScreen form -> case key of
       KEnter -> liftIO (finishAdding s (formState form)) >>= continue
-      KEsc -> continue $ (activeScreen .~ ProjectListScreen (makeProjectList (Map.elems _projects))) s
+      KEsc -> continue $ (activeScreen .~ ProjectListScreen (makeProjectList (Map.toList _projects))) s
       _      -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s f
 
     _ -> continue s

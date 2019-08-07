@@ -4,18 +4,15 @@ module Types.ContextTransformers where
 
 import           Types.Project
 import           Types.RequestDefinition
+import Types.ID (RequestDefinitionID, ProjectID)
 
-projectContext :: Project -> ProjectContext
-projectContext Project { projectID } = ProjectContext projectID
-
-projectListItem :: Project -> ProjectListItem
-projectListItem p@Project { _projectName } =
-  ProjectListItem (projectContext p) _projectName
+projectListItem :: ProjectID -> Project -> ProjectListItem
+projectListItem pid Project { _projectName } =
+  ProjectListItem (ProjectContext pid) _projectName
 
 requestDefinitionContext
-  :: ProjectContext -> RequestDefinition -> RequestDefinitionContext
-requestDefinitionContext (ProjectContext pid) RequestDefinition { requestDefinitionID }
-  = RequestDefinitionContext pid requestDefinitionID
+  :: ProjectContext -> RequestDefinitionID -> RequestDefinitionContext
+requestDefinitionContext (ProjectContext pid) = RequestDefinitionContext pid
 
 requestDefinitionListItem
   :: RequestDefinitionContext -> RequestDefinition -> RequestDefinitionListItem

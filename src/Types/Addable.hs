@@ -40,8 +40,7 @@ instance Addable Project where
     pid <- ProjectID <$> nextRandom
     let
       project = Project
-        { projectID           = pid
-        , _projectName        = newName
+        { _projectName        = newName
         , _requestDefinitions = Map.empty
         }
       projectMap = Map.singleton pid project

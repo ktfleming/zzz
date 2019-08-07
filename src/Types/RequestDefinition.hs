@@ -12,22 +12,19 @@ import           Types.Displayable
 import           Types.ID            (ProjectID, RequestDefinitionID)
 
 
-data RequestDefinition = RequestDefinition { requestDefinitionID :: RequestDefinitionID, _requestDefinitionName :: T.Text } deriving (Show)
+data RequestDefinition = RequestDefinition { _requestDefinitionName :: T.Text } deriving (Show)
 
 makeLenses ''RequestDefinition
 
 instance ToJSON RequestDefinition where
-  toJSON RequestDefinition { requestDefinitionID, _requestDefinitionName } =
-    object ["id" .= requestDefinitionID, "name" .= _requestDefinitionName]
+  toJSON RequestDefinition { _requestDefinitionName } =
+    object ["name" .= _requestDefinitionName]
 
 instance FromJSON RequestDefinition where
   parseJSON = withObject "RequestDefinition" $ \o -> do
-    rid  <- o .: "id"
     name <- o .: "name"
     return $ RequestDefinition
-      { requestDefinitionID    = rid
-      , _requestDefinitionName = name
-      }
+      {  _requestDefinitionName = name }
 
 data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text
