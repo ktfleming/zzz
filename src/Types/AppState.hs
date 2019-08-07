@@ -48,6 +48,7 @@ title _ (ProjectListScreen _  ) = "All Projects"
 title s (ProjectEditScreen c _) = let p = lookupProject s c in _projectName p
 title s (ProjectDetailsScreen c _) =
   let p = lookupProject s c in _projectName p
+title _ (RequestAddScreen _ _) = "New Request Definition"
 title s (RequestDetailsScreen c) =
   let r = lookupRequestDefinition s c in _requestDefinitionName r
 title s (RequestEditScreen c _) =

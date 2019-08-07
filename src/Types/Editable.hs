@@ -111,7 +111,7 @@ instance Editable RequestDefinition where
     in newForm
       [ (txt "Request Definition Name: " <+>) @@= editTextField
           requestDefinitionEditName
-          RequestDefinitionNameField
+          RequestDefinitionNameEditField
           (Just 1)
       ]
       editState

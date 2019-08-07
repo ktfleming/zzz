@@ -4,5 +4,6 @@ data Name = ProjectAddNameField
           | ProjectEditNameField
           | ProjectList
           | RequestDefinitionList
-          | RequestDefinitionNameField
+          | RequestDefinitionNameEditField
+          | RequestDefinitionNameAddField
           deriving (Eq, Ord, Show)
