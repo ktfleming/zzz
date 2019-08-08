@@ -5,16 +5,25 @@
 
 module Types.Classes.Editable where
 
-import           Brick                      (txt, (<+>))
-import           Brick.Forms                (editTextField, newForm, (@@=))
-import           Lens.Micro.Platform        (at, (&), (.~), _Just)
+import           Brick                          ( txt
+                                                , (<+>)
+                                                )
+import           Brick.Forms                    ( editTextField
+                                                , newForm
+                                                , (@@=)
+                                                )
+import           Lens.Micro.Platform            ( at
+                                                , (&)
+                                                , (.~)
+                                                , _Just
+                                                )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
-import           Types.Classes.WithID               (HasID (..))
-import           UI.Form                    (ZZZForm)
+import           Types.Classes.WithID           ( HasID(..) )
+import           UI.Form                        ( ZZZForm )
 import           UI.Projects.Edit
 import           UI.RequestDefinitions.Edit
 
@@ -43,10 +52,9 @@ instance Editable Project where
 
   finishEditing :: AppState -> ProjectContext -> ProjectEditState -> AppState
   finishEditing appState context@(ProjectContext pid) editState =
-    let
-      base     = model appState context
-      newModel = update base editState
-    in appState & (projects . at pid . _Just .~ newModel)
+    let base     = model appState context
+        newModel = update base editState
+    in  appState & (projects . at pid . _Just .~ newModel)
 
   update :: Project -> ProjectEditState -> Project
   update base ProjectEditState { _projectEditName } =
@@ -54,14 +62,13 @@ instance Editable Project where
 
   makeEditForm :: AppState -> ProjectContext -> ZZZForm ProjectEditState
   makeEditForm s c =
-    let
-      Project { _projectName } = model s c
-      editState = ProjectEditState { _projectEditName = _projectName }
-    in newForm
-      [ (txt "Project Name: " <+>)
-          @@= editTextField projectEditName ProjectEditNameField (Just 1)
-      ]
-      editState
+    let Project { _projectName } = model s c
+        editState = ProjectEditState { _projectEditName = _projectName }
+    in  newForm
+          [ (txt "Project Name: " <+>)
+              @@= editTextField projectEditName ProjectEditNameField (Just 1)
+          ]
+          editState
 
   showEditScreen :: AppState -> ProjectContext -> AppState
   showEditScreen s c =
@@ -80,19 +87,17 @@ instance Editable RequestDefinition where
     -> RequestDefinitionEditState
     -> AppState
   finishEditing appState c@(RequestDefinitionContext pid rid) editState =
-    let
-      base     = model appState c
-      newModel = update base editState
-    in
-      appState
-        & (  projects
-          .  at pid
-          .  _Just
-          .  requestDefinitions
-          .  at rid
-          .  _Just
-          .~ newModel
-          )
+    let base     = model appState c
+        newModel = update base editState
+    in  appState
+          & (  projects
+            .  at pid
+            .  _Just
+            .  requestDefinitions
+            .  at rid
+            .  _Just
+            .~ newModel
+            )
 
   update :: RequestDefinition -> RequestDefinitionEditState -> RequestDefinition
   update base RequestDefinitionEditState { _requestDefinitionEditName } =
@@ -103,18 +108,17 @@ instance Editable RequestDefinition where
     -> RequestDefinitionContext
     -> ZZZForm RequestDefinitionEditState
   makeEditForm s c =
-    let
-      RequestDefinition { _requestDefinitionName } = model s c
-      editState = RequestDefinitionEditState
-        { _requestDefinitionEditName = _requestDefinitionName
-        }
-    in newForm
-      [ (txt "Request Definition Name: " <+>) @@= editTextField
-          requestDefinitionEditName
-          RequestDefinitionNameEditField
-          (Just 1)
-      ]
-      editState
+    let RequestDefinition { _requestDefinitionName } = model s c
+        editState = RequestDefinitionEditState
+          { _requestDefinitionEditName = _requestDefinitionName
+          }
+    in  newForm
+          [ (txt "Request Definition Name: " <+>) @@= editTextField
+              requestDefinitionEditName
+              RequestDefinitionNameEditField
+              (Just 1)
+          ]
+          editState
 
   showEditScreen :: AppState -> RequestDefinitionContext -> AppState
   showEditScreen s c =

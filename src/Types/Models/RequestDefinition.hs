@@ -4,12 +4,21 @@
 
 module Types.Models.RequestDefinition where
 
-import           Data.Aeson          (FromJSON, ToJSON, object, parseJSON,
-                                      toJSON, withObject, (.:), (.=))
-import qualified Data.Text           as T
-import           Lens.Micro.Platform (makeLenses)
+import           Data.Aeson                     ( FromJSON
+                                                , ToJSON
+                                                , object
+                                                , parseJSON
+                                                , toJSON
+                                                , withObject
+                                                , (.:)
+                                                , (.=)
+                                                )
+import qualified Data.Text                     as T
+import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Classes.Displayable
-import           Types.Models.ID            (ProjectID, RequestDefinitionID)
+import           Types.Models.ID                ( ProjectID
+                                                , RequestDefinitionID
+                                                )
 
 
 data RequestDefinition = RequestDefinition { _requestDefinitionName :: T.Text } deriving (Show)
@@ -23,8 +32,7 @@ instance ToJSON RequestDefinition where
 instance FromJSON RequestDefinition where
   parseJSON = withObject "RequestDefinition" $ \o -> do
     name <- o .: "name"
-    return $ RequestDefinition
-      {  _requestDefinitionName = name }
+    return $ RequestDefinition { _requestDefinitionName = name }
 
 data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID deriving (Show)
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text

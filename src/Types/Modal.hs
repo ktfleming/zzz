@@ -1,9 +1,9 @@
 module Types.Modal where
 
-import Types.Models.Project (ProjectContext)
-import Types.Models.RequestDefinition (RequestDefinitionContext)
+import           Types.Models.Project           ( ProjectContext )
+import           Types.Models.RequestDefinition ( RequestDefinitionContext )
 
 data Modal =
-    DeleteProjectModal ProjectContext 
+    DeleteProjectModal ProjectContext
   | DeleteRequestDefinitionModal RequestDefinitionContext
     deriving (Show)

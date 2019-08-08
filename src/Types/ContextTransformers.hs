@@ -2,9 +2,9 @@
 
 module Types.ContextTransformers where
 
+import           Types.Models.ID                ( RequestDefinitionID )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
-import Types.Models.ID (RequestDefinitionID)
 
 requestDefinitionContext
   :: ProjectContext -> RequestDefinitionID -> RequestDefinitionContext

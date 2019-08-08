@@ -1,11 +1,16 @@
 module UI.List where
 
-import           Brick              (Widget, padRight, txt)
-import           Brick.Types        (Padding (Max))
-import           Brick.Widgets.List (GenericList, renderList)
-import           Data.Vector        (Vector)
-import           Types.Classes.Displayable
+import           Brick                          ( Widget
+                                                , padRight
+                                                , txt
+                                                )
+import           Brick.Types                    ( Padding(Max) )
+import           Brick.Widgets.List             ( GenericList
+                                                , renderList
+                                                )
+import           Data.Vector                    ( Vector )
 import           Types.Brick.Name
+import           Types.Classes.Displayable
 
 type ZZZList x = GenericList Name Vector x
 

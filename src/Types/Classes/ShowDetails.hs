@@ -4,16 +4,17 @@
 
 module Types.Classes.ShowDetails where
 
-import           Types.Models.RequestDefinition   (RequestDefinition,
-                                            RequestDefinitionContext,
-                                            RequestDefinitionListItem(..),
-                                            RequestDefinitionListItem)
+import           Types.Models.RequestDefinition ( RequestDefinition
+                                                , RequestDefinitionContext
+                                                , RequestDefinitionListItem(..)
+                                                , RequestDefinitionListItem
+                                                )
 import           Types.Classes.WithID
 
-import           Brick.Widgets.List        (list)
-import qualified Data.Map.Strict           as Map
-import           Data.Vector               (fromList)
-import           Lens.Micro.Platform       ((.~))
+import           Brick.Widgets.List             ( list )
+import qualified Data.Map.Strict               as Map
+import           Data.Vector                    ( fromList )
+import           Lens.Micro.Platform            ( (.~) )
 import           Types.AppState
 import           Types.ContextTransformers
 import           Types.Brick.Name
@@ -32,14 +33,17 @@ class HasID a => ShowDetails a where
 instance ShowDetails Project where
   showDetails :: AppState -> ProjectContext -> AppState
   showDetails s c =
-    let
-      Project { _requestDefinitions } = model s c
-      listItems :: [RequestDefinitionListItem] = foldr f [] (Map.toList _requestDefinitions)
-        where f (rid, r ) items =
-                let rc = requestDefinitionContext c rid
-                in items ++ [requestDefinitionListItem rc r]
-      reqList = list RequestDefinitionList (fromList listItems) 1
-    in (activeScreen .~ ProjectDetailsScreen c reqList) s
+    let Project { _requestDefinitions }          = model s c
+        listItems :: [RequestDefinitionListItem] = foldr
+          f
+          []
+          (Map.toList _requestDefinitions)
+           where
+            f (rid, r) items =
+              let rc = requestDefinitionContext c rid
+              in  items ++ [requestDefinitionListItem rc r]
+        reqList = list RequestDefinitionList (fromList listItems) 1
+    in  (activeScreen .~ ProjectDetailsScreen c reqList) s
 
 instance ShowDetails RequestDefinition where
   showDetails :: AppState -> RequestDefinitionContext -> AppState
