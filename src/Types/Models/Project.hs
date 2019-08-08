@@ -35,7 +35,7 @@ instance FromJSON Project where
       , _requestDefinitions = reqDefs
       }
 
-data ProjectContext = ProjectContext ProjectID
+data ProjectContext = ProjectContext ProjectID deriving (Show)
 data ProjectListItem = ProjectListItem ProjectContext T.Text
 
 instance Displayable Project where

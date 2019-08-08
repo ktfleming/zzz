@@ -15,9 +15,11 @@ import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
 import           UI.Projects.List
+import Types.Modal
 
 data AppState = AppState { _activeScreen :: Screen
                          , _projects :: Map ProjectID Project
+                         , _modal :: Maybe Modal
                          } deriving (Show)
 
 makeLenses ''AppState
@@ -31,6 +33,7 @@ instance FromJSON AppState where
     return $ AppState
       { _activeScreen = ProjectListScreen $ makeProjectList (Map.toList ps)
       , _projects     = ps
+      , _modal        = Nothing
       }
 
 lookupProject :: AppState -> ProjectContext -> Project

@@ -26,6 +26,7 @@ main = do
       then getAppStateFromFile
       else ExceptT $ return $ Right AppState { _activeScreen = HelpScreen
                                              , _projects     = Map.empty
+                                             , _modal        = Nothing
                                              }
     ExceptT $ Right <$> defaultMain uiApp state
 

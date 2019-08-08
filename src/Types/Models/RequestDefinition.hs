@@ -26,7 +26,7 @@ instance FromJSON RequestDefinition where
     return $ RequestDefinition
       {  _requestDefinitionName = name }
 
-data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID
+data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID deriving (Show)
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text
 
 instance Displayable RequestDefinition where

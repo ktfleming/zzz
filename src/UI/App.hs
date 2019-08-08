@@ -44,6 +44,9 @@ import           UI.Attr
 import           UI.List                    (renderGenericList)
 import           UI.Projects.List           (makeProjectList)
 import           Types.Classes.ShowDetails             (showDetails)
+import Types.Modal (Modal(..))
+import Data.Maybe (maybeToList)
+import UI.Modal (renderModal, handleConfirm, dismissModal)
 
 uiApp :: App AppState CustomEvent Name
 uiApp = App
@@ -55,7 +58,7 @@ uiApp = App
   }
 
 drawUI :: AppState -> [Widget Name]
-drawUI s@AppState { _projects, _activeScreen } =
+drawUI s@AppState { _projects, _activeScreen, _modal } =
   let
     mainWidget = case _activeScreen of
       HelpScreen                  -> txt "Todo"
@@ -71,8 +74,8 @@ drawUI s@AppState { _projects, _activeScreen } =
       ProjectAddScreen{} -> "Enter: Finish adding | ESC: Return without adding"
       ProjectListScreen{} -> "Enter: View project | a: Add Project"
       ProjectDetailsScreen{} ->
-        "Enter: View request definition | Left: back | e: Edit Project | a: Add request definition"
-      RequestDetailsScreen{} -> "Left: back | e: Edit request definition"
+        "Enter: View request definition | Left: back | e: Edit Project | a: Add request definition | d: Delete"
+      RequestDetailsScreen{} -> "Left: back | e: Edit | d: Delete"
       ProjectEditScreen{}    -> "Enter: Save | ESC: Return without saving"
       RequestAddScreen{}     -> "Enter: Finsh adding | ESC: Return without adding"
       RequestEditScreen{}    -> "Enter: Save | ESC: Return without saving"
@@ -85,7 +88,9 @@ drawUI s@AppState { _projects, _activeScreen } =
         <=> padBottom Max mainWidget
         <=> hBorder
         <=> helpLine
-  in [withBorderStyle unicodeRounded $ (joinBorders . border) everything]
+    borderedEverything = withBorderStyle unicodeRounded $ (joinBorders . border) everything
+    modalWidget = maybeToList $ renderModal s <$> _modal
+  in modalWidget ++ [borderedEverything]
 
 chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
 chooseCursor _ _ = Nothing
@@ -96,12 +101,19 @@ handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always e
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
 
+handleEvent s@AppState { _modal = Just m } (VtyEvent (EvKey key [])) =
+  case key of
+    KChar 'n' -> continue $ dismissModal s
+    KChar 'y' -> continue $ dismissModal $ handleConfirm s m
+    _ -> continue s
+
 handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
   = case _activeScreen of
-    RequestDetailsScreen context@(RequestDefinitionContext pid _) ->
+    RequestDetailsScreen c@(RequestDefinitionContext pid _) ->
       case key of
         KLeft     -> continue $ showDetails s (ProjectContext pid)
-        KChar 'e' -> continue $ showEditScreen s context
+        KChar 'e' -> continue $ showEditScreen s c
+        KChar 'd' -> continue $ (modal ?~ DeleteRequestDefinitionModal c) s
         _         -> continue s
 
     RequestEditScreen c form -> case key of
@@ -124,6 +136,7 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
         Nothing -> continue s
       KChar 'e' -> continue $ showEditScreen s c
       KChar 'a' -> continue $ (activeScreen .~ RequestAddScreen c makeAddForm) s
+      KChar 'd' -> continue $ (modal ?~ DeleteProjectModal c) s
       KLeft ->
         let projectList = makeProjectList (Map.toList _projects)
         in continue $ (activeScreen .~ ProjectListScreen projectList) s
