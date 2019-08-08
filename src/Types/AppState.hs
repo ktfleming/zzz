@@ -7,7 +7,6 @@ module Types.AppState where
 import           Data.Aeson              (FromJSON, ToJSON, object, parseJSON,
                                           toJSON, withObject, (.:), (.=))
 import           Data.Map.Strict         (Map, (!))
-import qualified Data.Map.Strict         as Map
 import qualified Data.Text               as T
 import           Lens.Micro.Platform     (makeLenses)
 import           Types.Models.ID                (ProjectID)
@@ -31,7 +30,7 @@ instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     ps <- o .: "projects"
     return $ AppState
-      { _activeScreen = ProjectListScreen $ makeProjectList (Map.toList ps)
+      { _activeScreen = ProjectListScreen $ makeProjectList ps
       , _projects     = ps
       , _modal        = Nothing
       }

@@ -23,13 +23,12 @@ import           Brick.Widgets.List         (handleListEvent,
 import           Control.Monad.IO.Class     (liftIO)
 import           Data.Aeson.Encode.Pretty   (encodePretty)
 import           Data.ByteString.Lazy       (writeFile)
-import qualified Data.Map.Strict            as Map
 import           Graphics.Vty               (withForeColor)
 import qualified Graphics.Vty               as V
 import           Graphics.Vty.Input.Events
 import           Lens.Micro.Platform
-import           Types.Classes.Addable              (finishAdding, makeAddForm,
-                                             updateAddForm, NoContext(..))
+import           Types.Classes.Addable              (finishAdding,
+                                             updateAddForm, NoContext(..), showAddScreen)
 import           Types.AppState
 import           Types.Constants            (mainSettingsFile)
 import           Types.Brick.CustomEvent
@@ -42,11 +41,11 @@ import           Types.Models.RequestDefinition
 import           Types.Models.Screen
 import           UI.Attr
 import           UI.List                    (renderGenericList)
-import           UI.Projects.List           (makeProjectList)
 import           Types.Classes.ShowDetails             (showDetails)
 import Types.Modal (Modal(..))
 import Data.Maybe (maybeToList)
 import UI.Modal (renderModal, handleConfirm, dismissModal)
+import Types.Classes.Listable (showListScreen, updateList)
 
 uiApp :: App AppState CustomEvent Name
 uiApp = App
@@ -125,9 +124,8 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
       KEnter -> case listSelectedElement list of
         Just (_, ProjectListItem context _) -> continue $ showDetails s context
         Nothing                             -> continue s
-      KChar 'a' -> continue $ (activeScreen .~ ProjectAddScreen makeAddForm) s
-      _         -> handleListEvent (EvKey key []) list
-        >>= \l -> continue $ (activeScreen .~ ProjectListScreen l) s
+      KChar 'a' -> continue $ showAddScreen s NoContext
+      _         -> handleListEvent (EvKey key []) list >>= \l -> continue $ updateList s NoContext l
 
     ProjectDetailsScreen c list -> case key of
       KEnter -> case listSelectedElement list of
@@ -135,11 +133,9 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
           continue $ showDetails s reqContext
         Nothing -> continue s
       KChar 'e' -> continue $ showEditScreen s c
-      KChar 'a' -> continue $ (activeScreen .~ RequestAddScreen c makeAddForm) s
+      KChar 'a' -> continue $ showAddScreen s c
       KChar 'd' -> continue $ (modal ?~ DeleteProjectModal c) s
-      KLeft ->
-        let projectList = makeProjectList (Map.toList _projects)
-        in continue $ (activeScreen .~ ProjectListScreen projectList) s
+      KLeft     -> continue $ showListScreen s NoContext
       _ -> handleListEvent (EvKey key []) list
         >>= \l -> continue $ (activeScreen .~ ProjectDetailsScreen c l) s
 
@@ -150,7 +146,7 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
 
     ProjectAddScreen form -> case key of
       KEnter -> liftIO (finishAdding s NoContext (formState form)) >>= continue
-      KEsc -> continue $ (activeScreen .~ ProjectListScreen (makeProjectList (Map.toList _projects))) s
+      KEsc -> continue $ showListScreen s NoContext
       _      -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s NoContext f
 
     RequestAddScreen c form -> case key of

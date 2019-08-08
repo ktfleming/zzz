@@ -8,7 +8,7 @@ import           Brick               (txt, (<+>))
 import           Brick.Forms         (editTextField, newForm, (@@=))
 import qualified Data.Map.Strict     as Map
 import           Data.UUID.V4        (nextRandom)
-import           Lens.Micro.Platform ((.~), (<>~), at, _Just)
+import           Lens.Micro.Platform ((.~), (<>~), at, _Just, (&))
 import           Types.AppState
 import           Types.Models.ID
 import           Types.Brick.Name
@@ -35,8 +35,14 @@ class HasID a => Addable a where
   -- Needs IO since this involves generating a new random UUID.
   finishAdding :: AppState -> AddContext a -> AddState a -> IO AppState
 
+  -- Create the form used to add a model. Note that this does not require any context;
+  -- on the other hand, `finishAdding` above, which updates the state, does require context.
   makeAddForm :: ZZZForm (AddState a)
+  
+  -- Update the AppState to display the "add" screen for this model, give the context required for adding it.
+  showAddScreen :: AppState -> AddContext a -> AppState
 
+  -- Used with Brick's `handleFormEvent` to update the state.
   updateAddForm :: AppState -> AddContext a -> ZZZForm (AddState a) -> AppState
 
 instance Addable Project where
@@ -60,6 +66,9 @@ instance Addable Project where
         @@= editTextField projectAddName ProjectAddNameField (Just 1)
     ]
     ProjectAddState { _projectAddName = "New Project" }
+    
+  showAddScreen :: AppState -> NoContext -> AppState
+  showAddScreen s _ = s & activeScreen .~ ProjectAddScreen makeAddForm
 
   updateAddForm :: AppState -> NoContext -> ZZZForm ProjectAddState -> AppState
   updateAddForm s _ f = (activeScreen .~ ProjectAddScreen f) s
@@ -80,6 +89,9 @@ instance Addable RequestDefinition where
     [ (txt "Request Definition Name: " <+>) @@= editTextField requestDefinitionAddName RequestDefinitionNameAddField (Just 1)
     ]
     RequestDefinitionAddState { _requestDefinitionAddName = "New Request Definition"}
+    
+  showAddScreen :: AppState -> ProjectContext -> AppState
+  showAddScreen s c = s & activeScreen .~ RequestAddScreen c makeAddForm
 
   updateAddForm :: AppState -> ProjectContext -> ZZZForm RequestDefinitionAddState -> AppState
   updateAddForm s c f = (activeScreen .~ RequestAddScreen c f) s
