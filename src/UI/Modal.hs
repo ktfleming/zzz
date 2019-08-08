@@ -20,15 +20,17 @@ import           Types.AppState                 ( AppState
                                                 , modal
                                                 )
 import           Types.Brick.Name               ( Name )
-import           Types.Classes.Addable          ( NoContext(..) )
-import           Types.Classes.Deletable        ( delete
-                                                , warning
-                                                )
-import           Types.Classes.Listable         ( showListScreen )
-import           Types.Classes.ShowDetails      ( showDetails )
 import           Types.Modal
 import           Types.Models.Project           ( ProjectContext(..) )
 import           Types.Models.RequestDefinition ( RequestDefinitionContext(..) )
+import           UI.Projects.Delete             ( deleteProject
+                                                , deleteProjectWarning
+                                                )
+import           UI.Projects.Details            ( showProjectDetails )
+import           UI.Projects.List               ( showProjectListScreen )
+import           UI.RequestDefinitions.Delete   ( deleteRequestDefinition
+                                                , deleteRequestDefinitionWarning
+                                                )
 
 renderModalText :: T.Text -> Widget Name
 renderModalText t =
@@ -37,15 +39,16 @@ renderModalText t =
 
 renderModal :: AppState -> Modal -> Widget Name
 renderModal s m = case m of
-  DeleteProjectModal           c -> renderModalText $ warning s c
-  DeleteRequestDefinitionModal c -> renderModalText $ warning s c
+  DeleteProjectModal c -> renderModalText $ deleteProjectWarning s c
+  DeleteRequestDefinitionModal c ->
+    renderModalText $ deleteRequestDefinitionWarning s c
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
 handleConfirm :: AppState -> Modal -> AppState
 handleConfirm s m = case m of
-  DeleteProjectModal c -> showListScreen (delete s c) NoContext
+  DeleteProjectModal c -> showProjectListScreen (deleteProject s c)
   DeleteRequestDefinitionModal c@(RequestDefinitionContext pid _) ->
-    showDetails (delete s c) (ProjectContext pid)
+    showProjectDetails (deleteRequestDefinition s c) (ProjectContext pid)
 
 dismissModal :: AppState -> AppState
 dismissModal = modal .~ Nothing

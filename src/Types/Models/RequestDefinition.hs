@@ -1,24 +1,15 @@
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE NamedFieldPuns    #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell   #-}
 
 module Types.Models.RequestDefinition where
 
-import           Data.Aeson                     ( FromJSON
-                                                , ToJSON
-                                                , object
-                                                , parseJSON
-                                                , toJSON
-                                                , withObject
-                                                , (.:)
-                                                , (.=)
-                                                )
-import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( makeLenses )
+import           Data.Aeson                (FromJSON, ToJSON, object, parseJSON,
+                                            toJSON, withObject, (.:), (.=))
+import qualified Data.Text                 as T
+import           Lens.Micro.Platform       (makeLenses)
 import           Types.Classes.Displayable
-import           Types.Models.ID                ( ProjectID
-                                                , RequestDefinitionID
-                                                )
+import           Types.Models.ID           (ProjectID, RequestDefinitionID)
 
 
 data RequestDefinition = RequestDefinition { _requestDefinitionName :: T.Text } deriving (Show)
@@ -36,6 +27,14 @@ instance FromJSON RequestDefinition where
 
 data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID deriving (Show)
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text
+
+data RequestDefinitionAddState = RequestDefinitionAddState { _requestDefinitionAddName :: T.Text } deriving (Show)
+
+makeLenses ''RequestDefinitionAddState
+
+data RequestDefinitionEditState = RequestDefinitionEditState { _requestDefinitionEditName :: T.Text }
+
+makeLenses ''RequestDefinitionEditState
 
 instance Displayable RequestDefinition where
   display = _requestDefinitionName

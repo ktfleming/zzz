@@ -23,7 +23,6 @@ import           Types.Models.ID                ( ProjectID )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
-import           UI.Projects.List
 
 data AppState = AppState { _activeScreen :: Screen
                          , _projects :: Map ProjectID Project
@@ -38,7 +37,7 @@ instance ToJSON AppState where
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     ps <- o .: "projects"
-    return $ AppState { _activeScreen = ProjectListScreen $ makeProjectList ps
+    return $ AppState { _activeScreen = HelpScreen
                       , _projects     = ps
                       , _modal        = Nothing
                       }

@@ -4,24 +4,14 @@
 
 module Types.Models.Project where
 
-import           Data.Aeson                     ( FromJSON
-                                                , ToJSON
-                                                , object
-                                                , parseJSON
-                                                , toJSON
-                                                , withObject
-                                                , (.:)
-                                                , (.=)
-                                                )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( makeLenses )
-import           Types.Classes.Displayable      ( Displayable
-                                                , display
-                                                )
-import           Types.Models.ID                ( ProjectID
-                                                , RequestDefinitionID
-                                                )
+import           Data.Aeson                     (FromJSON, ToJSON, object,
+                                                 parseJSON, toJSON, withObject,
+                                                 (.:), (.=))
+import           Data.Map.Strict                (Map)
+import qualified Data.Text                      as T
+import           Lens.Micro.Platform            (makeLenses)
+import           Types.Classes.Displayable      (Displayable, display)
+import           Types.Models.ID                (ProjectID, RequestDefinitionID)
 import           Types.Models.RequestDefinition
 
 
@@ -43,6 +33,14 @@ instance FromJSON Project where
 
 data ProjectContext = ProjectContext ProjectID deriving (Show)
 data ProjectListItem = ProjectListItem ProjectContext T.Text
+
+data ProjectAddState = ProjectAddState { _projectAddName :: T.Text } deriving (Show)
+
+makeLenses ''ProjectAddState
+
+data ProjectEditState = ProjectEditState { _projectEditName :: T.Text}
+
+makeLenses ''ProjectEditState
 
 instance Displayable Project where
   display = _projectName

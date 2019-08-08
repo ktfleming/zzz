@@ -9,7 +9,6 @@ import           Brick                          ( App(..)
                                                 , AttrMap
                                                 , BrickEvent(VtyEvent)
                                                 , BrickEvent
-                                                , BrickEvent
                                                 , CursorLocation
                                                 , EventM
                                                 , Next
@@ -48,20 +47,7 @@ import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.Brick.CustomEvent
 import           Types.Brick.Name
-import           Types.Classes.Addable          ( NoContext(..)
-                                                , finishAdding
-                                                , showAddScreen
-                                                , updateAddForm
-                                                )
 import           Types.Classes.Displayable      ( display )
-import           Types.Classes.Editable         ( finishEditing
-                                                , showEditScreen
-                                                , updateEditForm
-                                                )
-import           Types.Classes.Listable         ( showListScreen
-                                                , updateList
-                                                )
-import           Types.Classes.ShowDetails      ( showDetails )
 import           Types.Constants                ( mainSettingsFile )
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project
@@ -72,6 +58,27 @@ import           UI.List                        ( renderGenericList )
 import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 , renderModal
+                                                )
+import           UI.Projects.Add                ( finishAddingProject
+                                                , showProjectAddScreen
+                                                , updateProjectAddForm
+                                                )
+import           UI.Projects.Details            ( showProjectDetails )
+import           UI.Projects.Edit               ( finishEditingProject
+                                                , showEditProjectScreen
+                                                , updateEditProjectForm
+                                                )
+import           UI.Projects.List               ( showProjectListScreen
+                                                , updateProjectList
+                                                )
+import           UI.RequestDefinitions.Add      ( finishAddingRequestDefinition
+                                                , showAddRequestDefinitionScreen
+                                                , updateAddRequestDefinitionForm
+                                                )
+import           UI.RequestDefinitions.Details  ( showRequestDefinitionDetails )
+import           UI.RequestDefinitions.Edit     ( finishEditingRequestDefinition
+                                                , showEditRequestDefinitionScreen
+                                                , updateEditRequestDefinitionForm
                                                 )
 
 uiApp :: App AppState CustomEvent Name
@@ -137,51 +144,56 @@ handleEvent s@AppState { _modal = Just m } (VtyEvent (EvKey key [])) =
 handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
   = case _activeScreen of
     RequestDetailsScreen c@(RequestDefinitionContext pid _) -> case key of
-      KLeft     -> continue $ showDetails s (ProjectContext pid)
-      KChar 'e' -> continue $ showEditScreen s c
+      KLeft     -> continue $ showProjectDetails s (ProjectContext pid)
+      KChar 'e' -> continue $ showEditRequestDefinitionScreen s c
       KChar 'd' -> continue $ (modal ?~ DeleteRequestDefinitionModal c) s
       _         -> continue s
 
     RequestEditScreen c form -> case key of
-      KEnter -> continue $ finishEditing s c (formState form)
-      KEsc -> continue $ showDetails s c
-      _ -> handleFormEvent ev form >>= \f -> continue $ updateEditForm s c f
+      KEnter -> continue $ finishEditingRequestDefinition s c (formState form)
+      KEsc   -> continue $ showRequestDefinitionDetails s c
+      _      -> handleFormEvent ev form
+        >>= \f -> continue $ updateEditRequestDefinitionForm s c f
 
     ProjectListScreen list -> case key of
       KEnter -> case listSelectedElement list of
-        Just (_, ProjectListItem context _) -> continue $ showDetails s context
-        Nothing                             -> continue s
-      KChar 'a' -> continue $ showAddScreen s NoContext
+        Just (_, ProjectListItem context _) ->
+          continue $ showProjectDetails s context
+        Nothing -> continue s
+      KChar 'a' -> continue $ showProjectAddScreen s
       _         -> handleListEvent (EvKey key []) list
-        >>= \l -> continue $ updateList s NoContext l
+        >>= \l -> continue $ updateProjectList s l
 
     ProjectDetailsScreen c list -> case key of
       KEnter -> case listSelectedElement list of
         Just (_, RequestDefinitionListItem reqContext _) ->
-          continue $ showDetails s reqContext
+          continue $ showRequestDefinitionDetails s reqContext
         Nothing -> continue s
-      KChar 'e' -> continue $ showEditScreen s c
-      KChar 'a' -> continue $ showAddScreen s c
+      KChar 'e' -> continue $ showEditProjectScreen s c
+      KChar 'a' -> continue $ showAddRequestDefinitionScreen s c
       KChar 'd' -> continue $ (modal ?~ DeleteProjectModal c) s
-      KLeft     -> continue $ showListScreen s NoContext
+      KLeft     -> continue $ showProjectListScreen s
       _         -> handleListEvent (EvKey key []) list
         >>= \l -> continue $ (activeScreen .~ ProjectDetailsScreen c l) s
 
     ProjectEditScreen c form -> case key of
-      KEnter -> continue $ finishEditing s c (formState form)
-      KEsc -> continue $ showDetails s c
-      _ -> handleFormEvent ev form >>= \f -> continue $ updateEditForm s c f
+      KEnter -> continue $ finishEditingProject s c (formState form)
+      KEsc   -> continue $ showProjectDetails s c
+      _ ->
+        handleFormEvent ev form >>= \f -> continue $ updateEditProjectForm s c f
 
     ProjectAddScreen form -> case key of
-      KEnter -> liftIO (finishAdding s NoContext (formState form)) >>= continue
-      KEsc   -> continue $ showListScreen s NoContext
+      KEnter -> liftIO (finishAddingProject s (formState form)) >>= continue
+      KEsc   -> continue $ showProjectListScreen s
       _ ->
-        handleFormEvent ev form >>= \f -> continue $ updateAddForm s NoContext f
+        handleFormEvent ev form >>= \f -> continue $ updateProjectAddForm s f
 
     RequestAddScreen c form -> case key of
-      KEnter -> liftIO (finishAdding s c (formState form)) >>= continue
-      KEsc   -> continue $ showDetails s c
-      _      -> handleFormEvent ev form >>= \f -> continue $ updateAddForm s c f
+      KEnter ->
+        liftIO (finishAddingRequestDefinition s c (formState form)) >>= continue
+      KEsc -> continue $ showProjectDetails s c
+      _    -> handleFormEvent ev form
+        >>= \f -> continue $ updateAddRequestDefinitionForm s c f
 
     HelpScreen -> continue s
 
