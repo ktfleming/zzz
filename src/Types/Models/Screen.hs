@@ -2,8 +2,8 @@ module Types.Models.Screen where
 
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
-import           UI.Form                        (ZZZForm)
-import           UI.List                        (ZZZList)
+import           UI.Form                        ( ZZZForm )
+import           UI.List                        ( ZZZList )
 
 -- Represents what main "view" of the app the user is looking at
 data Screen =

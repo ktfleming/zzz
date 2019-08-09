@@ -1,10 +1,14 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module UI.List where
 
 import           Brick                          ( Widget
+                                                , padLeft
                                                 , padRight
                                                 , txt
+                                                , (<+>)
                                                 )
-import           Brick.Types                    ( Padding(Max) )
+import           Brick.Types                    ( Padding(Max, Pad) )
 import           Brick.Widgets.List             ( GenericList
                                                 , renderList
                                                 )
@@ -16,4 +20,7 @@ type ZZZList x = GenericList Name Vector x
 
 renderGenericList :: Displayable x => ZZZList x -> Widget Name
 renderGenericList = renderList f True
-  where f _ item = padRight Max $ txt $ display item
+ where
+  f selected item =
+    let mainLine = padRight Max $ txt $ display item
+    in  (if selected then txt "❯ " <+> mainLine else padLeft (Pad 2) mainLine)

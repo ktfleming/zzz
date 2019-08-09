@@ -6,8 +6,11 @@ module UI.Projects.Delete where
 import           Types.AppState
 import           Types.Models.Project
 
-import qualified Data.Text            as T
-import           Lens.Micro.Platform  (at, (&), (.~))
+import qualified Data.Text                     as T
+import           Lens.Micro.Platform            ( at
+                                                , (&)
+                                                , (.~)
+                                                )
 
 deleteProject :: AppState -> ProjectContext -> AppState
 deleteProject s (ProjectContext pid) = s & projects . at pid .~ Nothing

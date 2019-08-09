@@ -3,17 +3,27 @@
 
 module UI.Projects.Edit where
 
-import           Brick                (txt, (<+>))
-import           Brick.Forms          (editTextField, newForm, (@@=))
-import           Lens.Micro.Platform  (at, (&), (.~), _Just)
+import           Brick                          ( txt
+                                                , (<+>)
+                                                )
+import           Brick.Forms                    ( editTextField
+                                                , newForm
+                                                , (@@=)
+                                                )
+import           Lens.Micro.Platform            ( at
+                                                , (&)
+                                                , (.~)
+                                                , _Just
+                                                )
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.WithID (model)
+import           Types.Classes.WithID           ( model )
 import           Types.Models.Project
 import           Types.Models.Screen
-import           UI.Form              (ZZZForm)
+import           UI.Form                        ( ZZZForm )
 
-finishEditingProject :: AppState -> ProjectContext -> ProjectEditState -> AppState
+finishEditingProject
+  :: AppState -> ProjectContext -> ProjectEditState -> AppState
 finishEditingProject appState context@(ProjectContext pid) editState =
   let base     = model appState context
       newModel = updateProject base editState

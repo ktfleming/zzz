@@ -3,10 +3,14 @@
 
 module UI.RequestDefinitions.Delete where
 
-import qualified Data.Text                      as T
-import           Lens.Micro.Platform            (at, (&), (.~), _Just)
+import qualified Data.Text                     as T
+import           Lens.Micro.Platform            ( at
+                                                , (&)
+                                                , (.~)
+                                                , _Just
+                                                )
 import           Types.AppState
-import           Types.Models.Project           (requestDefinitions)
+import           Types.Models.Project           ( requestDefinitions )
 import           Types.Models.RequestDefinition
 
 deleteRequestDefinition :: AppState -> RequestDefinitionContext -> AppState

@@ -16,7 +16,6 @@ import           Data.Aeson                     ( FromJSON
 import           Data.Map.Strict                ( Map
                                                 , (!)
                                                 )
-import qualified Data.Text                     as T
 import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Modal
 import           Types.Models.ID                ( ProjectID )
@@ -50,16 +49,3 @@ lookupRequestDefinition
 lookupRequestDefinition s (RequestDefinitionContext pid rid) =
   let Project { _requestDefinitions } = lookupProject s (ProjectContext pid)
   in  _requestDefinitions ! rid
-
-title :: AppState -> Screen -> T.Text
-title _ (ProjectAddScreen  _  ) = "New Project"
-title _ (ProjectListScreen _  ) = "All Projects"
-title s (ProjectEditScreen c _) = let p = lookupProject s c in _projectName p
-title s (ProjectDetailsScreen c _) =
-  let p = lookupProject s c in _projectName p
-title _ (RequestAddScreen _ _) = "New Request Definition"
-title s (RequestDetailsScreen c) =
-  let r = lookupRequestDefinition s c in _requestDefinitionName r
-title s (RequestEditScreen c _) =
-  let req = lookupRequestDefinition s c in _requestDefinitionName req
-title _ HelpScreen = "Help"

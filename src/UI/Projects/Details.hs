@@ -1,16 +1,19 @@
 {-# LANGUAGE NamedFieldPuns #-}
 module UI.Projects.Details where
 
-import           Brick.Widgets.List        (list)
-import qualified Data.Map.Strict           as Map
-import qualified Data.Vector               as V
-import           Lens.Micro.Platform       ((.~))
+import           Brick.Widgets.List             ( list )
+import qualified Data.Map.Strict               as Map
+import qualified Data.Vector                   as V
+import           Lens.Micro.Platform            ( (.~) )
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.WithID      (model)
-import           Types.ContextTransformers (requestDefinitionContext,
-                                            requestDefinitionListItem)
-import           Types.Models.Project      (Project (..), ProjectContext)
+import           Types.Classes.WithID           ( model )
+import           Types.ContextTransformers      ( requestDefinitionContext
+                                                , requestDefinitionListItem
+                                                )
+import           Types.Models.Project           ( Project(..)
+                                                , ProjectContext
+                                                )
 import           Types.Models.Screen
 
 showProjectDetails :: AppState -> ProjectContext -> AppState

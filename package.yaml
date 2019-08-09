@@ -41,6 +41,7 @@ library:
     - Types.Constants
     - Types.Models.Screen
     - UI.App
+    - UI.Projects.List
 
 executables:
   zzz-exe:

@@ -1,5 +1,4 @@
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE NamedFieldPuns #-}
 
 module UI.App where
 
@@ -9,7 +8,6 @@ import           Brick                          ( App(..)
                                                 , AttrMap
                                                 , BrickEvent(VtyEvent)
                                                 , BrickEvent
-                                                , CursorLocation
                                                 , EventM
                                                 , Next
                                                 , Widget
@@ -18,13 +16,13 @@ import           Brick                          ( App(..)
                                                 , halt
                                                 , joinBorders
                                                 , padBottom
+                                                , showFirstCursor
                                                 , txt
                                                 , withBorderStyle
                                                 , (<=>)
                                                 )
 import           Brick.Forms                    ( formState
                                                 , handleFormEvent
-                                                , renderForm
                                                 )
 import           Brick.Types                    ( Padding(Max) )
 import           Brick.Util
@@ -47,14 +45,14 @@ import           Lens.Micro.Platform
 import           Types.AppState
 import           Types.Brick.CustomEvent
 import           Types.Brick.Name
-import           Types.Classes.Displayable      ( display )
 import           Types.Constants                ( mainSettingsFile )
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
 import           UI.Attr
-import           UI.List                        ( renderGenericList )
+import           UI.HelpPanel                   ( helpPanel )
+import           UI.MainWidget                  ( mainWidget )
 import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 , renderModal
@@ -80,10 +78,11 @@ import           UI.RequestDefinitions.Edit     ( finishEditingRequestDefinition
                                                 , showEditRequestDefinitionScreen
                                                 , updateEditRequestDefinitionForm
                                                 )
+import           UI.Title                       ( title )
 
 uiApp :: App AppState CustomEvent Name
 uiApp = App { appDraw         = drawUI
-            , appChooseCursor = chooseCursor
+            , appChooseCursor = showFirstCursor
             , appHandleEvent  = handleEvent
             , appStartEvent   = startEvent
             , appAttrMap      = const myMap
@@ -91,43 +90,17 @@ uiApp = App { appDraw         = drawUI
 
 drawUI :: AppState -> [Widget Name]
 drawUI s@AppState { _projects, _activeScreen, _modal } =
-  let
-    mainWidget = case _activeScreen of
-      HelpScreen                  -> txt "Todo"
-      ProjectAddScreen  form      -> renderForm form
-      ProjectListScreen list      -> renderGenericList list
-      ProjectEditScreen    _ form -> renderForm form
-      ProjectDetailsScreen _ list -> renderGenericList list
-      RequestAddScreen     _ form -> renderForm form
-      RequestDetailsScreen c ->
-        let r = lookupRequestDefinition s c in txt $ display r
-      RequestEditScreen _ form -> renderForm form
-    helpText = case _activeScreen of
-      ProjectAddScreen{}  -> "Enter: Finish adding | ESC: Return without adding"
-      ProjectListScreen{} -> "Enter: View project | a: Add Project"
-      ProjectDetailsScreen{}
-        -> "Enter: View request definition | Left: back | e: Edit Project | a: Add request definition | d: Delete"
-      RequestDetailsScreen{} -> "Left: back | e: Edit | d: Delete"
-      ProjectEditScreen{}    -> "Enter: Save | ESC: Return without saving"
-      RequestAddScreen{} -> "Enter: Finsh adding | ESC: Return without adding"
-      RequestEditScreen{}    -> "Enter: Save | ESC: Return without saving"
-      HelpScreen             -> "todo"
-    titleLine = txt $ title s _activeScreen
-    helpLine  = txt helpText
-    everything =
-      titleLine
-        <=> hBorder
-        <=> padBottom Max mainWidget
-        <=> hBorder
-        <=> helpLine
-    borderedEverything =
-      withBorderStyle unicodeRounded $ (joinBorders . border) everything
-    modalWidget = maybeToList $ renderModal s <$> _modal
-  in
-    modalWidget ++ [borderedEverything]
-
-chooseCursor :: AppState -> [CursorLocation Name] -> Maybe (CursorLocation Name)
-chooseCursor _ _ = Nothing
+  let titleLine = txt $ title s _activeScreen
+      everything =
+          titleLine
+            <=> hBorder
+            <=> padBottom Max (mainWidget s)
+            <=> hBorder
+            <=> helpPanel _activeScreen
+      borderedEverything =
+          withBorderStyle unicodeRounded $ (joinBorders . border) everything
+      modalWidget = maybeToList $ renderModal s <$> _modal
+  in  modalWidget ++ [borderedEverything]
 
 handleEvent
   :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
@@ -150,9 +123,11 @@ handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
       _         -> continue s
 
     RequestEditScreen c form -> case key of
-      KEnter -> continue $ finishEditingRequestDefinition s c (formState form)
-      KEsc   -> continue $ showRequestDefinitionDetails s c
-      _      -> handleFormEvent ev form
+      KEnter ->
+        let updatedState = finishEditingRequestDefinition s c (formState form)
+        in  continue $ showRequestDefinitionDetails updatedState c
+      KEsc -> continue $ showRequestDefinitionDetails s c
+      _    -> handleFormEvent ev form
         >>= \f -> continue $ updateEditRequestDefinitionForm s c f
 
     ProjectListScreen list -> case key of
