@@ -1,7 +1,6 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module Types.ContextTransformers where
 
+import           Control.Lens
 import           Types.Models.ID                ( RequestDefinitionID )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
@@ -12,5 +11,4 @@ requestDefinitionContext (ProjectContext pid) = RequestDefinitionContext pid
 
 requestDefinitionListItem
   :: RequestDefinitionContext -> RequestDefinition -> RequestDefinitionListItem
-requestDefinitionListItem c RequestDefinition { _requestDefinitionName } =
-  RequestDefinitionListItem c _requestDefinitionName
+requestDefinitionListItem c r = RequestDefinitionListItem c (r ^. name)

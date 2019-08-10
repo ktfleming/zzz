@@ -1,6 +1,5 @@
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NamedFieldPuns #-}
 
 module Main where
 
@@ -25,16 +24,16 @@ main :: IO ()
 main = do
   runOrError :: Either String AppState <- runExceptT $ do
     fileExists <- ExceptT $ Right <$> doesFileExist mainSettingsFile
-    s@AppState { _projects }      <- if fileExists
+    s      <- if fileExists
       then getAppStateFromFile
-      else ExceptT $ return $ Right AppState { _activeScreen = HelpScreen
-                                             , _projects     = Map.empty
-                                             , _modal        = Nothing
+      else ExceptT $ return $ Right AppState { appStateScreen = HelpScreen
+                                             , appStateProjects     = Map.empty
+                                             , appStateModal        = Nothing
                                              }
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to
     -- ProjectListScreen here.
-    let updatedState = s & activeScreen .~ ProjectListScreen (makeProjectList _projects)
+    let updatedState = s & screen .~ ProjectListScreen (makeProjectList (s ^. projects))
     ExceptT $ Right <$> defaultMain uiApp updatedState
 
   case runOrError of

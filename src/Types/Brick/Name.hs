@@ -4,7 +4,7 @@ data Name = ProjectFormNameField
           | ProjectList
           | RequestDefinitionList
           | RequestDefinitionFormNameField
-          | RequestDefinitionFormURLField
+          | RequestDefinitionFormUrlField
           | GetRadioField
           | PostRadioField
           | PutRadioField

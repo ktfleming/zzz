@@ -1,5 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
-
 module UI.App where
 
 import           Brick                          ( App(..)
@@ -21,6 +19,7 @@ import           Brick.Widgets.Border           ( border
                                                 )
 import           Brick.Widgets.Border.Style     ( unicodeRounded )
 import           Brick.Widgets.List             ( listSelectedFocusedAttr )
+import           Control.Lens
 import           Data.Maybe                     ( maybeToList )
 import           Graphics.Vty                   ( withForeColor )
 import qualified Graphics.Vty                  as V
@@ -43,17 +42,17 @@ uiApp = App { appDraw         = drawUI
             }
 
 drawUI :: AppState -> [Widget Name]
-drawUI s@AppState { _projects, _activeScreen, _modal } =
-  let titleLine = txt $ title s _activeScreen
+drawUI s =
+  let titleLine = txt $ title s (s ^. screen)
       everything =
           titleLine
             <=> hBorder
             <=> padBottom Max (mainWidget s)
             <=> hBorder
-            <=> helpPanel _activeScreen
+            <=> helpPanel (s ^. screen)
       borderedEverything =
           withBorderStyle unicodeRounded $ (joinBorders . border) everything
-      modalWidget = maybeToList $ renderModal s <$> _modal
+      modalWidget = maybeToList $ renderModal s <$> (s ^. modal)
   in  modalWidget ++ [borderedEverything]
 
 startEvent :: AppState -> EventM Name AppState

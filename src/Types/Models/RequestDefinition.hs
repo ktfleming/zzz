@@ -1,10 +1,12 @@
+{-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralisedNewtypeDeriving #-}
-{-# LANGUAGE NamedFieldPuns             #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Types.Models.RequestDefinition where
 
+import           Control.Lens                   ( (^.) )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
@@ -25,44 +27,40 @@ import           Types.Models.ID                ( ProjectID
 newtype URL = URL T.Text deriving (Show, FromJSON)
 
 data RequestDefinition = RequestDefinition {
-    _requestDefinitionName :: T.Text
-  , _requestDefinitionURL :: T.Text -- TODO: make this into URL
-  , _requestDefinitionMethod :: Method
+    requestDefinitionName :: T.Text
+  , requestDefinitionUrl :: T.Text -- TODO: make this into URL
+  , requestDefinitionMethod :: Method
   } deriving (Show)
 
 data RequestDefinitionFormState = RequestDefinitionFormState {
-    _requestDefinitionFormName :: T.Text
-  , _requestDefinitionFormURL :: T.Text
-  , _requestDefinitionFormMethod :: Method
+    requestDefinitionFormStateName :: T.Text
+  , requestDefinitionFormStateUrl :: T.Text
+  , requestDefinitionFormStateMethod :: Method
   } deriving (Show)
 
 data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID deriving (Show)
 
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text
 
-makeLenses ''RequestDefinition
-makeLenses ''RequestDefinitionFormState
+makeFields ''RequestDefinition
+makeFields ''RequestDefinitionFormState
 
 instance Displayable RequestDefinition where
-  display = _requestDefinitionName
+  display r = r ^. name
 
 instance Displayable RequestDefinitionListItem where
-  display (RequestDefinitionListItem _ name) = name
+  display (RequestDefinitionListItem _ n) = n
 
 instance ToJSON RequestDefinition where
-  toJSON RequestDefinition { _requestDefinitionName, _requestDefinitionURL, _requestDefinitionMethod }
-    = object
-      [ "name" .= _requestDefinitionName
-      , "url" .= _requestDefinitionURL
-      , "method" .= _requestDefinitionMethod
-      ]
+  toJSON r = object
+    ["name" .= (r ^. name), "url" .= (r ^. url), "method" .= (r ^. method)]
 
 instance FromJSON RequestDefinition where
   parseJSON = withObject "RequestDefinition" $ \o -> do
-    name <- o .: "name"
-    u    <- o .: "url"
-    m    <- o .: "method"
-    return RequestDefinition { _requestDefinitionName   = name
-                             , _requestDefinitionURL    = u
-                             , _requestDefinitionMethod = m
+    n <- o .: "name"
+    u <- o .: "url"
+    m <- o .: "method"
+    return RequestDefinition { requestDefinitionName   = n
+                             , requestDefinitionUrl    = u
+                             , requestDefinitionMethod = m
                              }

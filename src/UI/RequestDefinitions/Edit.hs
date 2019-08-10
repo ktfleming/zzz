@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.RequestDefinitions.Edit where
@@ -30,60 +29,45 @@ finishEditingRequestDefinition
 finishEditingRequestDefinition appState c@(RequestDefinitionContext pid rid) editState
   = let base     = model appState c
         newModel = updateRequestDefinition base editState
-    in  appState
-          & (  projects
-            .  at pid
-            .  _Just
-            .  requestDefinitions
-            .  at rid
-            .  _Just
-            .~ newModel
-            )
+    in  appState & (projects . ix pid . requestDefinitions . ix rid .~ newModel)
 
 updateRequestDefinition
   :: RequestDefinition -> RequestDefinitionFormState -> RequestDefinition
-updateRequestDefinition base RequestDefinitionFormState { _requestDefinitionFormName, _requestDefinitionFormURL, _requestDefinitionFormMethod }
-  = base
-    &  requestDefinitionName
-    .~ _requestDefinitionFormName
-    &  requestDefinitionURL
-    .~ _requestDefinitionFormURL
-    &  requestDefinitionMethod
-    .~ _requestDefinitionFormMethod
+updateRequestDefinition base formState =
+  base
+    &  name
+    .~ (formState ^. name)
+    &  url
+    .~ (formState ^. url)
+    &  method
+    .~ (formState ^. method)
 
 makeEditRequestDefinitionForm
   :: AppState -> RequestDefinitionContext -> ZZZForm RequestDefinitionFormState
 makeEditRequestDefinitionForm s c =
-  let
-    RequestDefinition { _requestDefinitionName, _requestDefinitionURL, _requestDefinitionMethod }
-      = model s c
-    editState = RequestDefinitionFormState
-      { _requestDefinitionFormName   = _requestDefinitionName
-      , _requestDefinitionFormURL    = _requestDefinitionURL
-      , _requestDefinitionFormMethod = _requestDefinitionMethod
-      }
-  in
-    newForm
-      [ (txt "Name:   " <+>) @@= editTextField requestDefinitionFormName
-                                               RequestDefinitionFormNameField
-                                               (Just 1)
-      , (txt "URL:    " <+>) @@= editTextField requestDefinitionFormURL
-                                               RequestDefinitionFormURLField
-                                               (Just 1)
-      , (txt "Method: " <+>)
-        @@= radioField requestDefinitionFormMethod allMethodsRadio
-      ]
-      editState
+  let r         = model s c
+      editState = RequestDefinitionFormState
+        { requestDefinitionFormStateName   = r ^. name
+        , requestDefinitionFormStateUrl    = r ^. url
+        , requestDefinitionFormStateMethod = r ^. method
+        }
+  in  newForm
+        [ (txt "Name:   " <+>)
+          @@= editTextField name RequestDefinitionFormNameField (Just 1)
+        , (txt "URL:    " <+>)
+          @@= editTextField url RequestDefinitionFormUrlField (Just 1)
+        , (txt "Method: " <+>) @@= radioField method allMethodsRadio
+        ]
+        editState
 
 showEditRequestDefinitionScreen
   :: AppState -> RequestDefinitionContext -> AppState
 showEditRequestDefinitionScreen s c =
-  (activeScreen .~ RequestEditScreen c (makeEditRequestDefinitionForm s c)) s
+  s & screen .~ RequestEditScreen c (makeEditRequestDefinitionForm s c)
 
 updateEditRequestDefinitionForm
   :: AppState
   -> RequestDefinitionContext
   -> ZZZForm RequestDefinitionFormState
   -> AppState
-updateEditRequestDefinitionForm s c f =
-  (activeScreen .~ RequestEditScreen c f) s
+updateEditRequestDefinitionForm s c f = s & screen .~ RequestEditScreen c f

@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.RequestDefinitions.Delete where
@@ -15,8 +14,8 @@ deleteRequestDefinition s (RequestDefinitionContext pid rid) =
 
 deleteRequestDefinitionWarning :: AppState -> RequestDefinitionContext -> T.Text
 deleteRequestDefinitionWarning s c =
-  let RequestDefinition { _requestDefinitionName } =
-          lookupRequestDefinition s c
+  let r = lookupRequestDefinition s c
   in  "Are you sure you want to delete request definition '"
-        <> _requestDefinitionName
+        <> r
+        ^. name
         <> "'?"

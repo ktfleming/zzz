@@ -24,39 +24,35 @@ import           UI.Form                        ( ZZZForm )
 
 finishAddingRequestDefinition
   :: AppState -> ProjectContext -> RequestDefinitionFormState -> IO AppState
-finishAddingRequestDefinition s (ProjectContext pid) RequestDefinitionFormState { _requestDefinitionFormName = newName, _requestDefinitionFormURL = u, _requestDefinitionFormMethod = m }
-  = do
-    rid <- RequestDefinitionID <$> nextRandom
-    let req = RequestDefinition { _requestDefinitionName   = newName
-                                , _requestDefinitionURL    = u
-                                , _requestDefinitionMethod = m
-                                }
-        reqMap = Map.singleton rid req
-    return $ (projects . at pid . _Just . requestDefinitions <>~ reqMap) s
+finishAddingRequestDefinition s (ProjectContext pid) formState = do
+  rid <- RequestDefinitionID <$> nextRandom
+  let req = RequestDefinition { requestDefinitionName   = formState ^. name
+                              , requestDefinitionUrl    = formState ^. url
+                              , requestDefinitionMethod = formState ^. method
+                              }
+      reqMap = Map.singleton rid req
+  return $ (projects . at pid . _Just . requestDefinitions <>~ reqMap) s
 
 makeAddRequestDefinitionForm :: ZZZForm RequestDefinitionFormState
 makeAddRequestDefinitionForm = newForm
-  [ (txt "Request Definition Name: " <+>) @@= editTextField
-    requestDefinitionFormName
-    RequestDefinitionFormNameField
-    (Just 1)
-  , (txt "URL: " <+>) @@= editTextField requestDefinitionFormURL
-                                        RequestDefinitionFormURLField
-                                        (Just 1)
+  [ (txt "Request Definition Name: " <+>)
+    @@= editTextField name RequestDefinitionFormNameField (Just 1)
+  , (txt "URL: " <+>)
+    @@= editTextField url RequestDefinitionFormUrlField (Just 1)
   ]
   RequestDefinitionFormState
-    { _requestDefinitionFormName   = "New Request Definition"
-    , _requestDefinitionFormURL    = "http://example.com"
-    , _requestDefinitionFormMethod = Get
+    { requestDefinitionFormStateName   = "New Request Definition"
+    , requestDefinitionFormStateUrl    = "http://example.com"
+    , requestDefinitionFormStateMethod = Get
     }
 
 showAddRequestDefinitionScreen :: AppState -> ProjectContext -> AppState
 showAddRequestDefinitionScreen s c =
-  s & activeScreen .~ RequestAddScreen c makeAddRequestDefinitionForm
+  s & screen .~ RequestAddScreen c makeAddRequestDefinitionForm
 
 updateAddRequestDefinitionForm
   :: AppState
   -> ProjectContext
   -> ZZZForm RequestDefinitionFormState
   -> AppState
-updateAddRequestDefinitionForm s c f = s & activeScreen .~ RequestAddScreen c f
+updateAddRequestDefinitionForm s c f = s & screen .~ RequestAddScreen c f

@@ -1,9 +1,12 @@
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Types.Models.Project where
 
+import           Control.Lens                   ( (^.) )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
@@ -25,31 +28,29 @@ import           Types.Models.ID                ( ProjectID
 import           Types.Models.RequestDefinition
 
 
-data Project = Project { _projectName :: T.Text
-                       , _requestDefinitions :: Map RequestDefinitionID RequestDefinition} deriving (Show)
-
-
-makeLenses ''Project
-
-instance ToJSON Project where
-  toJSON Project { _projectName, _requestDefinitions } = object
-    ["name" .= _projectName, "request_definitions" .= _requestDefinitions]
-
-instance FromJSON Project where
-  parseJSON = withObject "Project" $ \o -> do
-    name    <- o .: "name"
-    reqDefs <- o .: "request_definitions"
-    return $ Project { _projectName = name, _requestDefinitions = reqDefs }
+data Project = Project { projectName :: T.Text
+                       , projectRequestDefinitions :: Map RequestDefinitionID RequestDefinition} deriving (Show)
 
 data ProjectContext = ProjectContext ProjectID deriving (Show)
 data ProjectListItem = ProjectListItem ProjectContext T.Text
 
-data ProjectFormState = ProjectFormState { _projectFormName :: T.Text}
+data ProjectFormState = ProjectFormState { projectFormStateName :: T.Text }
 
-makeLenses ''ProjectFormState
+makeFields ''Project
+makeFields ''ProjectFormState
+
+instance ToJSON Project where
+  toJSON p = object
+    ["name" .= (p ^. name), "request_definitions" .= (p ^. requestDefinitions)]
+
+instance FromJSON Project where
+  parseJSON = withObject "Project" $ \o -> do
+    n       <- o .: "name"
+    reqDefs <- o .: "request_definitions"
+    return $ Project { projectName = n, projectRequestDefinitions = reqDefs }
 
 instance Displayable Project where
-  display = _projectName
+  display p = p ^. name
 
 instance Displayable ProjectListItem where
-  display (ProjectListItem _ name) = name
+  display (ProjectListItem _ n) = n

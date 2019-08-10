@@ -16,26 +16,28 @@ import           Types.AppState
 import           Types.Brick.Name
 import           Types.Models.ID                ( ProjectID(..) )
 import           Types.Models.Project
+import           Types.Models.RequestDefinition ( name )
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
 finishAddingProject :: AppState -> ProjectFormState -> IO AppState
-finishAddingProject s ProjectFormState { _projectFormName = newName } = do
+finishAddingProject s formState = do
   pid <- ProjectID <$> nextRandom
-  let project =
-        Project { _projectName = newName, _requestDefinitions = Map.empty }
+  let project = Project { projectName               = formState ^. name
+                        , projectRequestDefinitions = Map.empty
+                        }
       projectMap = Map.singleton pid project
   return $ (projects <>~ projectMap) s
 
 makeProjectAddForm :: ZZZForm ProjectFormState
 makeProjectAddForm = newForm
   [ (txt "Project Name: " <+>)
-      @@= editTextField projectFormName ProjectFormNameField (Just 1)
+      @@= editTextField name ProjectFormNameField (Just 1)
   ]
-  ProjectFormState { _projectFormName = "New Project" }
+  ProjectFormState { projectFormStateName = "New Project" }
 
 showProjectAddScreen :: AppState -> AppState
-showProjectAddScreen = activeScreen .~ ProjectAddScreen makeProjectAddForm
+showProjectAddScreen = screen .~ ProjectAddScreen makeProjectAddForm
 
 updateProjectAddForm :: AppState -> ZZZForm ProjectFormState -> AppState
-updateProjectAddForm s f = s & activeScreen .~ ProjectAddScreen f
+updateProjectAddForm s f = s & screen .~ ProjectAddScreen f

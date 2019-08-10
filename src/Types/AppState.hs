@@ -1,9 +1,12 @@
-{-# LANGUAGE NamedFieldPuns    #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TemplateHaskell   #-}
+{-# LANGUAGE FlexibleInstances      #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE MultiParamTypeClasses  #-}
+{-# LANGUAGE OverloadedStrings      #-}
+{-# LANGUAGE TemplateHaskell        #-}
 
 module Types.AppState where
 
+import           Control.Lens                   ( (^.) )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
@@ -23,29 +26,29 @@ import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
 
-data AppState = AppState { _activeScreen :: Screen
-                         , _projects :: Map ProjectID Project
-                         , _modal :: Maybe Modal
+data AppState = AppState { appStateScreen :: Screen
+                         , appStateProjects :: Map ProjectID Project
+                         , appStateModal :: Maybe Modal
                          } deriving (Show)
 
-makeLenses ''AppState
+makeFields ''AppState
 
 instance ToJSON AppState where
-  toJSON AppState { _projects } = object ["projects" .= _projects]
+  toJSON s = object ["projects" .= (s ^. projects)]
 
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     ps <- o .: "projects"
-    return $ AppState { _activeScreen = HelpScreen
-                      , _projects     = ps
-                      , _modal        = Nothing
+    return $ AppState { appStateScreen   = HelpScreen
+                      , appStateProjects = ps
+                      , appStateModal    = Nothing
                       }
 
 lookupProject :: AppState -> ProjectContext -> Project
-lookupProject AppState { _projects } (ProjectContext pid) = _projects ! pid
+lookupProject s (ProjectContext pid) = (s ^. projects) ! pid
 
 lookupRequestDefinition
   :: AppState -> RequestDefinitionContext -> RequestDefinition
 lookupRequestDefinition s (RequestDefinitionContext pid rid) =
-  let Project { _requestDefinitions } = lookupProject s (ProjectContext pid)
-  in  _requestDefinitions ! rid
+  let p = lookupProject s (ProjectContext pid)
+  in  (p ^. requestDefinitions) ! rid

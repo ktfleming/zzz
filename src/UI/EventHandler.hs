@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns #-}
 module UI.EventHandler
   ( handleEvent
   )
@@ -68,69 +67,67 @@ handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always e
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
 
-handleEvent s@AppState { _modal = Just m } (VtyEvent (EvKey key [])) =
+handleEvent s@AppState { appStateModal = Just m } (VtyEvent (EvKey key [])) =
   case key of
     KChar 'n' -> continue $ dismissModal s
     KChar 'y' -> continue $ dismissModal $ handleConfirm s m
     _         -> continue s
 
-handleEvent s@AppState { _activeScreen, _projects } ev@(VtyEvent (EvKey key []))
-  = case _activeScreen of
-    RequestDetailsScreen c@(RequestDefinitionContext pid _) -> case key of
-      KLeft     -> continue $ showProjectDetails s (ProjectContext pid)
-      KChar 'e' -> continue $ showEditRequestDefinitionScreen s c
-      KChar 'd' -> continue $ (modal ?~ DeleteRequestDefinitionModal c) s
-      _         -> continue s
+handleEvent s ev@(VtyEvent (EvKey key [])) = case s ^. screen of
+  RequestDetailsScreen c@(RequestDefinitionContext pid _) -> case key of
+    KLeft     -> continue $ showProjectDetails s (ProjectContext pid)
+    KChar 'e' -> continue $ showEditRequestDefinitionScreen s c
+    KChar 'd' -> continue $ (modal ?~ DeleteRequestDefinitionModal c) s
+    _         -> continue s
 
-    RequestEditScreen c form -> case key of
-      KEnter ->
-        let updatedState = finishEditingRequestDefinition s c (formState form)
-        in  continue $ showRequestDefinitionDetails updatedState c
-      KEsc -> continue $ showRequestDefinitionDetails s c
-      _    -> handleFormEvent ev form
-        >>= \f -> continue $ updateEditRequestDefinitionForm s c f
+  RequestEditScreen c form -> case key of
+    KEnter ->
+      let updatedState = finishEditingRequestDefinition s c (formState form)
+      in  continue $ showRequestDefinitionDetails updatedState c
+    KEsc -> continue $ showRequestDefinitionDetails s c
+    _    -> handleFormEvent ev form
+      >>= \f -> continue $ updateEditRequestDefinitionForm s c f
 
-    ProjectListScreen list -> case key of
-      KEnter -> case listSelectedElement list of
-        Just (_, ProjectListItem context _) ->
-          continue $ showProjectDetails s context
-        Nothing -> continue s
-      KChar 'a' -> continue $ showProjectAddScreen s
-      _         -> handleListEvent (EvKey key []) list
-        >>= \l -> continue $ updateProjectList s l
+  ProjectListScreen list -> case key of
+    KEnter -> case listSelectedElement list of
+      Just (_, ProjectListItem context _) ->
+        continue $ showProjectDetails s context
+      Nothing -> continue s
+    KChar 'a' -> continue $ showProjectAddScreen s
+    _         -> handleListEvent (EvKey key []) list
+      >>= \l -> continue $ updateProjectList s l
 
-    ProjectDetailsScreen c list -> case key of
-      KEnter -> case listSelectedElement list of
-        Just (_, RequestDefinitionListItem reqContext _) ->
-          continue $ showRequestDefinitionDetails s reqContext
-        Nothing -> continue s
-      KChar 'e' -> continue $ showEditProjectScreen s c
-      KChar 'a' -> continue $ showAddRequestDefinitionScreen s c
-      KChar 'd' -> continue $ (modal ?~ DeleteProjectModal c) s
-      KLeft     -> continue $ showProjectListScreen s
-      _         -> handleListEvent (EvKey key []) list
-        >>= \l -> continue $ (activeScreen .~ ProjectDetailsScreen c l) s
+  ProjectDetailsScreen c list -> case key of
+    KEnter -> case listSelectedElement list of
+      Just (_, RequestDefinitionListItem reqContext _) ->
+        continue $ showRequestDefinitionDetails s reqContext
+      Nothing -> continue s
+    KChar 'e' -> continue $ showEditProjectScreen s c
+    KChar 'a' -> continue $ showAddRequestDefinitionScreen s c
+    KChar 'd' -> continue $ (modal ?~ DeleteProjectModal c) s
+    KLeft     -> continue $ showProjectListScreen s
+    _         -> handleListEvent (EvKey key []) list
+      >>= \l -> continue $ (screen .~ ProjectDetailsScreen c l) s
 
-    ProjectEditScreen c form -> case key of
-      KEnter -> continue $ finishEditingProject s c (formState form)
-      KEsc   -> continue $ showProjectDetails s c
-      _ ->
-        handleFormEvent ev form >>= \f -> continue $ updateEditProjectForm s c f
+  ProjectEditScreen c form -> case key of
+    KEnter -> continue $ finishEditingProject s c (formState form)
+    KEsc   -> continue $ showProjectDetails s c
+    _ ->
+      handleFormEvent ev form >>= \f -> continue $ updateEditProjectForm s c f
 
-    ProjectAddScreen form -> case key of
-      KEnter -> liftIO (finishAddingProject s (formState form)) >>= continue
-      KEsc   -> continue $ showProjectListScreen s
-      _ ->
-        handleFormEvent ev form >>= \f -> continue $ updateProjectAddForm s f
+  ProjectAddScreen form -> case key of
+    KEnter -> liftIO (finishAddingProject s (formState form)) >>= continue
+    KEsc -> continue $ showProjectListScreen s
+    _ -> handleFormEvent ev form >>= \f -> continue $ updateProjectAddForm s f
 
-    RequestAddScreen c form -> case key of
-      KEnter ->
-        liftIO (finishAddingRequestDefinition s c (formState form)) >>= continue
-      KEsc -> continue $ showProjectDetails s c
-      _    -> handleFormEvent ev form
-        >>= \f -> continue $ updateAddRequestDefinitionForm s c f
+  RequestAddScreen c form -> case key of
+    KEnter ->
+      liftIO (finishAddingRequestDefinition s c (formState form)) >>= continue
+    KEsc -> continue $ showProjectDetails s c
+    _    -> handleFormEvent ev form
+      >>= \f -> continue $ updateAddRequestDefinitionForm s c f
 
-    HelpScreen -> continue s
+  HelpScreen -> continue s
 
 handleEvent s _ = continue s
 

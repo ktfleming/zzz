@@ -1,4 +1,3 @@
-{-# LANGUAGE NamedFieldPuns    #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.MainWidget
@@ -15,9 +14,8 @@ import           Brick                          ( Widget
                                                 )
 import           Brick.Forms                    ( renderForm )
 import           Brick.Types                    ( Padding(Pad) )
-import           Types.AppState                 ( AppState(..)
-                                                , _activeScreen
-                                                )
+import           Control.Lens
+import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Models.Screen
 import           UI.List                        ( renderGenericList )
@@ -34,7 +32,7 @@ padForm :: Widget Name -> Widget Name
 padForm = padTop (Pad 1) . padLeft (Pad 2)
 
 mainWidget :: AppState -> Widget Name
-mainWidget s@AppState { _activeScreen } = case _activeScreen of
+mainWidget s = case s ^. screen of
   HelpScreen            -> txt "Todo"
   ProjectAddScreen form -> renderForm form
   ProjectListScreen list ->
