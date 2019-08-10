@@ -3,6 +3,7 @@
 
 module Main where
 
+import Control.Monad.IO.Class (liftIO)
 import           Brick                          ( defaultMain )
 import           Control.Monad.Trans.Except
 import           Data.Aeson                     ( eitherDecode )
@@ -16,6 +17,7 @@ import           Types.Models.Screen
 import           UI.App                         ( uiApp )
 import Control.Lens
 import UI.Projects.List (makeProjectList)
+import Messages.Messages (logMessage)
 
 getAppStateFromFile :: ExceptT String IO AppState
 getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile
@@ -23,18 +25,21 @@ getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile
 main :: IO ()
 main = do
   runOrError :: Either String AppState <- runExceptT $ do
-    fileExists <- ExceptT $ Right <$> doesFileExist mainSettingsFile
+    fileExists <- liftIO $ doesFileExist mainSettingsFile
     s      <- if fileExists
       then getAppStateFromFile
-      else ExceptT $ return $ Right AppState { appStateScreen = HelpScreen
+      else liftIO $ return AppState { appStateScreen = HelpScreen
                                              , appStateProjects     = Map.empty
                                              , appStateModal        = Nothing
+                                             , appStateMessages = []
+                                             , appStateStashedScreen = Nothing
                                              }
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to
     -- ProjectListScreen here.
     let updatedState = s & screen .~ ProjectListScreen (makeProjectList (s ^. projects))
-    ExceptT $ Right <$> defaultMain uiApp updatedState
+    logged <- liftIO $ logMessage updatedState "Started"
+    liftIO $ defaultMain uiApp logged
 
   case runOrError of
     Left  e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e

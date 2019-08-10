@@ -23,4 +23,5 @@ title s (RequestDetailsScreen c@(RequestDefinitionContext pid _)) =
   in  p ^. name . coerced <> " > " <> r ^. name . coerced
 title s (RequestEditScreen c _) =
   title s (RequestDetailsScreen c) <> " (Editing)"
-title _ HelpScreen = "Help"
+title _ HelpScreen    = "Help"
+title _ ConsoleScreen = "Messages"

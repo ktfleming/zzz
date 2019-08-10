@@ -5,12 +5,14 @@ module UI.RequestDefinitions.Edit where
 import           Brick                          ( txt
                                                 , (<+>)
                                                 )
-import           Brick.Forms                    ( editTextField
+import           Brick.Forms                    ( editField
+                                                , editTextField
                                                 , newForm
                                                 , radioField
                                                 , (@@=)
                                                 )
 import           Control.Lens
+import           Data.Coerce                    ( coerce )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
@@ -18,8 +20,12 @@ import           Types.Methods                  ( allMethodsRadio )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
-import           Types.Models.Url               ( Url(..) )
-import           UI.Form                        ( ZZZForm )
+import           Types.Models.Url               ( Url(..)
+                                                , validateUrl
+                                                )
+import           UI.Form                        ( ZZZForm
+                                                , renderText
+                                                )
 
 
 finishEditingRequestDefinition
@@ -58,9 +64,14 @@ makeEditRequestDefinitionForm s c =
       [ (txt "Name:   " <+>) @@= editTextField (name . coerced)
                                                RequestDefinitionFormNameField
                                                (Just 1)
-      , (txt "URL:    " <+>) @@= editTextField (url . coerced)
-                                               RequestDefinitionFormUrlField
-                                               (Just 1)
+      , (txt "URL:    " <+>)
+        @@= editField (url . coerced)
+                      RequestDefinitionFormUrlField
+                      (Just 1)
+                      coerce
+                      validateUrl
+                      renderText
+                      id
       , (txt "Method: " <+>) @@= radioField method allMethodsRadio
       ]
       editState

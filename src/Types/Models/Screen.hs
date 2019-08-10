@@ -17,6 +17,7 @@ data Screen =
   | RequestEditScreen    RequestDefinitionContext (ZZZForm RequestDefinitionFormState)
   | RequestAddScreen     ProjectContext           (ZZZForm RequestDefinitionFormState)
   | HelpScreen
+  | ConsoleScreen
 
 instance Show Screen where
   show _ = "(Screen)"

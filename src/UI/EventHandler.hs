@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module UI.EventHandler
   ( handleEvent
   )
@@ -23,9 +25,11 @@ import           Brick.Widgets.List             ( handleListEvent
                                                 )
 import           Control.Lens
 import           Control.Monad.IO.Class         ( liftIO )
+import           Control.Monad.Trans.Except     ( runExceptT )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( writeFile )
 import           Graphics.Vty.Input.Events
+import           Request.Request                ( sendRequest )
 import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.Modal                    ( Modal(..) )
@@ -36,6 +40,7 @@ import           Types.Models.RequestDefinition ( RequestDefinitionContext(..)
                                                 , RequestDefinitionListItem(..)
                                                 )
 import           Types.Models.Screen
+import           UI.Console                     ( toggleConsole )
 import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 )
@@ -66,6 +71,8 @@ handleEvent
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
+handleEvent s (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
+  continue $ toggleConsole s
 
 handleEvent s@AppState { appStateModal = Just m } (VtyEvent (EvKey key [])) =
   case key of
@@ -78,7 +85,14 @@ handleEvent s ev@(VtyEvent (EvKey key [])) = case s ^. screen of
     KLeft     -> continue $ showProjectDetails s (ProjectContext pid)
     KChar 'e' -> continue $ showEditRequestDefinitionScreen s c
     KChar 'd' -> continue $ (modal ?~ DeleteRequestDefinitionModal c) s
-    _         -> continue s
+    KEnter    -> do
+      result :: Either String AppState <- liftIO $ runExceptT $ sendRequest s c
+      case result of
+        Left _ ->
+          -- TODO: display error
+          continue s
+        Right newState -> continue newState
+    _ -> continue s
 
   RequestEditScreen c form -> case key of
     KEnter ->
@@ -110,8 +124,10 @@ handleEvent s ev@(VtyEvent (EvKey key [])) = case s ^. screen of
       >>= \l -> continue $ (screen .~ ProjectDetailsScreen c l) s
 
   ProjectEditScreen c form -> case key of
-    KEnter -> continue $ finishEditingProject s c (formState form)
-    KEsc   -> continue $ showProjectDetails s c
+    KEnter ->
+      let updatedState = finishEditingProject s c (formState form)
+      in  continue $ showProjectDetails updatedState c
+    KEsc -> continue $ showProjectDetails s c
     _ ->
       handleFormEvent ev form >>= \f -> continue $ updateEditProjectForm s c f
 
@@ -127,7 +143,7 @@ handleEvent s ev@(VtyEvent (EvKey key [])) = case s ^. screen of
     _    -> handleFormEvent ev form
       >>= \f -> continue $ updateAddRequestDefinitionForm s c f
 
-  HelpScreen -> continue s
+  _ -> continue s
 
 handleEvent s _ = continue s
 

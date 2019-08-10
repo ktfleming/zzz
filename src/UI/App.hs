@@ -12,6 +12,7 @@ import           Brick                          ( App(..)
                                                 , withBorderStyle
                                                 , (<=>)
                                                 )
+import           Brick.Forms                    ( invalidFormInputAttr )
 import           Brick.Types                    ( Padding(Max) )
 import           Brick.Util
 import           Brick.Widgets.Border           ( border
@@ -21,7 +22,6 @@ import           Brick.Widgets.Border.Style     ( unicodeRounded )
 import           Brick.Widgets.List             ( listSelectedFocusedAttr )
 import           Control.Lens
 import           Data.Maybe                     ( maybeToList )
-import           Graphics.Vty                   ( withForeColor )
 import qualified Graphics.Vty                  as V
 import           Types.AppState
 import           Types.Brick.CustomEvent
@@ -61,6 +61,7 @@ startEvent = return
 myMap :: AttrMap
 myMap = attrMap
   V.defAttr
-  [ (listSelectedFocusedAttr, withForeColor (Brick.Util.bg V.green) V.black)
+  [ (listSelectedFocusedAttr, V.green `on` V.black)
+  , (invalidFormInputAttr   , V.white `on` V.red)
   , (highlighted            , Brick.Util.bg V.blue)
   ]

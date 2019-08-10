@@ -18,6 +18,7 @@ import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Models.Screen
+import           UI.Console                     ( console )
 import           UI.List                        ( renderGenericList )
 import           UI.RequestDefinitions.Details  ( requestDefinitionDetailsWidget
                                                 )
@@ -47,3 +48,4 @@ mainWidget s = case s ^. screen of
   RequestDetailsScreen c ->
     padLeft (Pad 2) $ requestDefinitionDetailsWidget s c
   RequestEditScreen _ form -> formHelpText <=> padForm (renderForm form)
+  ConsoleScreen            -> console (s ^. messages)

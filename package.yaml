@@ -32,6 +32,11 @@ dependencies:
 - vector
 - uuid
 - containers
+- req
+- safe
+- errors
+- time
+- iso8601-time
 
 library:
   source-dirs:
@@ -42,6 +47,7 @@ library:
     - Types.Models.Screen
     - UI.App
     - UI.Projects.List
+    - Messages.Messages
 
 executables:
   zzz-exe:
