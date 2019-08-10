@@ -1,12 +1,14 @@
 {-# LANGUAGE FunctionalDependencies     #-}
-{-# LANGUAGE GeneralisedNewtypeDeriving #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Types.Models.RequestDefinition where
 
-import           Control.Lens                   ( (^.) )
+import           Control.Lens                   ( coerced
+                                                , (^.)
+                                                )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
@@ -17,43 +19,48 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.:)
                                                 , (.=)
                                                 )
+import           Data.Coerce                    ( coerce )
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable
 import           Types.Methods                  ( Method )
-import           Types.Models.ID                ( ProjectID
-                                                , RequestDefinitionID
+import           Types.Models.Id                ( ProjectId
+                                                , RequestDefinitionId
                                                 )
+import           Types.Models.Url               ( Url(..) )
 
-newtype URL = URL T.Text deriving (Show, FromJSON)
+newtype RDName = RDName T.Text deriving (FromJSON, ToJSON, Show)
 
 data RequestDefinition = RequestDefinition {
-    requestDefinitionName :: T.Text
-  , requestDefinitionUrl :: T.Text -- TODO: make this into URL
+    requestDefinitionName :: RDName
+  , requestDefinitionUrl :: Url
   , requestDefinitionMethod :: Method
   } deriving (Show)
 
 data RequestDefinitionFormState = RequestDefinitionFormState {
-    requestDefinitionFormStateName :: T.Text
-  , requestDefinitionFormStateUrl :: T.Text
+    requestDefinitionFormStateName :: RDName
+  , requestDefinitionFormStateUrl :: Url
   , requestDefinitionFormStateMethod :: Method
   } deriving (Show)
 
-data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID deriving (Show)
+data RequestDefinitionContext = RequestDefinitionContext ProjectId RequestDefinitionId deriving (Show)
 
-data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text
+data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext RDName
 
 makeFields ''RequestDefinition
 makeFields ''RequestDefinitionFormState
 
 instance Displayable RequestDefinition where
-  display r = r ^. name
+  display r = r ^. name . coerced
 
 instance Displayable RequestDefinitionListItem where
-  display (RequestDefinitionListItem _ n) = n
+  display (RequestDefinitionListItem _ n) = coerce n
 
 instance ToJSON RequestDefinition where
   toJSON r = object
-    ["name" .= (r ^. name), "url" .= (r ^. url), "method" .= (r ^. method)]
+    [ "name" .= (r ^. name . coerced :: T.Text)
+    , "url" .= (r ^. url . coerced :: T.Text)
+    , "method" .= (r ^. method)
+    ]
 
 instance FromJSON RequestDefinition where
   parseJSON = withObject "RequestDefinition" $ \o -> do

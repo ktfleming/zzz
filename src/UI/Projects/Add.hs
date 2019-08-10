@@ -14,7 +14,7 @@ import qualified Data.Map.Strict               as Map
 import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Models.ID                ( ProjectID(..) )
+import           Types.Models.Id                ( ProjectId(..) )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition ( name )
 import           Types.Models.Screen
@@ -22,7 +22,7 @@ import           UI.Form                        ( ZZZForm )
 
 finishAddingProject :: AppState -> ProjectFormState -> IO AppState
 finishAddingProject s formState = do
-  pid <- ProjectID <$> nextRandom
+  pid <- ProjectId <$> nextRandom
   let project = Project { projectName               = formState ^. name
                         , projectRequestDefinitions = Map.empty
                         }
@@ -32,9 +32,9 @@ finishAddingProject s formState = do
 makeProjectAddForm :: ZZZForm ProjectFormState
 makeProjectAddForm = newForm
   [ (txt "Project Name: " <+>)
-      @@= editTextField name ProjectFormNameField (Just 1)
+      @@= editTextField (name . coerced) ProjectFormNameField (Just 1)
   ]
-  ProjectFormState { projectFormStateName = "New Project" }
+  ProjectFormState { projectFormStateName = ProjectName "New Project" }
 
 showProjectAddScreen :: AppState -> AppState
 showProjectAddScreen = screen .~ ProjectAddScreen makeProjectAddForm

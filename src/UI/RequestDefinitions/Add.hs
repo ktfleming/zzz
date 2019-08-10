@@ -15,17 +15,17 @@ import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Methods
-import           Types.Models.ID                ( RequestDefinitionID(..) )
+import           Types.Models.Id                ( RequestDefinitionId(..) )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
+import           Types.Models.Url               ( Url(..) )
 import           UI.Form                        ( ZZZForm )
-
 
 finishAddingRequestDefinition
   :: AppState -> ProjectContext -> RequestDefinitionFormState -> IO AppState
 finishAddingRequestDefinition s (ProjectContext pid) formState = do
-  rid <- RequestDefinitionID <$> nextRandom
+  rid <- RequestDefinitionId <$> nextRandom
   let req = RequestDefinition { requestDefinitionName   = formState ^. name
                               , requestDefinitionUrl    = formState ^. url
                               , requestDefinitionMethod = formState ^. method
@@ -36,13 +36,13 @@ finishAddingRequestDefinition s (ProjectContext pid) formState = do
 makeAddRequestDefinitionForm :: ZZZForm RequestDefinitionFormState
 makeAddRequestDefinitionForm = newForm
   [ (txt "Request Definition Name: " <+>)
-    @@= editTextField name RequestDefinitionFormNameField (Just 1)
+    @@= editTextField (name . coerced) RequestDefinitionFormNameField (Just 1)
   , (txt "URL: " <+>)
-    @@= editTextField url RequestDefinitionFormUrlField (Just 1)
+    @@= editTextField (url . coerced) RequestDefinitionFormUrlField (Just 1)
   ]
   RequestDefinitionFormState
-    { requestDefinitionFormStateName   = "New Request Definition"
-    , requestDefinitionFormStateUrl    = "http://example.com"
+    { requestDefinitionFormStateName   = RDName "New Request Definition"
+    , requestDefinitionFormStateUrl    = Url "http://example.com"
     , requestDefinitionFormStateMethod = Get
     }
 

@@ -18,4 +18,5 @@ deleteRequestDefinitionWarning s c =
   in  "Are you sure you want to delete request definition '"
         <> r
         ^. name
+        .  coerced
         <> "'?"

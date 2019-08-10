@@ -1,12 +1,12 @@
 module Types.ContextTransformers where
 
 import           Control.Lens
-import           Types.Models.ID                ( RequestDefinitionID )
+import           Types.Models.Id                ( RequestDefinitionId )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 
 requestDefinitionContext
-  :: ProjectContext -> RequestDefinitionID -> RequestDefinitionContext
+  :: ProjectContext -> RequestDefinitionId -> RequestDefinitionContext
 requestDefinitionContext (ProjectContext pid) = RequestDefinitionContext pid
 
 requestDefinitionListItem

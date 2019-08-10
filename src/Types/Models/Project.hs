@@ -1,12 +1,15 @@
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Types.Models.Project where
 
-import           Control.Lens                   ( (^.) )
+import           Control.Lens                   ( coerced
+                                                , (^.)
+                                                )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
@@ -17,31 +20,35 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.:)
                                                 , (.=)
                                                 )
+import           Data.Coerce                    ( coerce )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
                                                 )
-import           Types.Models.ID                ( ProjectID
-                                                , RequestDefinitionID
+import           Types.Models.Id                ( ProjectId
+                                                , RequestDefinitionId
                                                 )
 import           Types.Models.RequestDefinition
 
+newtype ProjectName = ProjectName T.Text deriving (FromJSON, ToJSON, Show)
 
-data Project = Project { projectName :: T.Text
-                       , projectRequestDefinitions :: Map RequestDefinitionID RequestDefinition} deriving (Show)
+data Project = Project { projectName :: ProjectName
+                       , projectRequestDefinitions :: Map RequestDefinitionId RequestDefinition} deriving (Show)
 
-data ProjectContext = ProjectContext ProjectID deriving (Show)
-data ProjectListItem = ProjectListItem ProjectContext T.Text
+data ProjectContext = ProjectContext ProjectId deriving (Show)
+data ProjectListItem = ProjectListItem ProjectContext ProjectName
 
-data ProjectFormState = ProjectFormState { projectFormStateName :: T.Text }
+data ProjectFormState = ProjectFormState { projectFormStateName :: ProjectName }
 
 makeFields ''Project
 makeFields ''ProjectFormState
 
 instance ToJSON Project where
   toJSON p = object
-    ["name" .= (p ^. name), "request_definitions" .= (p ^. requestDefinitions)]
+    [ "name" .= (p ^. name . coerced :: T.Text)
+    , "request_definitions" .= (p ^. requestDefinitions)
+    ]
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \o -> do
@@ -50,7 +57,7 @@ instance FromJSON Project where
     return $ Project { projectName = n, projectRequestDefinitions = reqDefs }
 
 instance Displayable Project where
-  display p = p ^. name
+  display p = p ^. name . coerced
 
 instance Displayable ProjectListItem where
-  display (ProjectListItem _ n) = n
+  display (ProjectListItem _ n) = coerce n

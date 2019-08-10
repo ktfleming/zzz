@@ -7,13 +7,13 @@ import qualified Data.Map.Strict               as Map
 import qualified Data.Vector                   as V
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Models.ID                ( ProjectID )
+import           Types.Models.Id                ( ProjectId )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition ( name )
 import           Types.Models.Screen
 import           UI.List                        ( ZZZList )
 
-makeProjectList :: Map ProjectID Project -> ZZZList ProjectListItem
+makeProjectList :: Map ProjectId Project -> ZZZList ProjectListItem
 makeProjectList pm =
   let tuples    = (V.fromList . Map.toList) pm
       listItems = fmap

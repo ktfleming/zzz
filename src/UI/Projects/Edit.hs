@@ -12,7 +12,7 @@ import           Brick.Forms                    ( editTextField
 import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.WithID           ( model )
+import           Types.Classes.HasId            ( model )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition ( name )
 import           Types.Models.Screen
@@ -34,7 +34,7 @@ makeEditProjectForm s c =
       editState = ProjectFormState { projectFormStateName = p ^. name }
   in  newForm
         [ (txt "Project Name: " <+>)
-            @@= editTextField name ProjectFormNameField (Just 1)
+            @@= editTextField (name . coerced) ProjectFormNameField (Just 1)
         ]
         editState
 

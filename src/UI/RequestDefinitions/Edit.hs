@@ -13,11 +13,12 @@ import           Brick.Forms                    ( editTextField
 import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.WithID           ( model )
+import           Types.Classes.HasId            ( model )
 import           Types.Methods                  ( allMethodsRadio )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
+import           Types.Models.Url               ( Url(..) )
 import           UI.Form                        ( ZZZForm )
 
 
@@ -45,20 +46,24 @@ updateRequestDefinition base formState =
 makeEditRequestDefinitionForm
   :: AppState -> RequestDefinitionContext -> ZZZForm RequestDefinitionFormState
 makeEditRequestDefinitionForm s c =
-  let r         = model s c
-      editState = RequestDefinitionFormState
-        { requestDefinitionFormStateName   = r ^. name
-        , requestDefinitionFormStateUrl    = r ^. url
-        , requestDefinitionFormStateMethod = r ^. method
-        }
-  in  newForm
-        [ (txt "Name:   " <+>)
-          @@= editTextField name RequestDefinitionFormNameField (Just 1)
-        , (txt "URL:    " <+>)
-          @@= editTextField url RequestDefinitionFormUrlField (Just 1)
-        , (txt "Method: " <+>) @@= radioField method allMethodsRadio
-        ]
-        editState
+  let
+    r         = model s c
+    editState = RequestDefinitionFormState
+      { requestDefinitionFormStateName   = r ^. name
+      , requestDefinitionFormStateUrl    = r ^. url
+      , requestDefinitionFormStateMethod = r ^. method
+      }
+  in
+    newForm
+      [ (txt "Name:   " <+>) @@= editTextField (name . coerced)
+                                               RequestDefinitionFormNameField
+                                               (Just 1)
+      , (txt "URL:    " <+>) @@= editTextField (url . coerced)
+                                               RequestDefinitionFormUrlField
+                                               (Just 1)
+      , (txt "Method: " <+>) @@= radioField method allMethodsRadio
+      ]
+      editState
 
 showEditRequestDefinitionScreen
   :: AppState -> RequestDefinitionContext -> AppState

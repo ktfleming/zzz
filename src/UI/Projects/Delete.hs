@@ -18,4 +18,5 @@ deleteProjectWarning s c =
   in  "Are you sure you want to delete project '"
         <> p
         ^. name
+        .  coerced
         <> "'? All contained request definitions will also be deleted!"

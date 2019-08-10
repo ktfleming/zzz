@@ -21,13 +21,13 @@ import           Data.Map.Strict                ( Map
                                                 , (!)
                                                 )
 import           Types.Modal
-import           Types.Models.ID                ( ProjectID )
+import           Types.Models.Id                ( ProjectId )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
 import           Types.Models.Screen
 
 data AppState = AppState { appStateScreen :: Screen
-                         , appStateProjects :: Map ProjectID Project
+                         , appStateProjects :: Map ProjectId Project
                          , appStateModal :: Maybe Modal
                          } deriving (Show)
 

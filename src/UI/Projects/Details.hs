@@ -6,7 +6,7 @@ import qualified Data.Map.Strict               as Map
 import qualified Data.Vector                   as V
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.WithID           ( model )
+import           Types.Classes.HasId            ( model )
 import           Types.ContextTransformers      ( requestDefinitionContext
                                                 , requestDefinitionListItem
                                                 )
