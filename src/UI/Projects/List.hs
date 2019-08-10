@@ -2,12 +2,10 @@
 module UI.Projects.List where
 
 import           Brick.Widgets.List             ( list )
+import           Control.Lens
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
 import qualified Data.Vector                   as V
-import           Lens.Micro.Platform            ( (&)
-                                                , (.~)
-                                                )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Models.ID                ( ProjectID )

@@ -3,12 +3,8 @@
 
 module UI.RequestDefinitions.Delete where
 
+import           Control.Lens
 import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( at
-                                                , (&)
-                                                , (.~)
-                                                , _Just
-                                                )
 import           Types.AppState
 import           Types.Models.Project           ( requestDefinitions )
 import           Types.Models.RequestDefinition

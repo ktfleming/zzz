@@ -11,11 +11,7 @@ import           Brick.Forms                    ( editTextField
                                                 , radioField
                                                 , (@@=)
                                                 )
-import           Lens.Micro.Platform            ( at
-                                                , (&)
-                                                , (.~)
-                                                , _Just
-                                                )
+import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.WithID           ( model )

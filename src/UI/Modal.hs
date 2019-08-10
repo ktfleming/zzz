@@ -14,8 +14,8 @@ import           Brick.Widgets.Border           ( border )
 import           Brick.Widgets.Center           ( center
                                                 , centerLayer
                                                 )
+import           Control.Lens
 import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( (.~) )
 import           Types.AppState                 ( AppState
                                                 , modal
                                                 )

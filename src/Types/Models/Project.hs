@@ -4,6 +4,7 @@
 
 module Types.Models.Project where
 
+import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 , object
@@ -15,7 +16,6 @@ import           Data.Aeson                     ( FromJSON
                                                 )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
                                                 )

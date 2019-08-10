@@ -22,7 +22,7 @@ dependencies:
 - base >= 4.7 && < 5
 - brick == 0.47.1
 - vty
-- microlens-platform
+- lens
 - text
 - aeson
 - aeson-pretty

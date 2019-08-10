@@ -4,6 +4,7 @@
 
 module Types.AppState where
 
+import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 , object
@@ -16,7 +17,6 @@ import           Data.Aeson                     ( FromJSON
 import           Data.Map.Strict                ( Map
                                                 , (!)
                                                 )
-import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Modal
 import           Types.Models.ID                ( ProjectID )
 import           Types.Models.Project

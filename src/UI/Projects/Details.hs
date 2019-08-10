@@ -2,9 +2,9 @@
 module UI.Projects.Details where
 
 import           Brick.Widgets.List             ( list )
+import           Control.Lens
 import qualified Data.Map.Strict               as Map
 import qualified Data.Vector                   as V
-import           Lens.Micro.Platform            ( (.~) )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.WithID           ( model )

@@ -9,12 +9,9 @@ import           Brick.Forms                    ( editTextField
                                                 , newForm
                                                 , (@@=)
                                                 )
+import           Control.Lens
 import qualified Data.Map.Strict               as Map
 import           Data.UUID.V4                   ( nextRandom )
-import           Lens.Micro.Platform            ( (&)
-                                                , (.~)
-                                                , (<>~)
-                                                )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Models.ID                ( ProjectID(..) )

@@ -5,6 +5,7 @@
 
 module Types.Models.RequestDefinition where
 
+import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 , object
@@ -15,7 +16,6 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.=)
                                                 )
 import qualified Data.Text                     as T
-import           Lens.Micro.Platform            ( makeLenses )
 import           Types.Classes.Displayable
 import           Types.Methods                  ( Method )
 import           Types.Models.ID                ( ProjectID

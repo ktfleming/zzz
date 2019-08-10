@@ -15,7 +15,7 @@ import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.Models.Screen
 import           UI.App                         ( uiApp )
-import Lens.Micro.Platform ((.~), (&))
+import Control.Lens
 import UI.Projects.List (makeProjectList)
 
 getAppStateFromFile :: ExceptT String IO AppState

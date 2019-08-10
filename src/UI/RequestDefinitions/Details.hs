@@ -10,9 +10,7 @@ import           Types.Models.RequestDefinition ( RequestDefinition(..)
 import           Brick                          ( Widget
                                                 , txt
                                                 )
-import           Lens.Micro.Platform            ( (&)
-                                                , (.~)
-                                                )
+import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Classes.Displayable      ( display )

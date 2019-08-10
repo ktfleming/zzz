@@ -22,13 +22,11 @@ import           Brick.Forms                    ( formState
 import           Brick.Widgets.List             ( handleListEvent
                                                 , listSelectedElement
                                                 )
+import           Control.Lens
 import           Control.Monad.IO.Class         ( liftIO )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( writeFile )
 import           Graphics.Vty.Input.Events
-import           Lens.Micro.Platform            ( (.~)
-                                                , (?~)
-                                                )
 import           Types.AppState
 import           Types.Constants                ( mainSettingsFile )
 import           Types.Modal                    ( Modal(..) )
