@@ -22,23 +22,23 @@ import           Types.Models.Project
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
-finishAddingProject :: AppState -> ProjectAddState -> IO AppState
-finishAddingProject s ProjectAddState { _projectAddName = newName } = do
+finishAddingProject :: AppState -> ProjectFormState -> IO AppState
+finishAddingProject s ProjectFormState { _projectFormName = newName } = do
   pid <- ProjectID <$> nextRandom
   let project =
         Project { _projectName = newName, _requestDefinitions = Map.empty }
       projectMap = Map.singleton pid project
   return $ (projects <>~ projectMap) s
 
-makeProjectAddForm :: ZZZForm ProjectAddState
+makeProjectAddForm :: ZZZForm ProjectFormState
 makeProjectAddForm = newForm
   [ (txt "Project Name: " <+>)
-      @@= editTextField projectAddName ProjectAddNameField (Just 1)
+      @@= editTextField projectFormName ProjectFormNameField (Just 1)
   ]
-  ProjectAddState { _projectAddName = "New Project" }
+  ProjectFormState { _projectFormName = "New Project" }
 
 showProjectAddScreen :: AppState -> AppState
 showProjectAddScreen = activeScreen .~ ProjectAddScreen makeProjectAddForm
 
-updateProjectAddForm :: AppState -> ZZZForm ProjectAddState -> AppState
+updateProjectAddForm :: AppState -> ZZZForm ProjectFormState -> AppState
 updateProjectAddForm s f = s & activeScreen .~ ProjectAddScreen f

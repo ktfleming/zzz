@@ -9,13 +9,13 @@ import           UI.List                        ( ZZZList )
 data Screen =
   -- Screen name         Required context         Form/list state
   --------------         ----------------         ---------------
-    ProjectAddScreen                              (ZZZForm ProjectAddState)
-  | ProjectEditScreen    ProjectContext           (ZZZForm ProjectEditState)
+    ProjectAddScreen                              (ZZZForm ProjectFormState)
+  | ProjectEditScreen    ProjectContext           (ZZZForm ProjectFormState)
   | ProjectListScreen                             (ZZZList ProjectListItem)
   | ProjectDetailsScreen ProjectContext           (ZZZList RequestDefinitionListItem)
   | RequestDetailsScreen RequestDefinitionContext
-  | RequestEditScreen    RequestDefinitionContext (ZZZForm RequestDefinitionEditState)
-  | RequestAddScreen     ProjectContext           (ZZZForm RequestDefinitionAddState)
+  | RequestEditScreen    RequestDefinitionContext (ZZZForm RequestDefinitionFormState)
+  | RequestAddScreen     ProjectContext           (ZZZForm RequestDefinitionFormState)
   | HelpScreen
 
 instance Show Screen where

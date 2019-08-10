@@ -30,26 +30,18 @@ data RequestDefinition = RequestDefinition {
   , _requestDefinitionMethod :: Method
   } deriving (Show)
 
-data RequestDefinitionAddState = RequestDefinitionAddState {
-    _requestDefinitionAddName :: T.Text
-  , _requestDefinitionAddURL :: T.Text
-  , _requestDefinitionAddMethod :: Method
+data RequestDefinitionFormState = RequestDefinitionFormState {
+    _requestDefinitionFormName :: T.Text
+  , _requestDefinitionFormURL :: T.Text
+  , _requestDefinitionFormMethod :: Method
   } deriving (Show)
-
-data RequestDefinitionEditState = RequestDefinitionEditState {
-    _requestDefinitionEditName :: T.Text
-  , _requestDefinitionEditURL :: T.Text
-  , _requestDefinitionEditMethod :: Method
-  }
 
 data RequestDefinitionContext = RequestDefinitionContext ProjectID RequestDefinitionID deriving (Show)
 
 data RequestDefinitionListItem = RequestDefinitionListItem RequestDefinitionContext T.Text
 
-
 makeLenses ''RequestDefinition
-makeLenses ''RequestDefinitionAddState
-makeLenses ''RequestDefinitionEditState
+makeLenses ''RequestDefinitionFormState
 
 instance Displayable RequestDefinition where
   display = _requestDefinitionName

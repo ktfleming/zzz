@@ -29,7 +29,7 @@ import           UI.Form                        ( ZZZForm )
 finishEditingRequestDefinition
   :: AppState
   -> RequestDefinitionContext
-  -> RequestDefinitionEditState
+  -> RequestDefinitionFormState
   -> AppState
 finishEditingRequestDefinition appState c@(RequestDefinitionContext pid rid) editState
   = let base     = model appState c
@@ -45,37 +45,37 @@ finishEditingRequestDefinition appState c@(RequestDefinitionContext pid rid) edi
             )
 
 updateRequestDefinition
-  :: RequestDefinition -> RequestDefinitionEditState -> RequestDefinition
-updateRequestDefinition base RequestDefinitionEditState { _requestDefinitionEditName, _requestDefinitionEditURL, _requestDefinitionEditMethod }
+  :: RequestDefinition -> RequestDefinitionFormState -> RequestDefinition
+updateRequestDefinition base RequestDefinitionFormState { _requestDefinitionFormName, _requestDefinitionFormURL, _requestDefinitionFormMethod }
   = base
     &  requestDefinitionName
-    .~ _requestDefinitionEditName
+    .~ _requestDefinitionFormName
     &  requestDefinitionURL
-    .~ _requestDefinitionEditURL
+    .~ _requestDefinitionFormURL
     &  requestDefinitionMethod
-    .~ _requestDefinitionEditMethod
+    .~ _requestDefinitionFormMethod
 
 makeEditRequestDefinitionForm
-  :: AppState -> RequestDefinitionContext -> ZZZForm RequestDefinitionEditState
+  :: AppState -> RequestDefinitionContext -> ZZZForm RequestDefinitionFormState
 makeEditRequestDefinitionForm s c =
   let
     RequestDefinition { _requestDefinitionName, _requestDefinitionURL, _requestDefinitionMethod }
       = model s c
-    editState = RequestDefinitionEditState
-      { _requestDefinitionEditName   = _requestDefinitionName
-      , _requestDefinitionEditURL    = _requestDefinitionURL
-      , _requestDefinitionEditMethod = _requestDefinitionMethod
+    editState = RequestDefinitionFormState
+      { _requestDefinitionFormName   = _requestDefinitionName
+      , _requestDefinitionFormURL    = _requestDefinitionURL
+      , _requestDefinitionFormMethod = _requestDefinitionMethod
       }
   in
     newForm
-      [ (txt "Name:   " <+>) @@= editTextField requestDefinitionEditName
-                                               RequestDefinitionNameEditField
+      [ (txt "Name:   " <+>) @@= editTextField requestDefinitionFormName
+                                               RequestDefinitionFormNameField
                                                (Just 1)
-      , (txt "URL:    " <+>) @@= editTextField requestDefinitionEditURL
-                                               RequestDefinitionURLEditField
+      , (txt "URL:    " <+>) @@= editTextField requestDefinitionFormURL
+                                               RequestDefinitionFormURLField
                                                (Just 1)
       , (txt "Method: " <+>)
-        @@= radioField requestDefinitionEditMethod allMethodsRadio
+        @@= radioField requestDefinitionFormMethod allMethodsRadio
       ]
       editState
 
@@ -87,7 +87,7 @@ showEditRequestDefinitionScreen s c =
 updateEditRequestDefinitionForm
   :: AppState
   -> RequestDefinitionContext
-  -> ZZZForm RequestDefinitionEditState
+  -> ZZZForm RequestDefinitionFormState
   -> AppState
 updateEditRequestDefinitionForm s c f =
   (activeScreen .~ RequestEditScreen c f) s

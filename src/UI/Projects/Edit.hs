@@ -23,23 +23,23 @@ import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
 finishEditingProject
-  :: AppState -> ProjectContext -> ProjectEditState -> AppState
+  :: AppState -> ProjectContext -> ProjectFormState -> AppState
 finishEditingProject appState context@(ProjectContext pid) editState =
   let base     = model appState context
       newModel = updateProject base editState
   in  appState & (projects . at pid . _Just .~ newModel)
 
-updateProject :: Project -> ProjectEditState -> Project
-updateProject base ProjectEditState { _projectEditName } =
-  (projectName .~ _projectEditName) base
+updateProject :: Project -> ProjectFormState -> Project
+updateProject base ProjectFormState { _projectFormName } =
+  (projectName .~ _projectFormName) base
 
-makeEditProjectForm :: AppState -> ProjectContext -> ZZZForm ProjectEditState
+makeEditProjectForm :: AppState -> ProjectContext -> ZZZForm ProjectFormState
 makeEditProjectForm s c =
   let Project { _projectName } = model s c
-      editState = ProjectEditState { _projectEditName = _projectName }
+      editState = ProjectFormState { _projectFormName = _projectName }
   in  newForm
         [ (txt "Project Name: " <+>)
-            @@= editTextField projectEditName ProjectEditNameField (Just 1)
+            @@= editTextField projectFormName ProjectFormNameField (Just 1)
         ]
         editState
 
@@ -48,5 +48,5 @@ showEditProjectScreen s c =
   s & activeScreen .~ ProjectEditScreen c (makeEditProjectForm s c)
 
 updateEditProjectForm
-  :: AppState -> ProjectContext -> ZZZForm ProjectEditState -> AppState
+  :: AppState -> ProjectContext -> ZZZForm ProjectFormState -> AppState
 updateEditProjectForm s c f = s & activeScreen .~ ProjectEditScreen c f

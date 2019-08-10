@@ -1,13 +1,10 @@
 module Types.Brick.Name where
 
-data Name = ProjectAddNameField
-          | ProjectEditNameField
+data Name = ProjectFormNameField
           | ProjectList
           | RequestDefinitionList
-          | RequestDefinitionNameEditField
-          | RequestDefinitionURLEditField
-          | RequestDefinitionNameAddField
-          | RequestDefinitionURLAddField
+          | RequestDefinitionFormNameField
+          | RequestDefinitionFormURLField
           | GetRadioField
           | PostRadioField
           | PutRadioField

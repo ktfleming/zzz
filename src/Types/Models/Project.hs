@@ -44,13 +44,9 @@ instance FromJSON Project where
 data ProjectContext = ProjectContext ProjectID deriving (Show)
 data ProjectListItem = ProjectListItem ProjectContext T.Text
 
-data ProjectAddState = ProjectAddState { _projectAddName :: T.Text } deriving (Show)
+data ProjectFormState = ProjectFormState { _projectFormName :: T.Text}
 
-makeLenses ''ProjectAddState
-
-data ProjectEditState = ProjectEditState { _projectEditName :: T.Text}
-
-makeLenses ''ProjectEditState
+makeLenses ''ProjectFormState
 
 instance Displayable Project where
   display = _projectName
