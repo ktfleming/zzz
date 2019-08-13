@@ -21,7 +21,7 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.=)
                                                 )
 import           Data.Coerce                    ( coerce )
-import           Data.Map.Strict                ( Map )
+import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
@@ -34,7 +34,7 @@ import           Types.Models.RequestDefinition
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, ToJSON, Show)
 
 data Project = Project { projectName :: ProjectName
-                       , projectRequestDefinitions :: Map RequestDefinitionId RequestDefinition} deriving (Show)
+                       , projectRequestDefinitions :: HashMap RequestDefinitionId RequestDefinition} deriving (Show)
 
 data ProjectContext = ProjectContext ProjectId deriving (Show)
 data ProjectListItem = ProjectListItem ProjectContext ProjectName

@@ -9,7 +9,7 @@ import           Control.Monad.IO.Class         ( liftIO )
 import           Control.Monad.Trans.Except
 import           Data.Aeson                     ( eitherDecode )
 import           Data.ByteString.Lazy           ( readFile )
-import qualified Data.Map.Strict               as Map
+import qualified Data.HashMap.Strict               as Map
 import           Messages.Messages              ( logMessage )
 import           Prelude                 hiding ( readFile )
 import           System.Directory               ( doesFileExist )

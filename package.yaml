@@ -32,11 +32,13 @@ dependencies:
 - vector
 - uuid
 - containers
+- unordered-containers
 - req
 - safe
 - errors
 - time
 - iso8601-time
+- hashable
 
 library:
   source-dirs:

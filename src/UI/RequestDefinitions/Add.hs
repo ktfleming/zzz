@@ -10,7 +10,7 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
-import qualified Data.Map.Strict               as Map
+import qualified Data.HashMap.Strict           as Map
 import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
 import           Types.Brick.Name

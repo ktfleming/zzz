@@ -2,7 +2,7 @@ module UI.Projects.Details where
 
 import           Brick.Widgets.List             ( list )
 import           Control.Lens
-import qualified Data.Map.Strict               as Map
+import qualified Data.HashMap.Strict           as Map
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import           Types.AppState

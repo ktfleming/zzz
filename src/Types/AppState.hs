@@ -21,8 +21,8 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.:)
                                                 , (.=)
                                                 )
-import           Data.Map.Strict                ( Map )
-import qualified Data.Map.Strict               as Map
+import           Data.HashMap.Strict            ( HashMap )
+import qualified Data.HashMap.Strict           as Map
 import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.Modal
@@ -35,11 +35,11 @@ import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
 
 newtype Message = Message T.Text deriving (Show)
-newtype Responses = Responses (Map RequestDefinitionId (Seq Response)) deriving (Show, ToJSON, FromJSON)
+newtype Responses = Responses (HashMap RequestDefinitionId (Seq Response)) deriving (Show, ToJSON, FromJSON)
 
 
 data AppState = AppState { appStateScreen :: Screen
-                         , appStateProjects :: Map ProjectId Project
+                         , appStateProjects :: HashMap ProjectId Project
                          , appStateModal :: Maybe Modal
                          , appStateMessages :: [Message]
 

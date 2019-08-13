@@ -22,7 +22,7 @@ import           Types.Models.Response
 import           Types.Models.Url               ( Url(..) )
 --import Types.Methods
 
-import           Data.Map.Strict                ( Map )
+import           Data.HashMap.Strict            ( HashMap )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import           Data.Time                      ( getCurrentTime )
@@ -60,7 +60,7 @@ sendRequest s c@(RequestDefinitionContext _ rid) =
       let responseLens =
             (responses . coerced) :: Lens'
                 AppState
-                (Map RequestDefinitionId (Seq Response))
+                (HashMap RequestDefinitionId (Seq Response))
 
       return
         $   s''
