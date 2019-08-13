@@ -4,7 +4,7 @@ import           Brick.Widgets.List             ( list )
 import           Control.Lens
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
-import qualified Data.Vector                   as V
+import qualified Data.Sequence                 as S
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Models.Id                ( ProjectId )
@@ -15,9 +15,12 @@ import           UI.List                        ( ZZZList )
 
 makeProjectList :: Map ProjectId Project -> ZZZList ProjectListItem
 makeProjectList pm =
-  let tuples    = (V.fromList . Map.toList) pm
-      listItems = fmap
-        (\(pid, p) -> ProjectListItem (ProjectContext pid) (p ^. name))
+  let tuples    = Map.toList pm
+      listItems = foldr
+        (\(pid, p) items ->
+          items |> ProjectListItem (ProjectContext pid) (p ^. name)
+        )
+        S.empty
         tuples
   in  list ProjectList listItems 1
 

@@ -23,8 +23,8 @@ import           Data.Aeson                     ( FromJSON
                                                 )
 import           Data.Map.Strict                ( Map )
 import qualified Data.Map.Strict               as Map
+import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
-import qualified Data.Vector                   as V
 import           Types.Modal
 import           Types.Models.Id                ( ProjectId
                                                 , RequestDefinitionId
@@ -35,7 +35,7 @@ import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
 
 newtype Message = Message T.Text deriving (Show)
-newtype Responses = Responses (Map RequestDefinitionId (V.Vector Response)) deriving (Show, ToJSON, FromJSON)
+newtype Responses = Responses (Map RequestDefinitionId (Seq Response)) deriving (Show, ToJSON, FromJSON)
 
 
 data AppState = AppState { appStateScreen :: Screen

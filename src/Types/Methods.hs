@@ -6,10 +6,10 @@ module Types.Methods where
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 )
-import qualified Data.Text                     as T
-import           Data.Vector                    ( Vector
+import           Data.Sequence                  ( Seq
                                                 , fromList
                                                 )
+import qualified Data.Text                     as T
 import           GHC.Generics                   ( Generic )
 import           Types.Brick.Name
 import           Types.Classes.Displayable      ( Displayable
@@ -21,7 +21,7 @@ data Method = Get | Post | Put | Patch deriving (Show, Generic, Eq, Ord)
 instance ToJSON Method
 instance FromJSON Method
 
-allMethods :: Vector Method
+allMethods :: Seq Method
 allMethods = fromList [Get, Post, Put, Patch]
 
 allMethodsRadio :: [(Method, Name, T.Text)]

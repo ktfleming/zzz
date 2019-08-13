@@ -23,8 +23,9 @@ import           Types.Models.Url               ( Url(..) )
 --import Types.Methods
 
 import           Data.Map.Strict                ( Map )
+import           Data.Sequence                  ( Seq )
+import qualified Data.Sequence                 as S
 import           Data.Time                      ( getCurrentTime )
-import qualified Data.Vector                   as V
 import           Messages.Messages              ( logMessage )
 import           Types.Models.Id                ( RequestDefinitionId )
 
@@ -59,14 +60,14 @@ sendRequest s c@(RequestDefinitionContext _ rid) =
       let responseLens =
             (responses . coerced) :: Lens'
                 AppState
-                (Map RequestDefinitionId (V.Vector Response))
+                (Map RequestDefinitionId (Seq Response))
 
       return
         $   s''
         &   responseLens
         .   at rid
-        .   non V.empty
-        <>~ V.singleton response
+        .   non S.empty
+        <>~ S.singleton response
 
 sendRequest' :: EitherReq -> IO Req.BsResponse
 sendRequest' validatedUrl =

@@ -12,11 +12,11 @@ import           Brick.Types                    ( Padding(Max, Pad) )
 import           Brick.Widgets.List             ( GenericList
                                                 , renderList
                                                 )
-import           Data.Vector                    ( Vector )
+import           Data.Sequence                  ( Seq )
 import           Types.Brick.Name
 import           Types.Classes.Displayable
 
-type ZZZList x = GenericList Name Vector x
+type ZZZList x = GenericList Name Seq x
 
 renderGenericList :: Displayable x => ZZZList x -> Widget Name
 renderGenericList = renderList f True
