@@ -31,7 +31,9 @@ import           Data.ByteString.Lazy           ( writeFile )
 import           Graphics.Vty.Input.Events
 import           Request.Request                ( sendRequest )
 import           Types.AppState
-import           Types.Constants                ( mainSettingsFile )
+import           Types.Constants                ( mainSettingsFile
+                                                , responseHistoryFile
+                                                )
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectContext(..)
                                                 , ProjectListItem(..)
@@ -65,7 +67,6 @@ import           UI.RequestDefinitions.Edit     ( finishEditingRequestDefinition
                                                 , showEditRequestDefinitionScreen
                                                 , updateEditRequestDefinitionForm
                                                 )
-
 handleEvent
   :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
@@ -148,4 +149,7 @@ handleEvent s ev@(VtyEvent (EvKey key [])) = case s ^. screen of
 handleEvent s _ = continue s
 
 saveState :: AppState -> IO ()
-saveState s = writeFile mainSettingsFile (encodePretty s)
+saveState s = do
+  _ <- writeFile mainSettingsFile (encodePretty s)
+  _ <- writeFile responseHistoryFile (encodePretty (s ^. responses))
+  return ()

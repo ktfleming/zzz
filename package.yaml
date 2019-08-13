@@ -42,12 +42,12 @@ library:
   source-dirs:
     - src
   exposed-modules:
+    - Messages.Messages
     - Types.AppState
     - Types.Constants
     - Types.Models.Screen
     - UI.App
     - UI.Projects.List
-    - Messages.Messages
 
 executables:
   zzz-exe:

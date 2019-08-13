@@ -3,41 +3,50 @@
 
 module Main where
 
-import Control.Monad.IO.Class (liftIO)
 import           Brick                          ( defaultMain )
+import           Control.Lens
+import           Control.Monad.IO.Class         ( liftIO )
 import           Control.Monad.Trans.Except
 import           Data.Aeson                     ( eitherDecode )
 import           Data.ByteString.Lazy           ( readFile )
 import qualified Data.Map.Strict               as Map
+import           Messages.Messages              ( logMessage )
 import           Prelude                 hiding ( readFile )
 import           System.Directory               ( doesFileExist )
 import           Types.AppState
-import           Types.Constants                ( mainSettingsFile )
+import           Types.Constants                ( mainSettingsFile
+                                                , responseHistoryFile
+                                                )
 import           Types.Models.Screen
 import           UI.App                         ( uiApp )
-import Control.Lens
-import UI.Projects.List (makeProjectList)
-import Messages.Messages (logMessage)
+import           UI.Projects.List               ( makeProjectList )
 
 getAppStateFromFile :: ExceptT String IO AppState
 getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile
 
+getResponsesFromFile :: ExceptT String IO Responses
+getResponsesFromFile = ExceptT $ eitherDecode <$> readFile responseHistoryFile
+
 main :: IO ()
 main = do
   runOrError :: Either String AppState <- runExceptT $ do
-    fileExists <- liftIO $ doesFileExist mainSettingsFile
-    s      <- if fileExists
+    mainFileExists     <- liftIO $ doesFileExist mainSettingsFile
+    responseFileExists <- liftIO $ doesFileExist responseHistoryFile
+    s                  <- if mainFileExists
       then getAppStateFromFile
-      else liftIO $ return AppState { appStateScreen = HelpScreen
-                                             , appStateProjects     = Map.empty
-                                             , appStateModal        = Nothing
-                                             , appStateMessages = []
-                                             , appStateStashedScreen = Nothing
-                                             }
+      else liftIO $ return emptyAppState
+    rs <- if responseFileExists
+      then getResponsesFromFile
+      else liftIO $ return $ Responses Map.empty
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to
-    -- ProjectListScreen here.
-    let updatedState = s & screen .~ ProjectListScreen (makeProjectList (s ^. projects))
+    -- ProjectListScreen here, and insert the Responses read from a separate file
+    let updatedState =
+          s
+            &  screen
+            .~ ProjectListScreen (makeProjectList (s ^. projects))
+            &  responses
+            .~ rs
     logged <- liftIO $ logMessage updatedState "Started"
     liftIO $ defaultMain uiApp logged
 

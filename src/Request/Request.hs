@@ -16,38 +16,60 @@ import qualified Data.Text                     as T
 import           Data.Text.Encoding             ( decodeUtf8
                                                 , encodeUtf8
                                                 )
-import           Network.HTTP.Req
-import           Types.AppState                 ( AppState
-                                                , lookupRequestDefinition
-                                                )
+import qualified Network.HTTP.Req              as Req
+import           Types.AppState
+import           Types.Models.Response
 import           Types.Models.Url               ( Url(..) )
 --import Types.Methods
 
+import           Data.Map.Strict                ( Map )
+import           Data.Time                      ( getCurrentTime )
+import qualified Data.Vector                   as V
 import           Messages.Messages              ( logMessage )
+import           Types.Models.Id                ( RequestDefinitionId )
+
 
 type EitherReq
   = Either
-      (Network.HTTP.Req.Url 'Http, Option 'Http)
-      (Network.HTTP.Req.Url 'Https, Option 'Https)
+      (Req.Url 'Req.Http, Req.Option 'Req.Http)
+      (Req.Url 'Req.Https, Req.Option 'Req.Https)
 
 sendRequest
   :: AppState -> RequestDefinitionContext -> ExceptT String IO AppState
-sendRequest s c =
-  let r :: RequestDefinition = lookupRequestDefinition s c
-      myUrl :: T.Text        = r ^. url . coerced
-  in  do
-        s' <- liftIO
-          $ logMessage s ("Preparing to send request to URL " <> myUrl)
-        validatedUrl :: EitherReq <- failWith "Error parsing URL"
-          $ parseUrl (encodeUtf8 myUrl)
-        response :: BsResponse <- handleExceptT
-          (\(_ :: HttpException) -> "Exception!")
-          (sendRequest' validatedUrl)
-        let responseMsg :: T.Text = (decodeUtf8 . responseBody) response
-        liftIO $ logMessage s' ("Response: " <> responseMsg)
+sendRequest s c@(RequestDefinitionContext _ rid) =
+  let
+    r :: RequestDefinition = lookupRequestDefinition s c
+    myUrl :: T.Text        = r ^. url . coerced
+  in
+    do
+        -- These s' and s'' AppStates represent the state with added log messages.
+      s' <- liftIO $ logMessage s ("Preparing to send request to URL " <> myUrl)
+      validatedUrl :: EitherReq <- failWith "Error parsing URL"
+        $ Req.parseUrl (encodeUtf8 myUrl)
+      bsResponse :: Req.BsResponse <- handleExceptT
+        (\(_ :: Req.HttpException) -> "Exception!")
+        (sendRequest' validatedUrl)
+      now <- liftIO getCurrentTime
+      let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
+          response :: Response =
+            Response { responseBody = responseMsg, responseDateTime = now }
+      s'' <- liftIO $ logMessage s' ("Response: " <> responseMsg)
 
+      -- Seems like I have to assert the type of this lens for it to work
+      let responseLens =
+            (responses . coerced) :: Lens'
+                AppState
+                (Map RequestDefinitionId (V.Vector Response))
 
-sendRequest' :: EitherReq -> IO BsResponse
-sendRequest' validatedUrl = runReq defaultHttpConfig $ case validatedUrl of
-  Left  (l, _) -> req GET l NoReqBody bsResponse mempty
-  Right (r, _) -> req GET r NoReqBody bsResponse mempty
+      return
+        $   s''
+        &   responseLens
+        .   at rid
+        .   non V.empty
+        <>~ V.singleton response
+
+sendRequest' :: EitherReq -> IO Req.BsResponse
+sendRequest' validatedUrl =
+  Req.runReq Req.defaultHttpConfig $ case validatedUrl of
+    Left  (l, _) -> Req.req Req.GET l Req.NoReqBody Req.bsResponse mempty
+    Right (r, _) -> Req.req Req.GET r Req.NoReqBody Req.bsResponse mempty

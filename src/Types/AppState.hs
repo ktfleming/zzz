@@ -1,12 +1,16 @@
-{-# LANGUAGE FlexibleInstances      #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE FunctionalDependencies     #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses      #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE TemplateHaskell            #-}
 
 module Types.AppState where
 
-import           Control.Lens                   ( (^.) )
+import           Control.Lens                   ( (&)
+                                                , (.~)
+                                                , (^.)
+                                                )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
@@ -17,17 +21,22 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.:)
                                                 , (.=)
                                                 )
-import           Data.Map.Strict                ( Map
-                                                , (!)
-                                                )
+import           Data.Map.Strict                ( Map )
+import qualified Data.Map.Strict               as Map
 import qualified Data.Text                     as T
+import qualified Data.Vector                   as V
 import           Types.Modal
-import           Types.Models.Id                ( ProjectId )
+import           Types.Models.Id                ( ProjectId
+                                                , RequestDefinitionId
+                                                )
 import           Types.Models.Project
 import           Types.Models.RequestDefinition
+import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
 
 newtype Message = Message T.Text deriving (Show)
+newtype Responses = Responses (Map RequestDefinitionId (V.Vector Response)) deriving (Show, ToJSON, FromJSON)
+
 
 data AppState = AppState { appStateScreen :: Screen
                          , appStateProjects :: Map ProjectId Project
@@ -37,9 +46,20 @@ data AppState = AppState { appStateScreen :: Screen
                          -- current screen is "stashed" when the user views the console or help
                          -- screen, so it can be restored
                          , appStateStashedScreen :: Maybe Screen
+
+                         , appStateResponses :: Responses
                          } deriving (Show)
 
 makeFields ''AppState
+
+emptyAppState :: AppState
+emptyAppState = AppState { appStateScreen        = HelpScreen
+                         , appStateProjects      = Map.empty
+                         , appStateModal         = Nothing
+                         , appStateMessages      = []
+                         , appStateStashedScreen = Nothing
+                         , appStateResponses     = Responses Map.empty
+                         }
 
 instance ToJSON AppState where
   toJSON s = object ["projects" .= (s ^. projects)]
@@ -47,18 +67,13 @@ instance ToJSON AppState where
 instance FromJSON AppState where
   parseJSON = withObject "AppState" $ \o -> do
     ps <- o .: "projects"
-    return $ AppState { appStateScreen        = HelpScreen
-                      , appStateProjects      = ps
-                      , appStateModal         = Nothing
-                      , appStateMessages      = []
-                      , appStateStashedScreen = Nothing
-                      }
+    return $ emptyAppState & projects .~ ps
 
 lookupProject :: AppState -> ProjectContext -> Project
-lookupProject s (ProjectContext pid) = (s ^. projects) ! pid
+lookupProject s (ProjectContext pid) = (Map.!) (s ^. projects) pid
 
 lookupRequestDefinition
   :: AppState -> RequestDefinitionContext -> RequestDefinition
 lookupRequestDefinition s (RequestDefinitionContext pid rid) =
   let p = lookupProject s (ProjectContext pid)
-  in  (p ^. requestDefinitions) ! rid
+  in  (Map.!) (p ^. requestDefinitions) rid
