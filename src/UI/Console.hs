@@ -11,6 +11,8 @@ import           Brick                          ( Widget
                                                 )
 import           Control.Lens
 import           Data.Coerce                    ( coerce )
+import           Data.Foldable                  ( toList )
+import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.AppState                 ( AppState
                                                 , Message(..)
@@ -20,9 +22,8 @@ import           Types.AppState                 ( AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Models.Screen
 
-console :: [Message] -> Widget Name
-console ms = txt $ T.intercalate "\n" $ coerce ms
---console _ = txt "Console!"
+console :: Seq Message -> Widget Name
+console ms = txt $ T.intercalate "\n" $ coerce (toList ms)
 
 toggleConsole :: AppState -> AppState
 toggleConsole s = case s ^. screen of

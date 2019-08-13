@@ -1,6 +1,7 @@
 module Messages.Messages where
 
 import           Control.Lens
+import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
 import           Data.Time.Clock                ( getCurrentTime )
 import           Data.Time.ISO8601              ( formatISO8601 )
@@ -11,4 +12,4 @@ logMessage s m = do
   currentTime <- getCurrentTime
   let fullMessage =
         Message $ T.pack $ formatISO8601 currentTime <> ": " <> T.unpack m
-  return $ s & messages <>~ [fullMessage]
+  return $ s & messages <>~ S.singleton fullMessage

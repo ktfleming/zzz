@@ -24,6 +24,7 @@ import           Data.Aeson                     ( FromJSON
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as Map
 import           Data.Sequence                  ( Seq )
+import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
 import           Types.Modal
 import           Types.Models.Id                ( ProjectId
@@ -41,7 +42,7 @@ newtype Responses = Responses (HashMap RequestDefinitionId (Seq Response)) deriv
 data AppState = AppState { appStateScreen :: Screen
                          , appStateProjects :: HashMap ProjectId Project
                          , appStateModal :: Maybe Modal
-                         , appStateMessages :: [Message]
+                         , appStateMessages :: Seq Message
 
                          -- current screen is "stashed" when the user views the console or help
                          -- screen, so it can be restored
@@ -56,7 +57,7 @@ emptyAppState :: AppState
 emptyAppState = AppState { appStateScreen        = HelpScreen
                          , appStateProjects      = Map.empty
                          , appStateModal         = Nothing
-                         , appStateMessages      = []
+                         , appStateMessages      = S.empty
                          , appStateStashedScreen = Nothing
                          , appStateResponses     = Responses Map.empty
                          }
