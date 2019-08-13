@@ -37,7 +37,7 @@ import           Types.Models.Screen
 
 newtype Message = Message T.Text deriving (Show)
 newtype Responses = Responses (HashMap RequestDefinitionId (Seq Response)) deriving (Show, ToJSON, FromJSON)
-
+newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show)
 
 data AppState = AppState { appStateScreen :: Screen
                          , appStateProjects :: HashMap ProjectId Project
@@ -49,17 +49,19 @@ data AppState = AppState { appStateScreen :: Screen
                          , appStateStashedScreen :: Maybe Screen
 
                          , appStateResponses :: Responses
+                         , appStateHelpPanelVisible :: HelpPanelVisible
                          } deriving (Show)
 
 makeFields ''AppState
 
 emptyAppState :: AppState
-emptyAppState = AppState { appStateScreen        = HelpScreen
-                         , appStateProjects      = Map.empty
-                         , appStateModal         = Nothing
-                         , appStateMessages      = S.empty
-                         , appStateStashedScreen = Nothing
-                         , appStateResponses     = Responses Map.empty
+emptyAppState = AppState { appStateScreen           = HelpScreen
+                         , appStateProjects         = Map.empty
+                         , appStateModal            = Nothing
+                         , appStateMessages         = S.empty
+                         , appStateStashedScreen    = Nothing
+                         , appStateResponses        = Responses Map.empty
+                         , appStateHelpPanelVisible = HelpPanelVisible False
                          }
 
 instance ToJSON AppState where

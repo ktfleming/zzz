@@ -74,6 +74,9 @@ handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
 handleEvent s (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
   continue $ toggleConsole s
+handleEvent s (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
+  let currentValue :: Bool = s ^. helpPanelVisible . coerced
+  in  continue $ s & helpPanelVisible .~ HelpPanelVisible (not currentValue)
 
 handleEvent s@AppState { appStateModal = Just m } (VtyEvent (EvKey key [])) =
   case key of

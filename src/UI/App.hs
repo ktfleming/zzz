@@ -43,13 +43,11 @@ uiApp = App { appDraw         = drawUI
 
 drawUI :: AppState -> [Widget Name]
 drawUI s =
-  let titleLine = txt $ title s (s ^. screen)
-      everything =
-          titleLine
-            <=> hBorder
-            <=> padBottom Max (mainWidget s)
-            <=> hBorder
-            <=> helpPanel (s ^. screen)
+  let titleLine    = txt $ title s (s ^. screen)
+      titleAndMain = titleLine <=> hBorder <=> padBottom Max (mainWidget s)
+      everything   = if s ^. helpPanelVisible . coerced
+        then titleAndMain <=> hBorder <=> helpPanel (s ^. screen)
+        else titleAndMain
       borderedEverything =
           withBorderStyle unicodeRounded $ (joinBorders . border) everything
       modalWidget = maybeToList $ renderModal s <$> (s ^. modal)
