@@ -40,4 +40,4 @@ showProjectAddScreen :: AppState -> AppState
 showProjectAddScreen = screen .~ ProjectAddScreen makeProjectAddForm
 
 updateProjectAddForm :: AppState -> ZZZForm ProjectFormState -> AppState
-updateProjectAddForm s f = s & screen .~ ProjectAddScreen f
+updateProjectAddForm s f = s & screen . _ProjectAddScreen .~ f

@@ -43,7 +43,7 @@ uiApp = App { appDraw         = drawUI
 
 drawUI :: AppState -> [Widget Name]
 drawUI s =
-  let titleLine    = txt $ title s (s ^. screen)
+  let titleLine    = txt $ title s
       titleAndMain = titleLine <=> hBorder <=> padBottom Max (mainWidget s)
       everything   = if s ^. helpPanelVisible . coerced
         then titleAndMain <=> hBorder <=> helpPanel (s ^. screen)

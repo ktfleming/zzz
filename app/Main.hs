@@ -9,7 +9,7 @@ import           Control.Monad.IO.Class         ( liftIO )
 import           Control.Monad.Trans.Except
 import           Data.Aeson                     ( eitherDecode )
 import           Data.ByteString.Lazy           ( readFile )
-import qualified Data.HashMap.Strict               as Map
+import qualified Data.HashMap.Strict           as Map
 import           Messages.Messages              ( logMessage )
 import           Prelude                 hiding ( readFile )
 import           System.Directory               ( doesFileExist )
@@ -52,4 +52,4 @@ main = do
 
   case runOrError of
     Left  e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e
-    Right s -> putStrLn $ "Final state:\n" ++ show s
+    Right _ -> putStrLn "Done!"

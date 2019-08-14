@@ -43,7 +43,7 @@ extra-deps:
   - QuickCheck-2.12.6.1@sha256:ce974f511174fbc3102bccb13d6d45781d327194f0311790b9f8db6a7cb1bab3,6336
 
 ghc-options:
-  "$locals": -Wall -Werror -Wpartial-fields
+  "$locals": -Wall -Wpartial-fields -Wcompat -Wincomplete-record-updates -Wincomplete-uni-patterns -Wredundant-constraints
 
 # extra-deps: []
 

@@ -1,8 +1,21 @@
 module Types.Brick.Name where
 
-data Name = ProjectFormNameField
-          | ProjectList
+data Name =
+          -- Project list screen
+            ProjectList
+
+          -- Project add/edit screen
+          | ProjectFormNameField
+
+          -- Project details screen
           | RequestDefinitionList
+
+          -- Request details screen
+          | ResponseList
+          | ResponseBody
+          | ResponseBodyViewport
+
+          -- Request add/edit screen
           | RequestDefinitionFormNameField
           | RequestDefinitionFormUrlField
           | GetRadioField

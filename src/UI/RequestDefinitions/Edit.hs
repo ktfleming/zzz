@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 
 module UI.RequestDefinitions.Edit where
 
@@ -13,6 +14,7 @@ import           Brick.Forms                    ( editField
                                                 )
 import           Control.Lens
 import           Data.Coerce                    ( coerce )
+import           Data.Generics.Product.Typed    ( typed )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
@@ -26,7 +28,6 @@ import           Types.Models.Url               ( Url(..)
 import           UI.Form                        ( ZZZForm
                                                 , renderText
                                                 )
-
 
 finishEditingRequestDefinition
   :: AppState
@@ -82,8 +83,10 @@ showEditRequestDefinitionScreen s c =
   s & screen .~ RequestEditScreen c (makeEditRequestDefinitionForm s c)
 
 updateEditRequestDefinitionForm
-  :: AppState
-  -> RequestDefinitionContext
-  -> ZZZForm RequestDefinitionFormState
-  -> AppState
-updateEditRequestDefinitionForm s c f = s & screen .~ RequestEditScreen c f
+  :: AppState -> ZZZForm RequestDefinitionFormState -> AppState
+updateEditRequestDefinitionForm s f =
+  s
+    &  screen
+    .  _RequestEditScreen
+    .  typed @(ZZZForm RequestDefinitionFormState)
+    .~ f

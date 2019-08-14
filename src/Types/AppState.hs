@@ -3,11 +3,14 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
 {-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
 {-# LANGUAGE TemplateHaskell            #-}
 
 module Types.AppState where
 
-import           Control.Lens                   ( (&)
+import           Control.Lens                   ( at
+                                                , coerced
+                                                , (&)
                                                 , (.~)
                                                 , (^.)
                                                 )
@@ -23,6 +26,7 @@ import           Data.Aeson                     ( FromJSON
                                                 )
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as Map
+import           Data.Maybe                     ( fromMaybe )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
@@ -80,3 +84,9 @@ lookupRequestDefinition
 lookupRequestDefinition s (RequestDefinitionContext pid rid) =
   let p = lookupProject s (ProjectContext pid)
   in  (Map.!) (p ^. requestDefinitions) rid
+
+lookupResponses :: AppState -> RequestDefinitionContext -> Seq Response
+lookupResponses s (RequestDefinitionContext _ rid) =
+  let m :: HashMap RequestDefinitionId (Seq Response) =
+          s ^. responses . coerced
+  in  fromMaybe S.empty (m ^. at rid)

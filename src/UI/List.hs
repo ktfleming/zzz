@@ -18,8 +18,8 @@ import           Types.Classes.Displayable
 
 type ZZZList x = GenericList Name Seq x
 
-renderGenericList :: Displayable x => ZZZList x -> Widget Name
-renderGenericList = renderList f True
+renderGenericList :: Displayable x => Bool -> ZZZList x -> Widget Name
+renderGenericList = renderList f
  where
   f selected item =
     let mainLine = padRight Max $ txt $ display item

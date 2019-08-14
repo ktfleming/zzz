@@ -23,13 +23,13 @@ dependencies:
 - brick == 0.47.1
 - vty
 - lens
+- generic-lens
 - text
 - aeson
 - aeson-pretty
 - bytestring
 - directory
 - transformers
-- vector
 - uuid
 - containers
 - unordered-containers
@@ -39,6 +39,7 @@ dependencies:
 - time
 - iso8601-time
 - hashable
+- string-conversions
 
 library:
   source-dirs:

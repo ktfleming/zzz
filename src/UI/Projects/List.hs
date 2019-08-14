@@ -29,4 +29,4 @@ showProjectListScreen s =
   s & screen .~ ProjectListScreen (makeProjectList (s ^. projects))
 
 updateProjectList :: AppState -> ZZZList ProjectListItem -> AppState
-updateProjectList s l = s & screen .~ ProjectListScreen l
+updateProjectList s l = s & screen . _ProjectListScreen .~ l

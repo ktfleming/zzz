@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 
 module UI.RequestDefinitions.Add where
 
@@ -10,6 +11,7 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
+import           Data.Generics.Product.Typed    ( typed )
 import qualified Data.HashMap.Strict           as Map
 import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
@@ -51,8 +53,10 @@ showAddRequestDefinitionScreen s c =
   s & screen .~ RequestAddScreen c makeAddRequestDefinitionForm
 
 updateAddRequestDefinitionForm
-  :: AppState
-  -> ProjectContext
-  -> ZZZForm RequestDefinitionFormState
-  -> AppState
-updateAddRequestDefinitionForm s c f = s & screen .~ RequestAddScreen c f
+  :: AppState -> ZZZForm RequestDefinitionFormState -> AppState
+updateAddRequestDefinitionForm s f =
+  s
+    &  screen
+    .  _RequestAddScreen
+    .  typed @(ZZZForm RequestDefinitionFormState)
+    .~ f

@@ -1,4 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TypeApplications  #-}
 
 module UI.Projects.Edit where
 
@@ -10,6 +11,7 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
+import           Data.Generics.Product.Typed    ( typed )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
@@ -42,6 +44,6 @@ showEditProjectScreen :: AppState -> ProjectContext -> AppState
 showEditProjectScreen s c =
   s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
 
-updateEditProjectForm
-  :: AppState -> ProjectContext -> ZZZForm ProjectFormState -> AppState
-updateEditProjectForm s c f = s & screen .~ ProjectEditScreen c f
+updateEditProjectForm :: AppState -> ZZZForm ProjectFormState -> AppState
+updateEditProjectForm s f =
+  s & screen . _ProjectEditScreen . typed @(ZZZForm ProjectFormState) .~ f

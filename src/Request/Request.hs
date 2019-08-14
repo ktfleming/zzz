@@ -38,39 +38,33 @@ type EitherReq
 sendRequest
   :: AppState -> RequestDefinitionContext -> ExceptT String IO AppState
 sendRequest s c@(RequestDefinitionContext _ rid) =
-  let
-    r :: RequestDefinition = lookupRequestDefinition s c
-    myUrl :: T.Text        = r ^. url . coerced
-  in
-    do
+  let r :: RequestDefinition = lookupRequestDefinition s c
+      myUrl :: T.Text        = r ^. url . coerced
+  in  do
         -- These s' and s'' AppStates represent the state with added log messages.
-      s' <- liftIO $ logMessage s ("Preparing to send request to URL " <> myUrl)
-      validatedUrl :: EitherReq <- failWith "Error parsing URL"
-        $ Req.parseUrl (encodeUtf8 myUrl)
-      bsResponse :: Req.BsResponse <- handleExceptT
-        (\(_ :: Req.HttpException) -> "Exception!")
-        (sendRequest' validatedUrl)
-      now <- liftIO getCurrentTime
-      let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
-          response :: Response =
-            Response { responseBody = responseMsg, responseDateTime = now }
-      s'' <- liftIO $ logMessage s' ("Response: " <> responseMsg)
+        s' <- liftIO
+          $ logMessage s ("Preparing to send request to URL " <> myUrl)
+        validatedUrl :: EitherReq <- failWith "Error parsing URL"
+          $ Req.parseUrl (encodeUtf8 myUrl)
+        bsResponse :: Req.BsResponse <- handleExceptT
+          (\(e :: Req.HttpException) -> show e)
+          (sendRequest' validatedUrl)
+        now <- liftIO getCurrentTime
+        let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
+            response :: Response =
+              Response { responseBody = responseMsg, responseDateTime = now }
+        s'' <- liftIO $ logMessage s' ("Response: " <> responseMsg)
 
-      -- Seems like I have to assert the type of this lens for it to work
-      let responseLens =
-            (responses . coerced) :: Lens'
-                AppState
-                (HashMap RequestDefinitionId (Seq Response))
+        -- Seems like I have to assert the type of this lens for it to work
+        let responseLens =
+              (responses . coerced) :: Lens'
+                  AppState
+                  (HashMap RequestDefinitionId (Seq Response))
 
-      return
-        $   s''
-        &   responseLens
-        .   at rid
-        .   non S.empty
-        <>~ S.singleton response
+        return $ s'' & responseLens . at rid . non S.empty %~ (response <|)
 
 sendRequest' :: EitherReq -> IO Req.BsResponse
 sendRequest' validatedUrl =
   Req.runReq Req.defaultHttpConfig $ case validatedUrl of
-    Left  (l, _) -> Req.req Req.GET l Req.NoReqBody Req.bsResponse mempty
-    Right (r, _) -> Req.req Req.GET r Req.NoReqBody Req.bsResponse mempty
+    Left  (l, opts) -> Req.req Req.GET l Req.NoReqBody Req.bsResponse opts
+    Right (r, opts) -> Req.req Req.GET r Req.NoReqBody Req.bsResponse opts
