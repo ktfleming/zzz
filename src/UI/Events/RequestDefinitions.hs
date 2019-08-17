@@ -1,9 +1,7 @@
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE TypeApplications #-}
 module UI.Events.RequestDefinitions where
 
 import           Brick                          ( BrickEvent(VtyEvent)
-                                                , continue
                                                 , vScrollBy
                                                 , viewportScroll
                                                 )
@@ -12,17 +10,10 @@ import           Brick.Focus                    ( FocusRing
                                                 , focusNext
                                                 , focusPrev
                                                 )
-import           Brick.Forms                    ( formState
-                                                , handleFormEvent
-                                                )
-import           Brick.Widgets.List             ( handleListEvent )
+import           Brick.Forms                    ( formState )
 import           Control.Lens
-import           Control.Monad.IO.Class         ( liftIO )
-import           Control.Monad.Trans.Except     ( runExceptT )
 import           Data.Generics.Product.Typed    ( typed )
-import qualified Data.Text                     as T
 import           Graphics.Vty.Input.Events
-import           Messages.Messages              ( logMessage )
 import           Request.Request                ( sendRequest )
 import           Types.Aliases                  ( EventHandlerFunction )
 import           Types.AppState
@@ -43,67 +34,69 @@ import           UI.RequestDefinitions.Edit     ( finishEditingRequestDefinition
                                                 , updateEditRequestDefinitionForm
                                                 )
 
+import           Control.Monad.Trans.Class      ( lift )
+import           Control.Monad.Trans.State      ( get
+                                                , modify
+                                                )
+import           Types.Classes.HasId            ( model )
+
 handleEventRequestAdd :: EventHandlerFunction
-handleEventRequestAdd s@AppState { appStateScreen = RequestAddScreen c form } ev@(VtyEvent (EvKey key []))
-  = case key of
-    KEnter ->
-      liftIO (finishAddingRequestDefinition s c (formState form)) >>= continue
-    KEsc -> continue $ showProjectDetails s c
-    _ ->
-      updateAddRequestDefinitionForm s <$> handleFormEvent ev form >>= continue
-handleEventRequestAdd s _ = continue s
+handleEventRequestAdd ev@(VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    RequestAddScreen c form -> case key of
+      KEnter -> finishAddingRequestDefinition c (formState form)
+      KEsc   -> showProjectDetails c
+      _      -> updateAddRequestDefinitionForm form ev
+    _ -> return ()
+
+handleEventRequestAdd _ = return ()
 
 handleEventRequestEdit :: EventHandlerFunction
-handleEventRequestEdit s@AppState { appStateScreen = RequestEditScreen c form } ev@(VtyEvent (EvKey key []))
-  = case key of
-    KEnter ->
-      let updatedState = finishEditingRequestDefinition s c (formState form)
-      in  continue $ showRequestDefinitionDetails updatedState c
-    KEsc -> continue $ showRequestDefinitionDetails s c
-    _ ->
-      updateEditRequestDefinitionForm s <$> handleFormEvent ev form >>= continue
-handleEventRequestEdit s _ = continue s
+handleEventRequestEdit ev@(VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    RequestEditScreen c form -> case key of
+      KEnter -> finishEditingRequestDefinition c (model s c) form
+        >> showRequestDefinitionDetails c
+      KEsc -> showRequestDefinitionDetails c
+      _    -> updateEditRequestDefinitionForm form ev
+    _ -> return ()
+
+handleEventRequestEdit _ = return ()
 
 handleEventRequestDetails :: EventHandlerFunction
-handleEventRequestDetails s@AppState { appStateScreen = RequestDetailsScreen c list ring } (VtyEvent (EvKey key []))
-  = case key of
-    KLeft ->
-      let (RequestDefinitionContext pid _) = c
-      in  continue $ showProjectDetails s (ProjectContext pid)
-    KChar 'e' -> continue $ showEditRequestDefinitionScreen s c
-    KChar 'd' -> continue $ (modal ?~ DeleteRequestDefinitionModal c) s
-    KEnter    -> do
-      result <- liftIO $ runExceptT $ sendRequest s c
-      case result of
-        Left e ->
-          -- TODO: display error
-          let errorMessage = "ERROR: " <> T.pack e
-          in  liftIO (logMessage s errorMessage) >>= continue
-        Right newState -> continue newState
-    KChar '\t' ->
-      continue
-        $  s
-        &  screen
-        .  _RequestDetailsScreen
-        .  typed @(FocusRing Name)
-        %~ focusNext
-    KBackTab ->
-      continue
-        $  s
-        &  screen
-        .  _RequestDetailsScreen
-        .  typed @(FocusRing Name)
-        %~ focusPrev
-    _ -> case focusGetCurrent ring of
-      Just ResponseList ->
-        updateResponseList s
-          <$> handleListEvent (EvKey key []) list
-          >>= continue
-      Just ResponseBody ->
-        let vp = viewportScroll ResponseBodyViewport
-        in  case key of
-              KUp   -> vScrollBy vp (-1) >> continue s
-              KDown -> vScrollBy vp 1 >> continue s
-              _     -> continue s
-      _ -> continue s
-handleEventRequestDetails s _ = continue s
+handleEventRequestDetails (VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    RequestDetailsScreen c list ring -> case key of
+      KLeft ->
+        let (RequestDefinitionContext pid _) = c
+        in  showProjectDetails (ProjectContext pid)
+      KChar 'e' -> showEditRequestDefinitionScreen c
+      KChar 'd' -> modify $ modal ?~ DeleteRequestDefinitionModal c
+      KEnter    -> sendRequest c
+      KChar '\t' ->
+        modify
+          $  screen
+          .  _RequestDetailsScreen
+          .  typed @(FocusRing Name)
+          %~ focusNext
+      KBackTab ->
+        modify
+          $  screen
+          .  _RequestDetailsScreen
+          .  typed @(FocusRing Name)
+          %~ focusPrev
+      _ -> case focusGetCurrent ring of
+        Just ResponseList -> updateResponseList list key
+        Just ResponseBody ->
+          let vp = viewportScroll ResponseBodyViewport
+          in  case key of
+                KUp   -> lift $ vScrollBy vp (-1)
+                KDown -> lift $ vScrollBy vp 1
+                _     -> return ()
+        _ -> return ()
+    _ -> return ()
+
+handleEventRequestDetails _ = return ()

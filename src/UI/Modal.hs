@@ -15,6 +15,9 @@ import           Brick.Widgets.Center           ( center
                                                 , centerLayer
                                                 )
 import           Control.Lens
+import           Control.Monad.Trans.State.Lazy ( StateT
+                                                , modify
+                                                )
 import qualified Data.Text                     as T
 import           Types.AppState                 ( AppState
                                                 , modal
@@ -44,11 +47,11 @@ renderModal s m = case m of
     renderModalText $ deleteRequestDefinitionWarning s c
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
-handleConfirm :: AppState -> Modal -> AppState
-handleConfirm s m = case m of
-  DeleteProjectModal c -> showProjectListScreen (deleteProject s c)
+handleConfirm :: Monad m => Modal -> StateT AppState m ()
+handleConfirm m = case m of
+  DeleteProjectModal c -> deleteProject c >> showProjectListScreen
   DeleteRequestDefinitionModal c@(RequestDefinitionContext pid _) ->
-    showProjectDetails (deleteRequestDefinition s c) (ProjectContext pid)
+    deleteRequestDefinition c >> showProjectDetails (ProjectContext pid)
 
-dismissModal :: AppState -> AppState
-dismissModal = modal .~ Nothing
+dismissModal :: Monad m => StateT AppState m ()
+dismissModal = modify $ modal .~ Nothing

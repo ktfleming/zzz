@@ -3,16 +3,18 @@
 
 module UI.RequestDefinitions.Add where
 
-import           Brick                          ( txt
+import           Brick                          ( BrickEvent
+                                                , EventM
+                                                , txt
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( editTextField
+                                                , handleFormEvent
                                                 , newForm
                                                 , (@@=)
                                                 )
 import           Control.Lens
 import           Data.Generics.Product.Typed    ( typed )
-import qualified Data.HashMap.Strict           as Map
 import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
 import           Types.Brick.Name
@@ -24,16 +26,27 @@ import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 import           UI.Form                        ( ZZZForm )
 
+import           Control.Monad.IO.Class         ( MonadIO
+                                                , liftIO
+                                                )
+import           Control.Monad.Trans.Class      ( lift )
+import           Control.Monad.Trans.State      ( StateT
+                                                , modify
+                                                )
+import           Types.Brick.CustomEvent        ( CustomEvent )
+
 finishAddingRequestDefinition
-  :: AppState -> ProjectContext -> RequestDefinitionFormState -> IO AppState
-finishAddingRequestDefinition s (ProjectContext pid) formState = do
-  rid <- RequestDefinitionId <$> nextRandom
+  :: MonadIO m
+  => ProjectContext
+  -> RequestDefinitionFormState
+  -> StateT AppState m ()
+finishAddingRequestDefinition (ProjectContext pid) formState = do
+  rid <- liftIO $ RequestDefinitionId <$> nextRandom
   let req = RequestDefinition { requestDefinitionName   = formState ^. name
                               , requestDefinitionUrl    = formState ^. url
                               , requestDefinitionMethod = formState ^. method
                               }
-      reqMap = Map.singleton rid req
-  return $ (projects . at pid . _Just . requestDefinitions <>~ reqMap) s
+  modify $ projects . at pid . _Just . requestDefinitions . at rid ?~ req
 
 makeAddRequestDefinitionForm :: ZZZForm RequestDefinitionFormState
 makeAddRequestDefinitionForm = newForm
@@ -48,15 +61,19 @@ makeAddRequestDefinitionForm = newForm
     , requestDefinitionFormStateMethod = Get
     }
 
-showAddRequestDefinitionScreen :: AppState -> ProjectContext -> AppState
-showAddRequestDefinitionScreen s c =
-  s & screen .~ RequestAddScreen c makeAddRequestDefinitionForm
+showAddRequestDefinitionScreen
+  :: Monad m => ProjectContext -> StateT AppState m ()
+showAddRequestDefinitionScreen c =
+  modify $ screen .~ RequestAddScreen c makeAddRequestDefinitionForm
 
 updateAddRequestDefinitionForm
-  :: AppState -> ZZZForm RequestDefinitionFormState -> AppState
-updateAddRequestDefinitionForm s f =
-  s
-    &  screen
+  :: ZZZForm RequestDefinitionFormState
+  -> BrickEvent Name CustomEvent
+  -> StateT AppState (EventM Name) ()
+updateAddRequestDefinitionForm form ev = do
+  updatedForm <- lift $ handleFormEvent ev form
+  modify
+    $  screen
     .  _RequestAddScreen
     .  typed @(ZZZForm RequestDefinitionFormState)
-    .~ f
+    .~ updatedForm

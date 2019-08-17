@@ -1,4 +1,3 @@
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
@@ -10,7 +9,6 @@ import           Control.Monad.Trans.Except
 import           Data.Aeson                     ( eitherDecode )
 import           Data.ByteString.Lazy           ( readFile )
 import qualified Data.HashMap.Strict           as Map
-import           Messages.Messages              ( logMessage )
 import           Prelude                 hiding ( readFile )
 import           System.Directory               ( doesFileExist )
 import           Types.AppState
@@ -47,8 +45,7 @@ main = do
             .~ ProjectListScreen (makeProjectList (s ^. projects))
             &  responses
             .~ rs
-    logged <- liftIO $ logMessage updatedState "Started"
-    liftIO $ defaultMain uiApp logged
+    liftIO $ defaultMain uiApp updatedState
 
   case runOrError of
     Left  e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e

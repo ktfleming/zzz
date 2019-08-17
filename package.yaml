@@ -40,6 +40,7 @@ dependencies:
 - iso8601-time
 - hashable
 - string-conversions
+- mmorph
 
 library:
   source-dirs:

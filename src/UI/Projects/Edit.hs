@@ -3,14 +3,19 @@
 
 module UI.Projects.Edit where
 
-import           Brick                          ( txt
+import           Brick                          ( BrickEvent
+                                                , EventM
+                                                , txt
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( editTextField
+                                                , formState
+                                                , handleFormEvent
                                                 , newForm
                                                 , (@@=)
                                                 )
 import           Control.Lens
+import           Control.Monad.Trans.Class      ( lift )
 import           Data.Generics.Product.Typed    ( typed )
 import           Types.AppState
 import           Types.Brick.Name
@@ -20,15 +25,23 @@ import           Types.Models.RequestDefinition ( name )
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
+import           Control.Monad.Trans.State      ( StateT
+                                                , modify
+                                                )
+import           Types.Brick.CustomEvent        ( CustomEvent )
+
 finishEditingProject
-  :: AppState -> ProjectContext -> ProjectFormState -> AppState
-finishEditingProject appState context@(ProjectContext pid) editState =
-  let base     = model appState context
-      newModel = updateProject base editState
-  in  appState & (projects . ix pid .~ newModel)
+  :: Monad m
+  => ProjectContext
+  -> Project
+  -> ZZZForm ProjectFormState
+  -> StateT AppState m ()
+finishEditingProject (ProjectContext pid) base form =
+  let newModel = updateProject base (formState form)
+  in  modify $ projects . ix pid .~ newModel
 
 updateProject :: Project -> ProjectFormState -> Project
-updateProject base formState = (name .~ (formState ^. name)) base
+updateProject base form = (name .~ (form ^. name)) base
 
 makeEditProjectForm :: AppState -> ProjectContext -> ZZZForm ProjectFormState
 makeEditProjectForm s c =
@@ -40,10 +53,18 @@ makeEditProjectForm s c =
         ]
         editState
 
-showEditProjectScreen :: AppState -> ProjectContext -> AppState
-showEditProjectScreen s c =
-  s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
+showEditProjectScreen :: Monad m => ProjectContext -> StateT AppState m ()
+showEditProjectScreen c =
+  modify $ \s -> s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
 
-updateEditProjectForm :: AppState -> ZZZForm ProjectFormState -> AppState
-updateEditProjectForm s f =
-  s & screen . _ProjectEditScreen . typed @(ZZZForm ProjectFormState) .~ f
+updateEditProjectForm
+  :: ZZZForm ProjectFormState
+  -> BrickEvent Name CustomEvent
+  -> StateT AppState (EventM Name) ()
+updateEditProjectForm form ev = do
+  updatedForm <- lift $ handleFormEvent ev form
+  modify
+    $  screen
+    .  _ProjectEditScreen
+    .  typed @(ZZZForm ProjectFormState)
+    .~ updatedForm

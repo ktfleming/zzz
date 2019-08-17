@@ -1,6 +1,4 @@
-{-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications    #-}
 
 module UI.EventHandler
   ( handleEvent
@@ -33,25 +31,35 @@ import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 )
 
+import           Control.Monad.Trans.State.Lazy ( StateT
+                                                , execStateT
+                                                , get
+                                                , modify
+                                                )
 import           Types.Classes.EventHandler     ( handle )
 
+-- This is the function that's provided to Brick's `App` and must have this exact signature
 handleEvent
   :: AppState -> BrickEvent Name CustomEvent -> EventM Name (Next AppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
   liftIO (saveState s) >> continue s
-handleEvent s (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
-  continue $ toggleConsole s
-handleEvent s (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
-  continue $ s & helpPanelVisible . coerced %~ not
+-- Except for a few exceptional cases, delegate the handling to our own function
+handleEvent s ev = execStateT (handleEventInState ev) s >>= continue
 
-handleEvent s@AppState { appStateModal = Just m } (VtyEvent (EvKey key [])) =
-  case key of
-    KChar 'n' -> continue $ dismissModal s
-    KChar 'y' -> continue $ dismissModal $ handleConfirm s m
-    _         -> continue s
-
-handleEvent s ev = handle (s ^. screen) s ev
+-- This function does the actual event handling, inside the StateT monad
+handleEventInState
+  :: BrickEvent Name CustomEvent -> StateT AppState (EventM Name) ()
+handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) = toggleConsole
+handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
+  modify $ helpPanelVisible . coerced %~ not
+handleEventInState ev = do
+  s <- get
+  case (s ^. modal, ev) of
+    (Just _, VtyEvent (EvKey (KChar 'n') [])) -> dismissModal
+    (Just m, VtyEvent (EvKey (KChar 'y') [])) ->
+      handleConfirm m >> dismissModal
+    _ -> handle (s ^. screen) ev
 
 saveState :: AppState -> IO ()
 saveState s = do

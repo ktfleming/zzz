@@ -8,9 +8,14 @@ import           Types.AppState
 import           Types.Models.Project           ( requestDefinitions )
 import           Types.Models.RequestDefinition
 
-deleteRequestDefinition :: AppState -> RequestDefinitionContext -> AppState
-deleteRequestDefinition s (RequestDefinitionContext pid rid) =
-  s & projects . at pid . _Just . requestDefinitions . at rid .~ Nothing
+import           Control.Monad.Trans.State      ( StateT
+                                                , modify
+                                                )
+
+deleteRequestDefinition
+  :: Monad m => RequestDefinitionContext -> StateT AppState m ()
+deleteRequestDefinition (RequestDefinitionContext pid rid) =
+  modify $ projects . at pid . _Just . requestDefinitions . at rid .~ Nothing
 
 deleteRequestDefinitionWarning :: AppState -> RequestDefinitionContext -> T.Text
 deleteRequestDefinitionWarning s c =

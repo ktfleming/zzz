@@ -7,10 +7,13 @@ import           Types.Models.Project
 import           Types.Models.RequestDefinition ( name )
 
 import           Control.Lens
+import           Control.Monad.Trans.State      ( StateT
+                                                , modify
+                                                )
 import qualified Data.Text                     as T
 
-deleteProject :: AppState -> ProjectContext -> AppState
-deleteProject s (ProjectContext pid) = s & projects . at pid .~ Nothing
+deleteProject :: Monad m => ProjectContext -> StateT AppState m ()
+deleteProject (ProjectContext pid) = modify $ projects . at pid .~ Nothing
 
 deleteProjectWarning :: AppState -> ProjectContext -> T.Text
 deleteProjectWarning s c =

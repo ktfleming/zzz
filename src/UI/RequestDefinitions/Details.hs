@@ -3,14 +3,20 @@
 
 module UI.RequestDefinitions.Details where
 
-import           Brick                          ( Widget
+import           Brick                          ( EventM
+                                                , Widget
                                                 , txt
                                                 )
 import           Brick.Focus                    ( focusRing )
-import           Brick.Widgets.List             ( list )
+import           Brick.Widgets.List             ( handleListEvent
+                                                , list
+                                                )
 import           Control.Lens
 import           Data.Generics.Product.Typed    ( typed )
 import           Data.Sequence                  ( Seq )
+import           Graphics.Vty                   ( Event(EvKey)
+                                                , Key
+                                                )
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Displayable      ( display )
@@ -20,18 +26,32 @@ import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 import           UI.List                        ( ZZZList )
 
+import           Control.Monad.Trans.Class      ( lift )
+import           Control.Monad.Trans.State      ( StateT
+                                                , get
+                                                , modify
+                                                )
+
 makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
 
-updateResponseList :: AppState -> ZZZList Response -> AppState
-updateResponseList s l =
-  s & screen . _RequestDetailsScreen . typed @(ZZZList Response) .~ l
+updateResponseList
+  :: ZZZList Response -> Key -> StateT AppState (EventM Name) ()
+updateResponseList l key = do
+  updatedList <- lift $ handleListEvent (EvKey key []) l
+  modify
+    $  screen
+    .  _RequestDetailsScreen
+    .  typed @(ZZZList Response)
+    .~ updatedList
 
-showRequestDefinitionDetails :: AppState -> RequestDefinitionContext -> AppState
-showRequestDefinitionDetails s c =
+showRequestDefinitionDetails
+  :: Monad m => RequestDefinitionContext -> StateT AppState m ()
+showRequestDefinitionDetails c = do
+  s <- get
   let rs   = lookupResponses s c
       ring = focusRing [ResponseList, ResponseBody]
-  in  s & screen .~ RequestDetailsScreen c (makeResponseList rs) ring
+  modify $ screen .~ RequestDetailsScreen c (makeResponseList rs) ring
 
 requestDefinitionDetailsWidget
   :: AppState -> RequestDefinitionContext -> Widget Name

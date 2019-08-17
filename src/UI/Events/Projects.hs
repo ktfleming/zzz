@@ -1,16 +1,8 @@
 module UI.Events.Projects where
 
-import           Brick                          ( BrickEvent(VtyEvent)
-                                                , continue
-                                                )
-import           Brick.Forms                    ( formState
-                                                , handleFormEvent
-                                                )
-import           Brick.Widgets.List             ( handleListEvent
-                                                , listSelectedElement
-                                                )
+import           Brick                          ( BrickEvent(VtyEvent) )
+import           Brick.Widgets.List             ( listSelectedElement )
 import           Control.Lens
-import           Control.Monad.IO.Class         ( liftIO )
 import           Graphics.Vty.Input.Events
 import           Types.Aliases                  ( EventHandlerFunction )
 import           Types.AppState
@@ -37,50 +29,63 @@ import           UI.RequestDefinitions.Add      ( showAddRequestDefinitionScreen
                                                 )
 import           UI.RequestDefinitions.Details  ( showRequestDefinitionDetails )
 
+import           Control.Monad.Trans.State      ( get
+                                                , modify
+                                                )
+import           Types.Classes.HasId            ( model )
+
 handleEventProjectAdd :: EventHandlerFunction
-handleEventProjectAdd s@AppState { appStateScreen = ProjectAddScreen form } ev@(VtyEvent (EvKey key []))
-  = case key of
-    KEnter -> liftIO (finishAddingProject s (formState form)) >>= continue
-    KEsc   -> continue $ showProjectListScreen s
-    _      -> updateProjectAddForm s <$> handleFormEvent ev form >>= continue
-handleEventProjectAdd s _ = continue s
+handleEventProjectAdd ev@(VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    ProjectAddScreen form -> case key of
+      KEnter -> finishAddingProject form
+      KEsc   -> showProjectListScreen
+      _      -> updateProjectAddForm form ev
+    _ -> return ()
+
+handleEventProjectAdd _ = return ()
 
 handleEventProjectEdit :: EventHandlerFunction
-handleEventProjectEdit s@AppState { appStateScreen = ProjectEditScreen c form } ev@(VtyEvent (EvKey key []))
-  = case key of
-    KEnter ->
-      let updatedState = finishEditingProject s c (formState form)
-      in  continue $ showProjectDetails updatedState c
-    KEsc -> continue $ showProjectDetails s c
-    _    -> updateEditProjectForm s <$> handleFormEvent ev form >>= continue
-handleEventProjectEdit s _ = continue s
+handleEventProjectEdit ev@(VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    ProjectEditScreen c form -> case key of
+      KEnter -> finishEditingProject c (model s c) form >> showProjectDetails c
+      KEsc   -> showProjectDetails c
+      _      -> updateEditProjectForm form ev
+    _ -> return ()
+
+handleEventProjectEdit _ = return ()
 
 handleEventProjectDetails :: EventHandlerFunction
-handleEventProjectDetails s@AppState { appStateScreen = ProjectDetailsScreen c list } (VtyEvent (EvKey key []))
-  = case key of
-    KEnter -> case listSelectedElement list of
-      Just (_, RequestDefinitionListItem reqContext _) ->
-        continue $ showRequestDefinitionDetails s reqContext
-      Nothing -> continue s
-    KChar 'e' -> continue $ showEditProjectScreen s c
-    KChar 'a' -> continue $ showAddRequestDefinitionScreen s c
-    KChar 'd' -> continue $ (modal ?~ DeleteProjectModal c) s
-    KLeft     -> continue $ showProjectListScreen s
-    _ ->
-      updateProjectDetailsList s
-        <$> handleListEvent (EvKey key []) list
-        >>= continue
-handleEventProjectDetails s _ = continue s
+handleEventProjectDetails (VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    ProjectDetailsScreen c list -> case key of
+      KEnter -> case listSelectedElement list of
+        Just (_, RequestDefinitionListItem reqContext _) ->
+          showRequestDefinitionDetails reqContext
+        Nothing -> return ()
+      KChar 'e' -> showEditProjectScreen c
+      KChar 'a' -> showAddRequestDefinitionScreen c
+      KChar 'd' -> modify $ modal ?~ DeleteProjectModal c
+      KLeft     -> showProjectListScreen
+      _         -> updateProjectDetailsList list key
+    _ -> return ()
 
+handleEventProjectDetails _ = return ()
 
 handleEventProjectList :: EventHandlerFunction
-handleEventProjectList s@AppState { appStateScreen = ProjectListScreen list } (VtyEvent (EvKey key []))
-  = case key of
-    KEnter -> case listSelectedElement list of
-      Just (_, ProjectListItem context _) ->
-        continue $ showProjectDetails s context
-      Nothing -> continue s
-    KChar 'a' -> continue $ showProjectAddScreen s
-    _ ->
-      updateProjectList s <$> handleListEvent (EvKey key []) list >>= continue
-handleEventProjectList s _ = continue s
+handleEventProjectList (VtyEvent (EvKey key [])) = do
+  s <- get
+  case s ^. screen of
+    ProjectListScreen list -> case key of
+      KEnter -> case listSelectedElement list of
+        Just (_, ProjectListItem context _) -> showProjectDetails context
+        Nothing                             -> return ()
+      KChar 'a' -> showProjectAddScreen
+      _         -> updateProjectList list key
+    _ -> return ()
+
+handleEventProjectList _ = return ()

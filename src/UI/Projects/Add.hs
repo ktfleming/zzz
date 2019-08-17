@@ -2,17 +2,29 @@
 
 module UI.Projects.Add where
 
-import           Brick                          ( txt
+import           Brick                          ( BrickEvent
+                                                , EventM
+                                                , txt
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( editTextField
+                                                , formState
+                                                , handleFormEvent
                                                 , newForm
                                                 , (@@=)
                                                 )
 import           Control.Lens
+import           Control.Monad.IO.Class         ( MonadIO
+                                                , liftIO
+                                                )
+import           Control.Monad.Trans.Class      ( lift )
+import           Control.Monad.Trans.State      ( StateT
+                                                , modify
+                                                )
 import qualified Data.HashMap.Strict           as Map
 import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
+import           Types.Brick.CustomEvent        ( CustomEvent )
 import           Types.Brick.Name
 import           Types.Models.Id                ( ProjectId(..) )
 import           Types.Models.Project
@@ -20,14 +32,14 @@ import           Types.Models.RequestDefinition ( name )
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
-finishAddingProject :: AppState -> ProjectFormState -> IO AppState
-finishAddingProject s formState = do
-  pid <- ProjectId <$> nextRandom
-  let project = Project { projectName               = formState ^. name
+finishAddingProject
+  :: MonadIO m => ZZZForm ProjectFormState -> StateT AppState m ()
+finishAddingProject form = do
+  pid <- liftIO $ ProjectId <$> nextRandom
+  let project = Project { projectName               = formState form ^. name
                         , projectRequestDefinitions = Map.empty
                         }
-      projectMap = Map.singleton pid project
-  return $ (projects <>~ projectMap) s
+  modify $ projects . at pid ?~ project
 
 makeProjectAddForm :: ZZZForm ProjectFormState
 makeProjectAddForm = newForm
@@ -36,8 +48,17 @@ makeProjectAddForm = newForm
   ]
   ProjectFormState { projectFormStateName = ProjectName "New Project" }
 
-showProjectAddScreen :: AppState -> AppState
-showProjectAddScreen = screen .~ ProjectAddScreen makeProjectAddForm
+showProjectAddScreen :: Monad m => StateT AppState m ()
+showProjectAddScreen = modify $ screen .~ ProjectAddScreen makeProjectAddForm
 
-updateProjectAddForm :: AppState -> ZZZForm ProjectFormState -> AppState
-updateProjectAddForm s f = s & screen . _ProjectAddScreen .~ f
+updateProjectAddForm
+  :: ZZZForm ProjectFormState
+  -> BrickEvent Name CustomEvent
+  -> StateT AppState (EventM Name) ()
+updateProjectAddForm form ev = do
+  updatedForm <-
+    (lift $ handleFormEvent ev form) :: StateT
+      AppState
+      (EventM Name)
+      (ZZZForm ProjectFormState) -- EventM Name (ZZZForm ProjectFormState), after lift: StateT AppState (EventM Name) (ZZZForm ProjectFormState)
+  modify $ screen . _ProjectAddScreen .~ updatedForm
