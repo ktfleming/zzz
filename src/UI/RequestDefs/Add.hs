@@ -1,5 +1,7 @@
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE RebindableSyntax  #-}
 
 module UI.RequestDefs.Add where
 
@@ -9,13 +11,17 @@ import           Brick                          ( BrickEvent
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( editTextField
+                                                , formState
                                                 , handleFormEvent
                                                 , newForm
                                                 , (@@=)
                                                 )
 import           Control.Lens
-import           Data.Generics.Product.Typed    ( typed )
 import           Data.UUID.V4                   ( nextRandom )
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
+                                                )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Methods
@@ -26,24 +32,33 @@ import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 import           UI.Form                        ( ZZZForm )
 
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , imodify
+                                                )
+import           Control.Monad.Indexed.Trans    ( ilift )
 import           Control.Monad.IO.Class         ( MonadIO
                                                 , liftIO
                                                 )
-import           Control.Monad.Trans.Class      ( lift )
-import           Control.Monad.Trans.State      ( StateT
-                                                , modify
-                                                )
+import           Data.String                    ( fromString )
 import           Types.Brick.CustomEvent        ( CustomEvent )
 
 finishAddingRequestDef
-  :: MonadIO m => ProjectContext -> RequestDefFormState -> StateT AppState m ()
-finishAddingRequestDef (ProjectContext pid) formState = do
+  :: MonadIO m
+  => IxStateT
+       m
+       (AppState 'RequestDefAddTag)
+       (AppState 'RequestDefAddTag)
+       ()
+finishAddingRequestDef = do
+  s <- iget
+  let RequestDefAddScreen (ProjectContext pid) form = s ^. screen
   rid <- liftIO $ RequestDefId <$> nextRandom
-  let req = RequestDef { requestDefName   = formState ^. name
-                       , requestDefUrl    = formState ^. url
-                       , requestDefMethod = formState ^. method
+  let req = RequestDef { requestDefName   = formState form ^. name
+                       , requestDefUrl    = formState form ^. url
+                       , requestDefMethod = formState form ^. method
                        }
-  modify $ projects . at pid . _Just . requestDefs . at rid ?~ req
+  imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 
 makeAddRequestDefForm :: ZZZForm RequestDefFormState
 makeAddRequestDefForm = newForm
@@ -58,18 +73,22 @@ makeAddRequestDefForm = newForm
     , requestDefFormStateMethod = Get
     }
 
-showAddRequestDefScreen :: Monad m => ProjectContext -> StateT AppState m ()
+showAddRequestDefScreen
+  :: Monad m
+  => ProjectContext
+  -> IxStateT m (AppState a) (AppState 'RequestDefAddTag) ()
 showAddRequestDefScreen c =
-  modify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm
+  imodify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm
 
 updateAddRequestDefForm
-  :: ZZZForm RequestDefFormState
-  -> BrickEvent Name CustomEvent
-  -> StateT AppState (EventM Name) ()
-updateAddRequestDefForm form ev = do
-  updatedForm <- lift $ handleFormEvent ev form
-  modify
-    $  screen
-    .  _RequestDefAddScreen
-    .  typed @(ZZZForm RequestDefFormState)
-    .~ updatedForm
+  :: BrickEvent Name CustomEvent
+  -> IxStateT
+       (EventM Name)
+       (AppState 'RequestDefAddTag)
+       (AppState 'RequestDefAddTag)
+       ()
+updateAddRequestDefForm ev = do
+  s <- iget
+  let RequestDefAddScreen c form = s ^. screen
+  updatedForm <- ilift $ handleFormEvent ev form
+  imodify $ screen .~ RequestDefAddScreen c updatedForm

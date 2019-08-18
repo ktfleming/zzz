@@ -1,3 +1,7 @@
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module UI.Events.Projects where
 
 import           Brick                          ( BrickEvent(VtyEvent) )
@@ -6,10 +10,7 @@ import           Control.Lens
 import           Graphics.Vty.Input.Events
 import           Types.AppState
 import           Types.Modal                    ( Modal(..) )
-import           Types.Models.Project           ( ProjectContext
-                                                , ProjectFormState
-                                                , ProjectListItem(..)
-                                                )
+import           Types.Models.Project           ( ProjectListItem(..) )
 import           Types.Models.RequestDef        ( RequestDefListItem(..) )
 import           UI.Projects.Add                ( finishAddingProject
                                                 , showProjectAddScreen
@@ -29,50 +30,59 @@ import           UI.RequestDefs.Add             ( showAddRequestDefScreen )
 import           UI.RequestDefs.Details         ( showRequestDefDetails )
 
 import           Brick.Types                    ( EventM )
-import           Control.Monad.Trans.State      ( modify )
-import           Control.Monad.Trans.State.Lazy ( StateT )
 import           Types.Brick.Name               ( Name )
-import           UI.Form                        ( ZZZForm )
-import           UI.List                        ( ZZZList )
+import           Types.Models.Screen
+import           Utils.IxState                  ( submerge
+                                                , (>>>)
+                                                )
+
+import           Control.Monad.Indexed          ( ireturn
+                                                , (>>>=)
+                                                )
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , imodify
+                                                )
 
 handleEventProjectAdd
-  :: ZZZForm ProjectFormState -> Key -> StateT AppState (EventM Name) ()
-handleEventProjectAdd form key = case key of
-  KEnter -> finishAddingProject form
-  KEsc   -> showProjectListScreen
-  _      -> updateProjectAddForm form (VtyEvent (EvKey key []))
+  :: Key -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
+handleEventProjectAdd key = case key of
+  KEnter -> submerge finishAddingProject
+  KEsc   -> submerge showProjectListScreen
+  _      -> submerge $ updateProjectAddForm (VtyEvent (EvKey key []))
 
 handleEventProjectEdit
-  :: ProjectContext
-  -> ZZZForm ProjectFormState
-  -> Key
-  -> StateT AppState (EventM Name) ()
-handleEventProjectEdit c form key = case key of
-  KEnter -> finishEditingProject c form >> showProjectDetails c
-  KEsc   -> showProjectDetails c
-  _      -> updateEditProjectForm form (VtyEvent (EvKey key []))
+  :: Key -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
+handleEventProjectEdit key = iget >>>= \s ->
+  let ProjectEditScreen c _ = s ^. screen
+  in  case key of
+        KEnter -> finishEditingProject >>> submerge (showProjectDetails c)
+        KEsc   -> submerge $ showProjectDetails c
+        _      -> submerge $ updateEditProjectForm (VtyEvent (EvKey key []))
 
 handleEventProjectDetails
-  :: ProjectContext
-  -> ZZZList RequestDefListItem
-  -> Key
-  -> StateT AppState (EventM Name) ()
-handleEventProjectDetails c list key = case key of
-  KEnter -> case listSelectedElement list of
-    Just (_, RequestDefListItem reqContext _) ->
-      showRequestDefDetails reqContext
-    Nothing -> return ()
-  KChar 'e' -> showEditProjectScreen c
-  KChar 'a' -> showAddRequestDefScreen c
-  KChar 'd' -> modify $ modal ?~ DeleteProjectModal c
-  KLeft     -> showProjectListScreen
-  _         -> updateProjectDetailsList list key
+  :: Key -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) AnyAppState ()
+handleEventProjectDetails key = iget >>>= \s ->
+  let ProjectDetailsScreen c list = s ^. screen
+  in  case key of
+        KEnter -> case listSelectedElement list of
+          Just (_, RequestDefListItem reqContext _) ->
+            submerge $ showRequestDefDetails reqContext
+          Nothing -> submerge $ ireturn ()
+        KChar 'e' -> submerge $ showEditProjectScreen c
+        KChar 'a' -> submerge $ showAddRequestDefScreen c
+        KChar 'd' -> submerge $ imodify $ modal ?~ DeleteProjectModal c
+        KLeft     -> submerge showProjectListScreen
+        _         -> submerge $ updateProjectDetailsList key
 
 handleEventProjectList
-  :: ZZZList ProjectListItem -> Key -> StateT AppState (EventM Name) ()
-handleEventProjectList list key = case key of
-  KEnter -> case listSelectedElement list of
-    Just (_, ProjectListItem context _) -> showProjectDetails context
-    Nothing                             -> return ()
-  KChar 'a' -> showProjectAddScreen
-  _         -> updateProjectList list key
+  :: Key -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
+handleEventProjectList key = iget >>>= \s ->
+  let ProjectListScreen list = s ^. screen
+  in  case key of
+        KEnter -> case listSelectedElement list of
+          Just (_, ProjectListItem context _) ->
+            submerge $ showProjectDetails context
+          Nothing -> submerge $ ireturn ()
+        KChar 'a' -> submerge showProjectAddScreen
+        _         -> submerge $ updateProjectList key

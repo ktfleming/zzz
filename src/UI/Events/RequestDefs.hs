@@ -1,4 +1,7 @@
-{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module UI.Events.RequestDefs where
 
 import           Brick                          ( BrickEvent(VtyEvent)
@@ -6,23 +9,18 @@ import           Brick                          ( BrickEvent(VtyEvent)
                                                 , vScrollBy
                                                 , viewportScroll
                                                 )
-import           Brick.Focus                    ( FocusRing
-                                                , focusGetCurrent
+import           Brick.Focus                    ( focusGetCurrent
                                                 , focusNext
                                                 , focusPrev
                                                 )
-import           Brick.Forms                    ( formState )
 import           Control.Lens
-import           Data.Generics.Product.Typed    ( typed )
 import           Graphics.Vty.Input.Events
 import           Request.Request                ( sendRequest )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectContext(..) )
-import           Types.Models.RequestDef        ( RequestDefContext(..)
-                                                , RequestDefFormState
-                                                )
+import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Screen
 import           UI.Projects.Details            ( showProjectDetails )
 import           UI.RequestDefs.Add             ( finishAddingRequestDef
@@ -36,64 +34,65 @@ import           UI.RequestDefs.Edit            ( finishEditingRequestDef
                                                 , updateEditRequestDefForm
                                                 )
 
-import           Control.Monad.Trans.Class      ( lift )
-import           Control.Monad.Trans.State      ( modify )
-import           Control.Monad.Trans.State.Lazy ( StateT )
-import           Types.Models.Response          ( Response )
-import           UI.Form                        ( ZZZForm )
-import           UI.List                        ( ZZZList )
+import           Utils.IxState                  ( submerge
+                                                , (>>>)
+                                                )
+
+import           Control.Monad.Indexed          ( ireturn
+                                                , (>>>=)
+                                                )
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , imodify
+                                                )
+import           Control.Monad.Indexed.Trans    ( ilift )
 
 handleEventRequestAdd
-  :: ProjectContext
-  -> ZZZForm RequestDefFormState
-  -> Key
-  -> StateT AppState (EventM Name) ()
-handleEventRequestAdd c form key = case key of
-  KEnter -> finishAddingRequestDef c (formState form)
-  KEsc   -> showProjectDetails c
-  _      -> updateAddRequestDefForm form (VtyEvent (EvKey key []))
+  :: Key -> IxStateT (EventM Name) (AppState 'RequestDefAddTag) AnyAppState ()
+handleEventRequestAdd key = iget >>>= \s ->
+  let RequestDefAddScreen c _ = s ^. screen
+  in  case key of
+        KEnter -> submerge finishAddingRequestDef
+        KEsc   -> submerge $ showProjectDetails c
+        _      -> submerge $ updateAddRequestDefForm (VtyEvent (EvKey key []))
 
 handleEventRequestEdit
-  :: RequestDefContext
-  -> ZZZForm RequestDefFormState
-  -> Key
-  -> StateT AppState (EventM Name) ()
-handleEventRequestEdit c form key = case key of
-  KEnter -> finishEditingRequestDef c form >> showRequestDefDetails c
-  KEsc   -> showRequestDefDetails c
-  _      -> updateEditRequestDefForm form (VtyEvent (EvKey key []))
+  :: Key -> IxStateT (EventM Name) (AppState 'RequestDefEditTag) AnyAppState ()
+handleEventRequestEdit key = iget >>>= \s ->
+  let RequestDefEditScreen c _ = s ^. screen
+  in  case key of
+        KEnter ->
+          finishEditingRequestDef >>> submerge (showRequestDefDetails c)
+        KEsc -> submerge $ showRequestDefDetails c
+        _    -> submerge $ updateEditRequestDefForm (VtyEvent (EvKey key []))
 
 handleEventRequestDetails
-  :: RequestDefContext
-  -> ZZZList Response
-  -> FocusRing Name
-  -> Key
-  -> StateT AppState (EventM Name) ()
-handleEventRequestDetails c list ring key = case key of
-  KLeft ->
-    let (RequestDefContext pid _) = c
-    in  showProjectDetails (ProjectContext pid)
-  KChar 'e' -> showEditRequestDefScreen c
-  KChar 'd' -> modify $ modal ?~ DeleteRequestDefModal c
-  KEnter    -> sendRequest c
-  KChar '\t' ->
-    modify
-      $  screen
-      .  _RequestDefDetailsScreen
-      .  typed @(FocusRing Name)
-      %~ focusNext
-  KBackTab ->
-    modify
-      $  screen
-      .  _RequestDefDetailsScreen
-      .  typed @(FocusRing Name)
-      %~ focusPrev
-  _ -> case focusGetCurrent ring of
-    Just ResponseList -> updateResponseList list key
-    Just ResponseBody ->
-      let vp = viewportScroll ResponseBodyViewport
-      in  case key of
-            KUp   -> lift $ vScrollBy vp (-1)
-            KDown -> lift $ vScrollBy vp 1
-            _     -> return ()
-    _ -> return ()
+  :: Key
+  -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
+handleEventRequestDetails key = iget >>>= \s ->
+  let RequestDefDetailsScreen c list ring = s ^. screen
+  in
+    case key of
+      KLeft ->
+        let (RequestDefContext pid _) = c
+        in  submerge $ showProjectDetails (ProjectContext pid)
+      KChar 'e'  -> submerge $ showEditRequestDefScreen c
+      KChar 'd'  -> submerge $ imodify $ modal ?~ DeleteRequestDefModal c
+      KEnter     -> submerge $ sendRequest c
+      KChar '\t' -> submerge $ imodify $ screen .~ RequestDefDetailsScreen
+        c
+        list
+        (focusNext ring) -- TODO: better way of doing this, without setting the whole screen?
+      KBackTab -> submerge $ imodify $ screen .~ RequestDefDetailsScreen
+        c
+        list
+        (focusPrev ring)
+      _ -> case focusGetCurrent ring of
+        Just ResponseList -> submerge $ updateResponseList key
+        Just ResponseBody ->
+          let vp = viewportScroll ResponseBodyViewport
+          in  case key of
+                KUp   -> submerge $ ilift $ vScrollBy vp (-1)
+                KDown -> submerge $ ilift $ vScrollBy vp 1
+                _     -> submerge $ ireturn ()
+        _ -> submerge $ ireturn ()

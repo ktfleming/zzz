@@ -27,13 +27,14 @@ import           Types.AppState
 import           Types.Brick.CustomEvent
 import           Types.Brick.Name
 import           UI.Attr
+import           UI.Console                     ( console )
 import           UI.EventHandler                ( handleEvent )
 import           UI.HelpPanel                   ( helpPanel )
 import           UI.MainWidget                  ( mainWidget )
 import           UI.Modal                       ( renderModal )
 import           UI.Title                       ( title )
 
-uiApp :: App AppState CustomEvent Name
+uiApp :: App AnyAppState CustomEvent Name
 uiApp = App { appDraw         = drawUI
             , appChooseCursor = showFirstCursor
             , appHandleEvent  = handleEvent
@@ -41,19 +42,22 @@ uiApp = App { appDraw         = drawUI
             , appAttrMap      = const myMap
             }
 
-drawUI :: AppState -> [Widget Name]
-drawUI s =
-  let titleLine    = txt $ title s
-      titleAndMain = titleLine <=> hBorder <=> padBottom Max (mainWidget s)
-      everything   = if s ^. helpPanelVisible . coerced
+drawUI :: AnyAppState -> [Widget Name]
+drawUI wrapper@(AnyAppState s) =
+  let titleLine = txt $ title s
+      titleAndMain =
+          titleLine <=> hBorder <=> padBottom Max (mainWidget wrapper)
+      everything = if s ^. helpPanelVisible . coerced
         then titleAndMain <=> hBorder <=> helpPanel (s ^. screen)
         else titleAndMain
       borderedEverything =
           withBorderStyle unicodeRounded $ (joinBorders . border) everything
-      modalWidget = maybeToList $ renderModal s <$> (s ^. modal)
-  in  modalWidget ++ [borderedEverything]
-
-startEvent :: AppState -> EventM Name AppState
+      modalWidget  = maybeToList $ renderModal s <$> (s ^. modal)
+      maybeConsole = console (s ^. messages)
+  in  if s ^. consoleVisible . coerced
+        then [maybeConsole]
+        else modalWidget ++ [borderedEverything]
+startEvent :: AnyAppState -> EventM Name AnyAppState
 startEvent = return
 
 myMap :: AttrMap

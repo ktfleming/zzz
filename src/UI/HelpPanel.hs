@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 module UI.HelpPanel
   ( helpPanel
@@ -11,7 +12,7 @@ import qualified Data.Text                     as T
 import           Types.Brick.Name               ( Name )
 import           Types.Models.Screen
 
-helpText :: Screen -> T.Text
+helpText :: Screen a -> T.Text
 helpText s = case s of
   ProjectAddScreen{}  -> "Enter: Finish adding | ESC: Return without adding"
   ProjectListScreen{} -> "Enter: View project | a: Add Project"
@@ -23,7 +24,6 @@ helpText s = case s of
   RequestDefAddScreen{}  -> "Enter: Finsh adding | ESC: Return without adding"
   RequestDefEditScreen{} -> "Enter: Save | ESC: Return without saving"
   HelpScreen             -> "todo"
-  ConsoleScreen          -> "todo"
 
-helpPanel :: Screen -> Widget Name
+helpPanel :: Screen a -> Widget Name
 helpPanel s = txt $ helpText s

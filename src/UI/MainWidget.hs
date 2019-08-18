@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.MainWidget
@@ -22,7 +24,6 @@ import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Models.Screen
-import           UI.Console                     ( console )
 import           UI.List                        ( renderGenericList )
 import           UI.RequestDefs.Details         ( requestDefDetailsWidget )
 import           UI.Responses.Details           ( responseBodyWidget )
@@ -36,8 +37,8 @@ formHelpText =
 padForm :: Widget Name -> Widget Name
 padForm = padTop (Pad 1) . padLeft (Pad 2)
 
-mainWidget :: AppState -> Widget Name
-mainWidget s = case s ^. screen of
+mainWidget :: AnyAppState -> Widget Name
+mainWidget (AnyAppState s) = case s ^. screen of
   HelpScreen            -> txt "Todo"
   ProjectAddScreen form -> renderForm form
   ProjectListScreen list ->
@@ -62,4 +63,3 @@ mainWidget s = case s ^. screen of
           <=> hBorder
           <=> responseWidget
   RequestDefEditScreen _ form -> formHelpText <=> padForm (renderForm form)
-  ConsoleScreen               -> console (s ^. messages)

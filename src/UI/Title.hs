@@ -1,3 +1,4 @@
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.Title
@@ -13,13 +14,13 @@ import           Types.Models.Project
 import           Types.Models.RequestDef
 import           Types.Models.Screen
 
-requestDefBaseTitle :: AppState -> RequestDefContext -> T.Text
+requestDefBaseTitle :: AppState a -> RequestDefContext -> T.Text
 requestDefBaseTitle s c@(RequestDefContext pid _) =
   let p = lookupProject s (ProjectContext pid)
       r = lookupRequestDef s c
   in  p ^. name . coerced <> " > " <> r ^. name . coerced
 
-title :: AppState -> T.Text
+title :: AppState a -> T.Text
 title s = case s ^. screen of
   ProjectAddScreen  _ -> "New Project"
   ProjectListScreen _ -> "All Projects"
@@ -30,4 +31,3 @@ title s = case s ^. screen of
   RequestDefDetailsScreen c _ _ -> requestDefBaseTitle s c
   RequestDefEditScreen c _      -> requestDefBaseTitle s c <> " (Editing)"
   HelpScreen                    -> "Help"
-  ConsoleScreen                 -> "Messages"

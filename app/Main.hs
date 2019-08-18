@@ -1,3 +1,4 @@
+{-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
@@ -19,7 +20,7 @@ import           Types.Models.Screen
 import           UI.App                         ( uiApp )
 import           UI.Projects.List               ( makeProjectList )
 
-getAppStateFromFile :: ExceptT String IO AppState
+getAppStateFromFile :: ExceptT String IO (AppState 'HelpTag)
 getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile
 
 getResponsesFromFile :: ExceptT String IO Responses
@@ -27,7 +28,7 @@ getResponsesFromFile = ExceptT $ eitherDecode <$> readFile responseHistoryFile
 
 main :: IO ()
 main = do
-  runOrError :: Either String AppState <- runExceptT $ do
+  runOrError :: Either String AnyAppState <- runExceptT $ do
     mainFileExists     <- liftIO $ doesFileExist mainSettingsFile
     responseFileExists <- liftIO $ doesFileExist responseHistoryFile
     s                  <- if mainFileExists
@@ -35,7 +36,7 @@ main = do
       else liftIO $ return emptyAppState
     rs <- if responseFileExists
       then getResponsesFromFile
-      else liftIO $ return $ Responses Map.empty
+      else liftIO $ return Map.empty
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to
     -- ProjectListScreen here, and insert the Responses read from a separate file
@@ -45,7 +46,7 @@ main = do
             .~ ProjectListScreen (makeProjectList (s ^. projects))
             &  responses
             .~ rs
-    liftIO $ defaultMain uiApp updatedState
+    liftIO $ defaultMain uiApp (AnyAppState updatedState)
 
   case runOrError of
     Left  e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e

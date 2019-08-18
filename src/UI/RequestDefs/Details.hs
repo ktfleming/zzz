@@ -1,7 +1,14 @@
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE RebindableSyntax  #-}
 
 module UI.RequestDefs.Details where
+
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
+                                                )
 
 import           Brick                          ( EventM
                                                 , Widget
@@ -12,8 +19,13 @@ import           Brick.Widgets.List             ( handleListEvent
                                                 , list
                                                 )
 import           Control.Lens
-import           Data.Generics.Product.Typed    ( typed )
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , imodify
+                                                )
+import           Control.Monad.Indexed.Trans    ( ilift )
 import           Data.Sequence                  ( Seq )
+import           Data.String                    ( fromString )
 import           Graphics.Vty                   ( Event(EvKey)
                                                 , Key
                                                 )
@@ -26,33 +38,33 @@ import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 import           UI.List                        ( ZZZList )
 
-import           Control.Monad.Trans.Class      ( lift )
-import           Control.Monad.Trans.State      ( StateT
-                                                , get
-                                                , modify
-                                                )
-
 makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
 
 updateResponseList
-  :: ZZZList Response -> Key -> StateT AppState (EventM Name) ()
-updateResponseList l key = do
-  updatedList <- lift $ handleListEvent (EvKey key []) l
-  modify
-    $  screen
-    .  _RequestDefDetailsScreen
-    .  typed @(ZZZList Response)
-    .~ updatedList
+  :: Key
+  -> IxStateT
+       (EventM Name)
+       (AppState 'RequestDefDetailsTag)
+       (AppState 'RequestDefDetailsTag)
+       ()
+updateResponseList key = do
+  s <- iget
+  let RequestDefDetailsScreen c l ring = s ^. screen
+  updatedList <- ilift $ handleListEvent (EvKey key []) l
+  imodify $ screen .~ RequestDefDetailsScreen c updatedList ring
 
-showRequestDefDetails :: Monad m => RequestDefContext -> StateT AppState m ()
+showRequestDefDetails
+  :: Monad m
+  => RequestDefContext
+  -> IxStateT m (AppState a) (AppState 'RequestDefDetailsTag) ()
 showRequestDefDetails c = do
-  s <- get
+  s <- iget
   let rs   = lookupResponses s c
       ring = focusRing [ResponseList, ResponseBody]
-  modify $ screen .~ RequestDefDetailsScreen c (makeResponseList rs) ring
+  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList rs) ring
 
-requestDefDetailsWidget :: AppState -> RequestDefContext -> Widget Name
+requestDefDetailsWidget :: AppState a -> RequestDefContext -> Widget Name
 requestDefDetailsWidget s c =
   let r = lookupRequestDef s c
       fullText =

@@ -13,7 +13,7 @@ class HasId a where
   type family ID a = b | b -> a
   type family Context a = b | b -> a   -- The set of IDs necessary to traverse the state and obtain the specified `a`
 
-  model :: AppState -> Context a -> a
+  model :: AppState x -> Context a -> a
 
 instance HasId Project where
   type ID Project = ProjectId

@@ -7,15 +7,16 @@ import           Types.Models.Project
 import           Types.Models.RequestDef        ( name )
 
 import           Control.Lens
-import           Control.Monad.Trans.State      ( StateT
-                                                , modify
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , imodify
                                                 )
 import qualified Data.Text                     as T
 
-deleteProject :: Monad m => ProjectContext -> StateT AppState m ()
-deleteProject (ProjectContext pid) = modify $ projects . at pid .~ Nothing
+deleteProject
+  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
+deleteProject (ProjectContext pid) = imodify $ projects . at pid .~ Nothing
 
-deleteProjectWarning :: AppState -> ProjectContext -> T.Text
+deleteProjectWarning :: AppState a -> ProjectContext -> T.Text
 deleteProjectWarning s c =
   let p = lookupProject s c
   in  "Are you sure you want to delete project '"

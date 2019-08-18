@@ -1,7 +1,7 @@
 module UI.Modal
   ( renderModal
-  , handleConfirm
   , dismissModal
+  , handleConfirm
   )
 where
 
@@ -15,11 +15,9 @@ import           Brick.Widgets.Center           ( center
                                                 , centerLayer
                                                 )
 import           Control.Lens
-import           Control.Monad.Trans.State.Lazy ( StateT
-                                                , modify
-                                                )
 import qualified Data.Text                     as T
-import           Types.AppState                 ( AppState
+import           Types.AppState                 ( AnyAppState(..)
+                                                , AppState
                                                 , modal
                                                 )
 import           Types.Brick.Name               ( Name )
@@ -35,22 +33,34 @@ import           UI.RequestDefs.Delete          ( deleteRequestDef
                                                 , deleteRequestDefWarning
                                                 )
 
+import           Control.Monad.Indexed          ( (>>>=) )
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , iput
+                                                )
+import           Utils.IxState                  ( submerge
+                                                , (>>>)
+                                                )
+
 renderModalText :: T.Text -> Widget Name
 renderModalText t =
   (centerLayer . border . hLimitPercent 50 . vLimitPercent 30 . center)
     $ txtWrap t
 
-renderModal :: AppState -> Modal -> Widget Name
+renderModal :: AppState a -> Modal -> Widget Name
 renderModal s m = case m of
   DeleteProjectModal    c -> renderModalText $ deleteProjectWarning s c
   DeleteRequestDefModal c -> renderModalText $ deleteRequestDefWarning s c
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
-handleConfirm :: Monad m => Modal -> StateT AppState m ()
-handleConfirm m = case m of
-  DeleteProjectModal c -> deleteProject c >> showProjectListScreen
+handleConfirm :: Monad m => Modal -> IxStateT m AnyAppState AnyAppState ()
+handleConfirm m = iget >>>= \(AnyAppState s) -> case m of
+  DeleteProjectModal c ->
+    iput s >>> deleteProject c >>> submerge showProjectListScreen
   DeleteRequestDefModal c@(RequestDefContext pid _) ->
-    deleteRequestDef c >> showProjectDetails (ProjectContext pid)
+    iput s >>> deleteRequestDef c >>> submerge
+      (showProjectDetails (ProjectContext pid))
 
-dismissModal :: Monad m => StateT AppState m ()
-dismissModal = modify $ modal .~ Nothing
+dismissModal :: Monad m => IxStateT m AnyAppState AnyAppState ()
+dismissModal =
+  iget >>>= \(AnyAppState s) -> submerge $ iput $ s & modal .~ Nothing

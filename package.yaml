@@ -41,6 +41,9 @@ dependencies:
 - hashable
 - string-conversions
 - mmorph
+- indexed == 0.1.3
+- indexed-extras == 0.2
+- do-notation
 
 library:
   source-dirs:

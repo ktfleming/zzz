@@ -1,7 +1,14 @@
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE TypeApplications  #-}
+{-# LANGUAGE RebindableSyntax  #-}
 
 module UI.RequestDefs.Edit where
+
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
+                                                )
 
 import           Brick                          ( BrickEvent
                                                 , EventM
@@ -18,7 +25,6 @@ import           Brick.Forms                    ( editField
                                                 )
 import           Control.Lens
 import           Data.Coerce                    ( coerce )
-import           Data.Generics.Product.Typed    ( typed )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
@@ -33,23 +39,27 @@ import           UI.Form                        ( ZZZForm
                                                 , renderText
                                                 )
 
-import           Control.Monad.Trans.Class      ( lift )
-import           Control.Monad.Trans.State      ( StateT
-                                                , get
-                                                , modify
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , imodify
                                                 )
+import           Control.Monad.Indexed.Trans    ( ilift )
+import           Data.String                    ( fromString )
 import           Types.Brick.CustomEvent        ( CustomEvent )
 
 finishEditingRequestDef
   :: Monad m
-  => RequestDefContext
-  -> ZZZForm RequestDefFormState
-  -> StateT AppState m ()
-finishEditingRequestDef c@(RequestDefContext pid rid) form = do
-  s <- get
-  let base     = model s c
+  => IxStateT
+       m
+       (AppState 'RequestDefEditTag)
+       (AppState 'RequestDefEditTag)
+       ()
+finishEditingRequestDef = do
+  s <- iget
+  let RequestDefEditScreen c@(RequestDefContext pid rid) form = s ^. screen
+      base     = model s c
       newModel = updateRequestDef base (formState form)
-  modify $ projects . ix pid . requestDefs . ix rid .~ newModel
+  imodify $ projects . ix pid . requestDefs . ix rid .~ newModel
 
 updateRequestDef :: RequestDef -> RequestDefFormState -> RequestDef
 updateRequestDef base form =
@@ -62,7 +72,7 @@ updateRequestDef base form =
     .~ (form ^. method)
 
 makeEditRequestDefForm
-  :: AppState -> RequestDefContext -> ZZZForm RequestDefFormState
+  :: AppState a -> RequestDefContext -> ZZZForm RequestDefFormState
 makeEditRequestDefForm s c =
   let r         = model s c
       editState = RequestDefFormState { requestDefFormStateName   = r ^. name
@@ -84,18 +94,22 @@ makeEditRequestDefForm s c =
         ]
         editState
 
-showEditRequestDefScreen :: Monad m => RequestDefContext -> StateT AppState m ()
-showEditRequestDefScreen c = modify
+showEditRequestDefScreen
+  :: Monad m
+  => RequestDefContext
+  -> IxStateT m (AppState a) (AppState 'RequestDefEditTag) ()
+showEditRequestDefScreen c = imodify
   $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)
 
 updateEditRequestDefForm
-  :: ZZZForm RequestDefFormState
-  -> BrickEvent Name CustomEvent
-  -> StateT AppState (EventM Name) ()
-updateEditRequestDefForm form ev = do
-  updatedForm <- lift $ handleFormEvent ev form
-  modify
-    $  screen
-    .  _RequestDefEditScreen
-    .  typed @(ZZZForm RequestDefFormState)
-    .~ updatedForm
+  :: BrickEvent Name CustomEvent
+  -> IxStateT
+       (EventM Name)
+       (AppState 'RequestDefEditTag)
+       (AppState 'RequestDefEditTag)
+       ()
+updateEditRequestDefForm ev = do
+  s <- iget
+  let RequestDefEditScreen c form = s ^. screen
+  updatedForm <- ilift $ handleFormEvent ev form
+  imodify $ screen .~ RequestDefEditScreen c updatedForm
