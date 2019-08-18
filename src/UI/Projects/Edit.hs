@@ -21,7 +21,7 @@ import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition ( name )
+import           Types.Models.RequestDef        ( name )
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 

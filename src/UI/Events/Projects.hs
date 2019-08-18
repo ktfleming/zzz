@@ -8,8 +8,7 @@ import           Types.Aliases                  ( EventHandlerFunction )
 import           Types.AppState
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectListItem(..) )
-import           Types.Models.RequestDefinition ( RequestDefinitionListItem(..)
-                                                )
+import           Types.Models.RequestDef        ( RequestDefListItem(..) )
 import           Types.Models.Screen
 import           UI.Projects.Add                ( finishAddingProject
                                                 , showProjectAddScreen
@@ -25,9 +24,8 @@ import           UI.Projects.Edit               ( finishEditingProject
 import           UI.Projects.List               ( showProjectListScreen
                                                 , updateProjectList
                                                 )
-import           UI.RequestDefinitions.Add      ( showAddRequestDefinitionScreen
-                                                )
-import           UI.RequestDefinitions.Details  ( showRequestDefinitionDetails )
+import           UI.RequestDefs.Add             ( showAddRequestDefScreen )
+import           UI.RequestDefs.Details         ( showRequestDefDetails )
 
 import           Control.Monad.Trans.State      ( get
                                                 , modify
@@ -64,11 +62,11 @@ handleEventProjectDetails (VtyEvent (EvKey key [])) = do
   case s ^. screen of
     ProjectDetailsScreen c list -> case key of
       KEnter -> case listSelectedElement list of
-        Just (_, RequestDefinitionListItem reqContext _) ->
-          showRequestDefinitionDetails reqContext
+        Just (_, RequestDefListItem reqContext _) ->
+          showRequestDefDetails reqContext
         Nothing -> return ()
       KChar 'e' -> showEditProjectScreen c
-      KChar 'a' -> showAddRequestDefinitionScreen c
+      KChar 'a' -> showAddRequestDefScreen c
       KChar 'd' -> modify $ modal ?~ DeleteProjectModal c
       KLeft     -> showProjectListScreen
       _         -> updateProjectDetailsList list key

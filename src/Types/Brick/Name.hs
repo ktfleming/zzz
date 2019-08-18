@@ -8,7 +8,7 @@ data Name =
           | ProjectFormNameField
 
           -- Project details screen
-          | RequestDefinitionList
+          | RequestDefList
 
           -- Request details screen
           | ResponseList
@@ -16,8 +16,8 @@ data Name =
           | ResponseBodyViewport
 
           -- Request add/edit screen
-          | RequestDefinitionFormNameField
-          | RequestDefinitionFormUrlField
+          | RequestDefFormNameField
+          | RequestDefFormUrlField
           | GetRadioField
           | PostRadioField
           | PutRadioField

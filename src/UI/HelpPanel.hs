@@ -17,13 +17,13 @@ helpText s = case s of
   ProjectListScreen{} -> "Enter: View project | a: Add Project"
   ProjectDetailsScreen{}
     -> "Enter: View request definition | Left: back | e: Edit Project | a: Add request definition | d: Delete"
-  RequestDetailsScreen{} ->
+  RequestDefDetailsScreen{} ->
     "Enter: Send request | Left: back | e: Edit | d: Delete"
-  ProjectEditScreen{} -> "Enter: Save | ESC: Return without saving"
-  RequestAddScreen{}  -> "Enter: Finsh adding | ESC: Return without adding"
-  RequestEditScreen{} -> "Enter: Save | ESC: Return without saving"
-  HelpScreen          -> "todo"
-  ConsoleScreen       -> "todo"
+  ProjectEditScreen{}    -> "Enter: Save | ESC: Return without saving"
+  RequestDefAddScreen{}  -> "Enter: Finsh adding | ESC: Return without adding"
+  RequestDefEditScreen{} -> "Enter: Save | ESC: Return without saving"
+  HelpScreen             -> "todo"
+  ConsoleScreen          -> "todo"
 
 helpPanel :: Screen -> Widget Name
 helpPanel s = txt $ helpText s

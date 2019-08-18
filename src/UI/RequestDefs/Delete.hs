@@ -1,0 +1,26 @@
+{-# LANGUAGE OverloadedStrings #-}
+
+module UI.RequestDefs.Delete where
+
+import           Control.Lens
+import qualified Data.Text                     as T
+import           Types.AppState
+import           Types.Models.Project           ( requestDefs )
+import           Types.Models.RequestDef
+
+import           Control.Monad.Trans.State      ( StateT
+                                                , modify
+                                                )
+
+deleteRequestDef :: Monad m => RequestDefContext -> StateT AppState m ()
+deleteRequestDef (RequestDefContext pid rid) =
+  modify $ projects . at pid . _Just . requestDefs . at rid .~ Nothing
+
+deleteRequestDefWarning :: AppState -> RequestDefContext -> T.Text
+deleteRequestDefWarning s c =
+  let r = lookupRequestDef s c
+  in  "Are you sure you want to delete request definition '"
+        <> r
+        ^. name
+        .  coerced
+        <> "'?"

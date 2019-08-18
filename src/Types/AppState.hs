@@ -32,15 +32,15 @@ import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
 import           Types.Modal
 import           Types.Models.Id                ( ProjectId
-                                                , RequestDefinitionId
+                                                , RequestDefId
                                                 )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
 
 newtype Message = Message T.Text deriving (Show)
-newtype Responses = Responses (HashMap RequestDefinitionId (Seq Response)) deriving (Show, ToJSON, FromJSON)
+newtype Responses = Responses (HashMap RequestDefId (Seq Response)) deriving (Show, ToJSON, FromJSON)
 newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show)
 
 data AppState = AppState { appStateScreen :: Screen
@@ -79,14 +79,12 @@ instance FromJSON AppState where
 lookupProject :: AppState -> ProjectContext -> Project
 lookupProject s (ProjectContext pid) = (Map.!) (s ^. projects) pid
 
-lookupRequestDefinition
-  :: AppState -> RequestDefinitionContext -> RequestDefinition
-lookupRequestDefinition s (RequestDefinitionContext pid rid) =
+lookupRequestDef :: AppState -> RequestDefContext -> RequestDef
+lookupRequestDef s (RequestDefContext pid rid) =
   let p = lookupProject s (ProjectContext pid)
-  in  (Map.!) (p ^. requestDefinitions) rid
+  in  (Map.!) (p ^. requestDefs) rid
 
-lookupResponses :: AppState -> RequestDefinitionContext -> Seq Response
-lookupResponses s (RequestDefinitionContext _ rid) =
-  let m :: HashMap RequestDefinitionId (Seq Response) =
-          s ^. responses . coerced
+lookupResponses :: AppState -> RequestDefContext -> Seq Response
+lookupResponses s (RequestDefContext _ rid) =
+  let m :: HashMap RequestDefId (Seq Response) = s ^. responses . coerced
   in  fromMaybe S.empty (m ^. at rid)

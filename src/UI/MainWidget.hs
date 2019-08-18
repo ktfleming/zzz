@@ -24,8 +24,7 @@ import           Types.Brick.Name               ( Name(..) )
 import           Types.Models.Screen
 import           UI.Console                     ( console )
 import           UI.List                        ( renderGenericList )
-import           UI.RequestDefinitions.Details  ( requestDefinitionDetailsWidget
-                                                )
+import           UI.RequestDefs.Details         ( requestDefDetailsWidget )
 import           UI.Responses.Details           ( responseBodyWidget )
 
 formHelpText :: Widget Name
@@ -49,18 +48,18 @@ mainWidget s = case s ^. screen of
     txtWrap
         "Select a request definition to view its details and send a request."
       <=> padTop (Pad 1) (renderGenericList True list)
-  RequestAddScreen _ form -> renderForm form
-  RequestDetailsScreen c list ring ->
+  RequestDefAddScreen _ form -> renderForm form
+  RequestDefDetailsScreen c list ring ->
     let historyListFocused = focusGetCurrent ring == Just ResponseList
         responseWidget     = case listSelectedElement list of
           Just (_, r) -> responseBodyWidget r (not historyListFocused)
           Nothing     -> txt "No response selected."
     in 
       -- TODO: depending on how wide the screen is, place response widget on right side?
-        padLeft (Pad 2) (requestDefinitionDetailsWidget s c)
+        padLeft (Pad 2) (requestDefDetailsWidget s c)
           <=> hBorder
           <=> vLimit 10 (renderGenericList historyListFocused list)
           <=> hBorder
           <=> responseWidget
-  RequestEditScreen _ form -> formHelpText <=> padForm (renderForm form)
-  ConsoleScreen            -> console (s ^. messages)
+  RequestDefEditScreen _ form -> formHelpText <=> padForm (renderForm form)
+  ConsoleScreen               -> console (s ^. messages)

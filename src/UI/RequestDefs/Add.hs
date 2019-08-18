@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module UI.RequestDefinitions.Add where
+module UI.RequestDefs.Add where
 
 import           Brick                          ( BrickEvent
                                                 , EventM
@@ -19,9 +19,9 @@ import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Methods
-import           Types.Models.Id                ( RequestDefinitionId(..) )
+import           Types.Models.Id                ( RequestDefId(..) )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 import           UI.Form                        ( ZZZForm )
@@ -35,45 +35,41 @@ import           Control.Monad.Trans.State      ( StateT
                                                 )
 import           Types.Brick.CustomEvent        ( CustomEvent )
 
-finishAddingRequestDefinition
-  :: MonadIO m
-  => ProjectContext
-  -> RequestDefinitionFormState
-  -> StateT AppState m ()
-finishAddingRequestDefinition (ProjectContext pid) formState = do
-  rid <- liftIO $ RequestDefinitionId <$> nextRandom
-  let req = RequestDefinition { requestDefinitionName   = formState ^. name
-                              , requestDefinitionUrl    = formState ^. url
-                              , requestDefinitionMethod = formState ^. method
-                              }
-  modify $ projects . at pid . _Just . requestDefinitions . at rid ?~ req
+finishAddingRequestDef
+  :: MonadIO m => ProjectContext -> RequestDefFormState -> StateT AppState m ()
+finishAddingRequestDef (ProjectContext pid) formState = do
+  rid <- liftIO $ RequestDefId <$> nextRandom
+  let req = RequestDef { requestDefName   = formState ^. name
+                       , requestDefUrl    = formState ^. url
+                       , requestDefMethod = formState ^. method
+                       }
+  modify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 
-makeAddRequestDefinitionForm :: ZZZForm RequestDefinitionFormState
-makeAddRequestDefinitionForm = newForm
+makeAddRequestDefForm :: ZZZForm RequestDefFormState
+makeAddRequestDefForm = newForm
   [ (txt "Request Definition Name: " <+>)
-    @@= editTextField (name . coerced) RequestDefinitionFormNameField (Just 1)
+    @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
   , (txt "URL: " <+>)
-    @@= editTextField (url . coerced) RequestDefinitionFormUrlField (Just 1)
+    @@= editTextField (url . coerced) RequestDefFormUrlField (Just 1)
   ]
-  RequestDefinitionFormState
-    { requestDefinitionFormStateName   = RDName "New Request Definition"
-    , requestDefinitionFormStateUrl    = Url "http://example.com"
-    , requestDefinitionFormStateMethod = Get
+  RequestDefFormState
+    { requestDefFormStateName   = RequestDefName "New Request Definition"
+    , requestDefFormStateUrl    = Url "http://example.com"
+    , requestDefFormStateMethod = Get
     }
 
-showAddRequestDefinitionScreen
-  :: Monad m => ProjectContext -> StateT AppState m ()
-showAddRequestDefinitionScreen c =
-  modify $ screen .~ RequestAddScreen c makeAddRequestDefinitionForm
+showAddRequestDefScreen :: Monad m => ProjectContext -> StateT AppState m ()
+showAddRequestDefScreen c =
+  modify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm
 
-updateAddRequestDefinitionForm
-  :: ZZZForm RequestDefinitionFormState
+updateAddRequestDefForm
+  :: ZZZForm RequestDefFormState
   -> BrickEvent Name CustomEvent
   -> StateT AppState (EventM Name) ()
-updateAddRequestDefinitionForm form ev = do
+updateAddRequestDefForm form ev = do
   updatedForm <- lift $ handleFormEvent ev form
   modify
     $  screen
-    .  _RequestAddScreen
-    .  typed @(ZZZForm RequestDefinitionFormState)
+    .  _RequestDefAddScreen
+    .  typed @(ZZZForm RequestDefFormState)
     .~ updatedForm

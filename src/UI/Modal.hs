@@ -25,14 +25,14 @@ import           Types.AppState                 ( AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Modal
 import           Types.Models.Project           ( ProjectContext(..) )
-import           Types.Models.RequestDefinition ( RequestDefinitionContext(..) )
+import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           UI.Projects.Delete             ( deleteProject
                                                 , deleteProjectWarning
                                                 )
 import           UI.Projects.Details            ( showProjectDetails )
 import           UI.Projects.List               ( showProjectListScreen )
-import           UI.RequestDefinitions.Delete   ( deleteRequestDefinition
-                                                , deleteRequestDefinitionWarning
+import           UI.RequestDefs.Delete          ( deleteRequestDef
+                                                , deleteRequestDefWarning
                                                 )
 
 renderModalText :: T.Text -> Widget Name
@@ -42,16 +42,15 @@ renderModalText t =
 
 renderModal :: AppState -> Modal -> Widget Name
 renderModal s m = case m of
-  DeleteProjectModal c -> renderModalText $ deleteProjectWarning s c
-  DeleteRequestDefinitionModal c ->
-    renderModalText $ deleteRequestDefinitionWarning s c
+  DeleteProjectModal    c -> renderModalText $ deleteProjectWarning s c
+  DeleteRequestDefModal c -> renderModalText $ deleteRequestDefWarning s c
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
 handleConfirm :: Monad m => Modal -> StateT AppState m ()
 handleConfirm m = case m of
   DeleteProjectModal c -> deleteProject c >> showProjectListScreen
-  DeleteRequestDefinitionModal c@(RequestDefinitionContext pid _) ->
-    deleteRequestDefinition c >> showProjectDetails (ProjectContext pid)
+  DeleteRequestDefModal c@(RequestDefContext pid _) ->
+    deleteRequestDef c >> showProjectDetails (ProjectContext pid)
 
 dismissModal :: Monad m => StateT AppState m ()
 dismissModal = modify $ modal .~ Nothing

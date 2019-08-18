@@ -7,4 +7,4 @@ import           Data.Hashable                  ( Hashable )
 import           Data.UUID                      ( UUID )
 
 newtype ProjectId = ProjectId UUID deriving (Show, ToJSON, FromJSON, ToJSONKey, FromJSONKey, Eq, Ord, Hashable)
-newtype RequestDefinitionId = RequestDefinitionId UUID deriving (Show, ToJSON, FromJSON, ToJSONKey, FromJSONKey, Eq, Ord, Hashable)
+newtype RequestDefId = RequestDefId UUID deriving (Show, ToJSON, FromJSON, ToJSONKey, FromJSONKey, Eq, Ord, Hashable)

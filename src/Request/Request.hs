@@ -7,7 +7,7 @@ module Request.Request
   )
 where
 
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 
 import           Brick                          ( EventM )
 import           Control.Error
@@ -32,7 +32,7 @@ import qualified Network.HTTP.Req              as Req
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Classes.HasId            ( model )
-import           Types.Models.Id                ( RequestDefinitionId )
+import           Types.Models.Id                ( RequestDefId )
 import           Types.Models.Response
 import           Types.Models.Url               ( Url(..) )
 
@@ -46,7 +46,7 @@ type EitherReq
 -- the event handlers use/require. But our main function that sends the request has an extra
 -- ExceptT layer that the event handlers don't have, so we have to handle the error (if present)
 -- by logging it, and then removing the ExceptT layer.
-sendRequest :: RequestDefinitionContext -> StateT AppState (EventM Name) ()
+sendRequest :: RequestDefContext -> StateT AppState (EventM Name) ()
 sendRequest c = do
   result <- runExceptT $ sendRequest' c
   case result of
@@ -56,12 +56,11 @@ sendRequest c = do
 -- Since the HTTP request can throw an exception, this function adds an ExceptT to the top of the monad stack to
 -- deal with that case.
 sendRequest'
-  :: RequestDefinitionContext
-  -> ExceptT String (StateT AppState (EventM Name)) ()
-sendRequest' c@(RequestDefinitionContext _ rid) = do
+  :: RequestDefContext -> ExceptT String (StateT AppState (EventM Name)) ()
+sendRequest' c@(RequestDefContext _ rid) = do
   s <- lift get
-  let r :: RequestDefinition = model s c
-      u :: T.Text            = r ^. url . coerced
+  let r :: RequestDef = model s c
+      u :: T.Text     = r ^. url . coerced
   lift $ logMessage $ "Preparing to send request to URL " <> u
   validatedUrl <- failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u))
   bsResponse   <- hoist liftIO $ handleExceptT
@@ -77,7 +76,7 @@ sendRequest' c@(RequestDefinitionContext _ rid) = do
   let responseLens =
         (responses . coerced) :: Lens'
             AppState
-            (HashMap RequestDefinitionId (Seq Response))
+            (HashMap RequestDefId (Seq Response))
 
   lift $ modify $ responseLens . at rid . non S.empty %~ (response <|)
 

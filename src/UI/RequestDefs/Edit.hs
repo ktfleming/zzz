@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module UI.RequestDefinitions.Edit where
+module UI.RequestDefs.Edit where
 
 import           Brick                          ( BrickEvent
                                                 , EventM
@@ -24,7 +24,7 @@ import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
 import           Types.Methods                  ( allMethodsRadio )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..)
                                                 , validateUrl
@@ -39,19 +39,18 @@ import           Control.Monad.Trans.State      ( StateT
                                                 )
 import           Types.Brick.CustomEvent        ( CustomEvent )
 
-finishEditingRequestDefinition
+finishEditingRequestDef
   :: Monad m
-  => RequestDefinitionContext
-  -> RequestDefinition
-  -> ZZZForm RequestDefinitionFormState
+  => RequestDefContext
+  -> RequestDef
+  -> ZZZForm RequestDefFormState
   -> StateT AppState m ()
-finishEditingRequestDefinition (RequestDefinitionContext pid rid) base form =
-  let newModel = updateRequestDefinition base (formState form)
-  in  modify $ projects . ix pid . requestDefinitions . ix rid .~ newModel
+finishEditingRequestDef (RequestDefContext pid rid) base form =
+  let newModel = updateRequestDef base (formState form)
+  in  modify $ projects . ix pid . requestDefs . ix rid .~ newModel
 
-updateRequestDefinition
-  :: RequestDefinition -> RequestDefinitionFormState -> RequestDefinition
-updateRequestDefinition base form =
+updateRequestDef :: RequestDef -> RequestDefFormState -> RequestDef
+updateRequestDef base form =
   base
     &  name
     .~ (form ^. name)
@@ -60,46 +59,41 @@ updateRequestDefinition base form =
     &  method
     .~ (form ^. method)
 
-makeEditRequestDefinitionForm
-  :: AppState -> RequestDefinitionContext -> ZZZForm RequestDefinitionFormState
-makeEditRequestDefinitionForm s c =
-  let
-    r         = model s c
-    editState = RequestDefinitionFormState
-      { requestDefinitionFormStateName   = r ^. name
-      , requestDefinitionFormStateUrl    = r ^. url
-      , requestDefinitionFormStateMethod = r ^. method
-      }
-  in
-    newForm
-      [ (txt "Name:   " <+>) @@= editTextField (name . coerced)
-                                               RequestDefinitionFormNameField
-                                               (Just 1)
-      , (txt "URL:    " <+>)
-        @@= editField (url . coerced)
-                      RequestDefinitionFormUrlField
-                      (Just 1)
-                      coerce
-                      validateUrl
-                      renderText
-                      id
-      , (txt "Method: " <+>) @@= radioField method allMethodsRadio
-      ]
-      editState
+makeEditRequestDefForm
+  :: AppState -> RequestDefContext -> ZZZForm RequestDefFormState
+makeEditRequestDefForm s c =
+  let r         = model s c
+      editState = RequestDefFormState { requestDefFormStateName   = r ^. name
+                                      , requestDefFormStateUrl    = r ^. url
+                                      , requestDefFormStateMethod = r ^. method
+                                      }
+  in  newForm
+        [ (txt "Name:   " <+>)
+          @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
+        , (txt "URL:    " <+>)
+          @@= editField (url . coerced)
+                        RequestDefFormUrlField
+                        (Just 1)
+                        coerce
+                        validateUrl
+                        renderText
+                        id
+        , (txt "Method: " <+>) @@= radioField method allMethodsRadio
+        ]
+        editState
 
-showEditRequestDefinitionScreen
-  :: Monad m => RequestDefinitionContext -> StateT AppState m ()
-showEditRequestDefinitionScreen c = modify $ \s ->
-  s & screen .~ RequestEditScreen c (makeEditRequestDefinitionForm s c)
+showEditRequestDefScreen :: Monad m => RequestDefContext -> StateT AppState m ()
+showEditRequestDefScreen c = modify
+  $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)
 
-updateEditRequestDefinitionForm
-  :: ZZZForm RequestDefinitionFormState
+updateEditRequestDefForm
+  :: ZZZForm RequestDefFormState
   -> BrickEvent Name CustomEvent
   -> StateT AppState (EventM Name) ()
-updateEditRequestDefinitionForm form ev = do
+updateEditRequestDefForm form ev = do
   updatedForm <- lift $ handleFormEvent ev form
   modify
     $  screen
-    .  _RequestEditScreen
-    .  typed @(ZZZForm RequestDefinitionFormState)
+    .  _RequestDefEditScreen
+    .  typed @(ZZZForm RequestDefFormState)
     .~ updatedForm

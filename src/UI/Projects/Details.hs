@@ -23,13 +23,13 @@ import           Graphics.Vty                   ( Event(EvKey)
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
-import           Types.ContextTransformers      ( requestDefinitionContext
-                                                , requestDefinitionListItem
+import           Types.ContextTransformers      ( requestDefContext
+                                                , requestDefListItem
                                                 )
-import           Types.Models.Id                ( RequestDefinitionId )
+import           Types.Models.Id                ( RequestDefId )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition ( RequestDefinition
-                                                , RequestDefinitionListItem
+import           Types.Models.RequestDef        ( RequestDef
+                                                , RequestDefListItem
                                                 )
 import           Types.Models.Screen
 import           UI.List                        ( ZZZList )
@@ -38,26 +38,23 @@ showProjectDetails :: Monad m => ProjectContext -> StateT AppState m ()
 showProjectDetails c = do
   s <- get
   let p         = model s c
-      listItems = foldr f S.empty (Map.toList (p ^. requestDefinitions))
+      listItems = foldr f S.empty (Map.toList (p ^. requestDefs))
        where
         f
-          :: (RequestDefinitionId, RequestDefinition)
-          -> Seq RequestDefinitionListItem
-          -> Seq RequestDefinitionListItem
+          :: (RequestDefId, RequestDef)
+          -> Seq RequestDefListItem
+          -> Seq RequestDefListItem
         f (rid, r) items =
-          let rc = requestDefinitionContext c rid
-          in  items |> requestDefinitionListItem rc r
-      reqList = list RequestDefinitionList listItems 1
+          let rc = requestDefContext c rid in items |> requestDefListItem rc r
+      reqList = list RequestDefList listItems 1
   put $ s & screen .~ ProjectDetailsScreen c reqList
 
 updateProjectDetailsList
-  :: ZZZList RequestDefinitionListItem
-  -> Key
-  -> StateT AppState (EventM Name) ()
+  :: ZZZList RequestDefListItem -> Key -> StateT AppState (EventM Name) ()
 updateProjectDetailsList l key = do
   updatedList <- lift $ handleListEvent (EvKey key []) l
   modify
     $  screen
     .  _ProjectDetailsScreen
-    .  typed @(ZZZList RequestDefinitionListItem)
+    .  typed @(ZZZList RequestDefListItem)
     .~ updatedList

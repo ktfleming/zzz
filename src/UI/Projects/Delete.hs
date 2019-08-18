@@ -4,7 +4,7 @@ module UI.Projects.Delete where
 
 import           Types.AppState
 import           Types.Models.Project
-import           Types.Models.RequestDefinition ( name )
+import           Types.Models.RequestDef        ( name )
 
 import           Control.Lens
 import           Control.Monad.Trans.State      ( StateT

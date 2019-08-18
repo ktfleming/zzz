@@ -15,7 +15,7 @@ import           Types.AppState
 import           Types.Brick.Name
 import           Types.Models.Id                ( ProjectId )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition ( name )
+import           Types.Models.RequestDef        ( name )
 import           Types.Models.Screen
 import           UI.List                        ( ZZZList )
 

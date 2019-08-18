@@ -28,7 +28,7 @@ import           Types.Brick.CustomEvent        ( CustomEvent )
 import           Types.Brick.Name
 import           Types.Models.Id                ( ProjectId(..) )
 import           Types.Models.Project
-import           Types.Models.RequestDefinition ( name )
+import           Types.Models.RequestDef        ( name )
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
@@ -36,8 +36,8 @@ finishAddingProject
   :: MonadIO m => ZZZForm ProjectFormState -> StateT AppState m ()
 finishAddingProject form = do
   pid <- liftIO $ ProjectId <$> nextRandom
-  let project = Project { projectName               = formState form ^. name
-                        , projectRequestDefinitions = Map.empty
+  let project = Project { projectName        = formState form ^. name
+                        , projectRequestDefs = Map.empty
                         }
   modify $ projects . at pid ?~ project
 
@@ -56,9 +56,5 @@ updateProjectAddForm
   -> BrickEvent Name CustomEvent
   -> StateT AppState (EventM Name) ()
 updateProjectAddForm form ev = do
-  updatedForm <-
-    (lift $ handleFormEvent ev form) :: StateT
-      AppState
-      (EventM Name)
-      (ZZZForm ProjectFormState) -- EventM Name (ZZZForm ProjectFormState), after lift: StateT AppState (EventM Name) (ZZZForm ProjectFormState)
+  updatedForm <- lift $ handleFormEvent ev form
   modify $ screen . _ProjectAddScreen .~ updatedForm

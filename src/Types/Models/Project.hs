@@ -27,14 +27,14 @@ import           Types.Classes.Displayable      ( Displayable
                                                 , display
                                                 )
 import           Types.Models.Id                ( ProjectId
-                                                , RequestDefinitionId
+                                                , RequestDefId
                                                 )
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 
 newtype ProjectName = ProjectName T.Text deriving (FromJSON, ToJSON, Show)
 
 data Project = Project { projectName :: ProjectName
-                       , projectRequestDefinitions :: HashMap RequestDefinitionId RequestDefinition} deriving (Show)
+                       , projectRequestDefs :: HashMap RequestDefId RequestDef} deriving (Show)
 
 data ProjectContext = ProjectContext ProjectId deriving (Show)
 data ProjectListItem = ProjectListItem ProjectContext ProjectName
@@ -47,14 +47,14 @@ makeFields ''ProjectFormState
 instance ToJSON Project where
   toJSON p = object
     [ "name" .= (p ^. name . coerced :: T.Text)
-    , "request_definitions" .= (p ^. requestDefinitions)
+    , "request_definitions" .= (p ^. requestDefs)
     ]
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \o -> do
     n       <- o .: "name"
     reqDefs <- o .: "request_definitions"
-    return $ Project { projectName = n, projectRequestDefinitions = reqDefs }
+    return $ Project { projectName = n, projectRequestDefs = reqDefs }
 
 instance Displayable Project where
   display p = p ^. name . coerced

@@ -1,5 +1,5 @@
 {-# LANGUAGE TypeApplications #-}
-module UI.Events.RequestDefinitions where
+module UI.Events.RequestDefs where
 
 import           Brick                          ( BrickEvent(VtyEvent)
                                                 , vScrollBy
@@ -20,18 +20,18 @@ import           Types.AppState
 import           Types.Brick.Name
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectContext(..) )
-import           Types.Models.RequestDefinition ( RequestDefinitionContext(..) )
+import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Screen
 import           UI.Projects.Details            ( showProjectDetails )
-import           UI.RequestDefinitions.Add      ( finishAddingRequestDefinition
-                                                , updateAddRequestDefinitionForm
+import           UI.RequestDefs.Add             ( finishAddingRequestDef
+                                                , updateAddRequestDefForm
                                                 )
-import           UI.RequestDefinitions.Details  ( showRequestDefinitionDetails
+import           UI.RequestDefs.Details         ( showRequestDefDetails
                                                 , updateResponseList
                                                 )
-import           UI.RequestDefinitions.Edit     ( finishEditingRequestDefinition
-                                                , showEditRequestDefinitionScreen
-                                                , updateEditRequestDefinitionForm
+import           UI.RequestDefs.Edit            ( finishEditingRequestDef
+                                                , showEditRequestDefScreen
+                                                , updateEditRequestDefForm
                                                 )
 
 import           Control.Monad.Trans.Class      ( lift )
@@ -44,10 +44,10 @@ handleEventRequestAdd :: EventHandlerFunction
 handleEventRequestAdd ev@(VtyEvent (EvKey key [])) = do
   s <- get
   case s ^. screen of
-    RequestAddScreen c form -> case key of
-      KEnter -> finishAddingRequestDefinition c (formState form)
+    RequestDefAddScreen c form -> case key of
+      KEnter -> finishAddingRequestDef c (formState form)
       KEsc   -> showProjectDetails c
-      _      -> updateAddRequestDefinitionForm form ev
+      _      -> updateAddRequestDefForm form ev
     _ -> return ()
 
 handleEventRequestAdd _ = return ()
@@ -56,11 +56,11 @@ handleEventRequestEdit :: EventHandlerFunction
 handleEventRequestEdit ev@(VtyEvent (EvKey key [])) = do
   s <- get
   case s ^. screen of
-    RequestEditScreen c form -> case key of
-      KEnter -> finishEditingRequestDefinition c (model s c) form
-        >> showRequestDefinitionDetails c
-      KEsc -> showRequestDefinitionDetails c
-      _    -> updateEditRequestDefinitionForm form ev
+    RequestDefEditScreen c form -> case key of
+      KEnter ->
+        finishEditingRequestDef c (model s c) form >> showRequestDefDetails c
+      KEsc -> showRequestDefDetails c
+      _    -> updateEditRequestDefForm form ev
     _ -> return ()
 
 handleEventRequestEdit _ = return ()
@@ -69,23 +69,23 @@ handleEventRequestDetails :: EventHandlerFunction
 handleEventRequestDetails (VtyEvent (EvKey key [])) = do
   s <- get
   case s ^. screen of
-    RequestDetailsScreen c list ring -> case key of
+    RequestDefDetailsScreen c list ring -> case key of
       KLeft ->
-        let (RequestDefinitionContext pid _) = c
+        let (RequestDefContext pid _) = c
         in  showProjectDetails (ProjectContext pid)
-      KChar 'e' -> showEditRequestDefinitionScreen c
-      KChar 'd' -> modify $ modal ?~ DeleteRequestDefinitionModal c
+      KChar 'e' -> showEditRequestDefScreen c
+      KChar 'd' -> modify $ modal ?~ DeleteRequestDefModal c
       KEnter    -> sendRequest c
       KChar '\t' ->
         modify
           $  screen
-          .  _RequestDetailsScreen
+          .  _RequestDefDetailsScreen
           .  typed @(FocusRing Name)
           %~ focusNext
       KBackTab ->
         modify
           $  screen
-          .  _RequestDetailsScreen
+          .  _RequestDefDetailsScreen
           .  typed @(FocusRing Name)
           %~ focusPrev
       _ -> case focusGetCurrent ring of

@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TypeApplications  #-}
 
-module UI.RequestDefinitions.Details where
+module UI.RequestDefs.Details where
 
 import           Brick                          ( EventM
                                                 , Widget
@@ -20,7 +20,7 @@ import           Graphics.Vty                   ( Event(EvKey)
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Displayable      ( display )
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
@@ -41,22 +41,20 @@ updateResponseList l key = do
   updatedList <- lift $ handleListEvent (EvKey key []) l
   modify
     $  screen
-    .  _RequestDetailsScreen
+    .  _RequestDefDetailsScreen
     .  typed @(ZZZList Response)
     .~ updatedList
 
-showRequestDefinitionDetails
-  :: Monad m => RequestDefinitionContext -> StateT AppState m ()
-showRequestDefinitionDetails c = do
+showRequestDefDetails :: Monad m => RequestDefContext -> StateT AppState m ()
+showRequestDefDetails c = do
   s <- get
   let rs   = lookupResponses s c
       ring = focusRing [ResponseList, ResponseBody]
-  modify $ screen .~ RequestDetailsScreen c (makeResponseList rs) ring
+  modify $ screen .~ RequestDefDetailsScreen c (makeResponseList rs) ring
 
-requestDefinitionDetailsWidget
-  :: AppState -> RequestDefinitionContext -> Widget Name
-requestDefinitionDetailsWidget s c =
-  let r = lookupRequestDefinition s c
+requestDefDetailsWidget :: AppState -> RequestDefContext -> Widget Name
+requestDefDetailsWidget s c =
+  let r = lookupRequestDef s c
       fullText =
           "Request: " <> display (r ^. method) <> " " <> (r ^. url . coerced)
   in  txt fullText

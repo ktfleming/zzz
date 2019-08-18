@@ -5,7 +5,7 @@ module Types.Classes.HasId where
 import           Types.AppState
 import           Types.Models.Id
 import           Types.Models.Project
-import           Types.Models.RequestDefinition
+import           Types.Models.RequestDef
 
 class HasId a where
   -- All these type families are injective, so that, for example, only one type can have an ID of type `ProjectId`
@@ -20,7 +20,7 @@ instance HasId Project where
   type Context Project = ProjectContext
   model = lookupProject
 
-instance HasId RequestDefinition where
-  type ID RequestDefinition = RequestDefinitionId
-  type Context RequestDefinition = RequestDefinitionContext
-  model = lookupRequestDefinition
+instance HasId RequestDef where
+  type ID RequestDef = RequestDefId
+  type Context RequestDef = RequestDefContext
+  model = lookupRequestDef
