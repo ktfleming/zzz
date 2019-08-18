@@ -26,6 +26,7 @@ import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
 import           Control.Monad.Trans.State      ( StateT
+                                                , get
                                                 , modify
                                                 )
 import           Types.Brick.CustomEvent        ( CustomEvent )
@@ -33,12 +34,13 @@ import           Types.Brick.CustomEvent        ( CustomEvent )
 finishEditingProject
   :: Monad m
   => ProjectContext
-  -> Project
   -> ZZZForm ProjectFormState
   -> StateT AppState m ()
-finishEditingProject (ProjectContext pid) base form =
-  let newModel = updateProject base (formState form)
-  in  modify $ projects . ix pid .~ newModel
+finishEditingProject c@(ProjectContext pid) form = do
+  s <- get
+  let base     = model s c
+      newModel = updateProject base (formState form)
+  modify $ projects . ix pid .~ newModel
 
 updateProject :: Project -> ProjectFormState -> Project
 updateProject base form = (name .~ (form ^. name)) base

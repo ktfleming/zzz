@@ -2,6 +2,7 @@
 module UI.Events.RequestDefs where
 
 import           Brick                          ( BrickEvent(VtyEvent)
+                                                , EventM
                                                 , vScrollBy
                                                 , viewportScroll
                                                 )
@@ -15,12 +16,13 @@ import           Control.Lens
 import           Data.Generics.Product.Typed    ( typed )
 import           Graphics.Vty.Input.Events
 import           Request.Request                ( sendRequest )
-import           Types.Aliases                  ( EventHandlerFunction )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectContext(..) )
-import           Types.Models.RequestDef        ( RequestDefContext(..) )
+import           Types.Models.RequestDef        ( RequestDefContext(..)
+                                                , RequestDefFormState
+                                                )
 import           Types.Models.Screen
 import           UI.Projects.Details            ( showProjectDetails )
 import           UI.RequestDefs.Add             ( finishAddingRequestDef
@@ -35,68 +37,63 @@ import           UI.RequestDefs.Edit            ( finishEditingRequestDef
                                                 )
 
 import           Control.Monad.Trans.Class      ( lift )
-import           Control.Monad.Trans.State      ( get
-                                                , modify
-                                                )
-import           Types.Classes.HasId            ( model )
+import           Control.Monad.Trans.State      ( modify )
+import           Control.Monad.Trans.State.Lazy ( StateT )
+import           Types.Models.Response          ( Response )
+import           UI.Form                        ( ZZZForm )
+import           UI.List                        ( ZZZList )
 
-handleEventRequestAdd :: EventHandlerFunction
-handleEventRequestAdd ev@(VtyEvent (EvKey key [])) = do
-  s <- get
-  case s ^. screen of
-    RequestDefAddScreen c form -> case key of
-      KEnter -> finishAddingRequestDef c (formState form)
-      KEsc   -> showProjectDetails c
-      _      -> updateAddRequestDefForm form ev
+handleEventRequestAdd
+  :: ProjectContext
+  -> ZZZForm RequestDefFormState
+  -> Key
+  -> StateT AppState (EventM Name) ()
+handleEventRequestAdd c form key = case key of
+  KEnter -> finishAddingRequestDef c (formState form)
+  KEsc   -> showProjectDetails c
+  _      -> updateAddRequestDefForm form (VtyEvent (EvKey key []))
+
+handleEventRequestEdit
+  :: RequestDefContext
+  -> ZZZForm RequestDefFormState
+  -> Key
+  -> StateT AppState (EventM Name) ()
+handleEventRequestEdit c form key = case key of
+  KEnter -> finishEditingRequestDef c form >> showRequestDefDetails c
+  KEsc   -> showRequestDefDetails c
+  _      -> updateEditRequestDefForm form (VtyEvent (EvKey key []))
+
+handleEventRequestDetails
+  :: RequestDefContext
+  -> ZZZList Response
+  -> FocusRing Name
+  -> Key
+  -> StateT AppState (EventM Name) ()
+handleEventRequestDetails c list ring key = case key of
+  KLeft ->
+    let (RequestDefContext pid _) = c
+    in  showProjectDetails (ProjectContext pid)
+  KChar 'e' -> showEditRequestDefScreen c
+  KChar 'd' -> modify $ modal ?~ DeleteRequestDefModal c
+  KEnter    -> sendRequest c
+  KChar '\t' ->
+    modify
+      $  screen
+      .  _RequestDefDetailsScreen
+      .  typed @(FocusRing Name)
+      %~ focusNext
+  KBackTab ->
+    modify
+      $  screen
+      .  _RequestDefDetailsScreen
+      .  typed @(FocusRing Name)
+      %~ focusPrev
+  _ -> case focusGetCurrent ring of
+    Just ResponseList -> updateResponseList list key
+    Just ResponseBody ->
+      let vp = viewportScroll ResponseBodyViewport
+      in  case key of
+            KUp   -> lift $ vScrollBy vp (-1)
+            KDown -> lift $ vScrollBy vp 1
+            _     -> return ()
     _ -> return ()
-
-handleEventRequestAdd _ = return ()
-
-handleEventRequestEdit :: EventHandlerFunction
-handleEventRequestEdit ev@(VtyEvent (EvKey key [])) = do
-  s <- get
-  case s ^. screen of
-    RequestDefEditScreen c form -> case key of
-      KEnter ->
-        finishEditingRequestDef c (model s c) form >> showRequestDefDetails c
-      KEsc -> showRequestDefDetails c
-      _    -> updateEditRequestDefForm form ev
-    _ -> return ()
-
-handleEventRequestEdit _ = return ()
-
-handleEventRequestDetails :: EventHandlerFunction
-handleEventRequestDetails (VtyEvent (EvKey key [])) = do
-  s <- get
-  case s ^. screen of
-    RequestDefDetailsScreen c list ring -> case key of
-      KLeft ->
-        let (RequestDefContext pid _) = c
-        in  showProjectDetails (ProjectContext pid)
-      KChar 'e' -> showEditRequestDefScreen c
-      KChar 'd' -> modify $ modal ?~ DeleteRequestDefModal c
-      KEnter    -> sendRequest c
-      KChar '\t' ->
-        modify
-          $  screen
-          .  _RequestDefDetailsScreen
-          .  typed @(FocusRing Name)
-          %~ focusNext
-      KBackTab ->
-        modify
-          $  screen
-          .  _RequestDefDetailsScreen
-          .  typed @(FocusRing Name)
-          %~ focusPrev
-      _ -> case focusGetCurrent ring of
-        Just ResponseList -> updateResponseList list key
-        Just ResponseBody ->
-          let vp = viewportScroll ResponseBodyViewport
-          in  case key of
-                KUp   -> lift $ vScrollBy vp (-1)
-                KDown -> lift $ vScrollBy vp 1
-                _     -> return ()
-        _ -> return ()
-    _ -> return ()
-
-handleEventRequestDetails _ = return ()

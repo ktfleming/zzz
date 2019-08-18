@@ -35,6 +35,7 @@ import           UI.Form                        ( ZZZForm
 
 import           Control.Monad.Trans.Class      ( lift )
 import           Control.Monad.Trans.State      ( StateT
+                                                , get
                                                 , modify
                                                 )
 import           Types.Brick.CustomEvent        ( CustomEvent )
@@ -42,12 +43,13 @@ import           Types.Brick.CustomEvent        ( CustomEvent )
 finishEditingRequestDef
   :: Monad m
   => RequestDefContext
-  -> RequestDef
   -> ZZZForm RequestDefFormState
   -> StateT AppState m ()
-finishEditingRequestDef (RequestDefContext pid rid) base form =
-  let newModel = updateRequestDef base (formState form)
-  in  modify $ projects . ix pid . requestDefs . ix rid .~ newModel
+finishEditingRequestDef c@(RequestDefContext pid rid) form = do
+  s <- get
+  let base     = model s c
+      newModel = updateRequestDef base (formState form)
+  modify $ projects . ix pid . requestDefs . ix rid .~ newModel
 
 updateRequestDef :: RequestDef -> RequestDefFormState -> RequestDef
 updateRequestDef base form =

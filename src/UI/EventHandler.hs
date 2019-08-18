@@ -36,7 +36,9 @@ import           Control.Monad.Trans.State.Lazy ( StateT
                                                 , get
                                                 , modify
                                                 )
-import           Types.Classes.EventHandler     ( handle )
+import           Types.Models.Screen
+import           UI.Events.Projects
+import           UI.Events.RequestDefs
 
 -- This is the function that's provided to Brick's `App` and must have this exact signature
 handleEvent
@@ -59,7 +61,19 @@ handleEventInState ev = do
     (Just _, VtyEvent (EvKey (KChar 'n') [])) -> dismissModal
     (Just m, VtyEvent (EvKey (KChar 'y') [])) ->
       handleConfirm m >> dismissModal
-    _ -> handle (s ^. screen) ev
+    (Nothing, VtyEvent (EvKey key [])) -> key & case s ^. screen of
+      ProjectAddScreen form       -> handleEventProjectAdd form
+      ProjectDetailsScreen c list -> handleEventProjectDetails c list
+      ProjectEditScreen    c form -> handleEventProjectEdit c form
+      ProjectListScreen list      -> handleEventProjectList list
+      RequestDefDetailsScreen c list ring ->
+        handleEventRequestDetails c list ring
+      RequestDefAddScreen  c form -> handleEventRequestAdd c form
+      RequestDefEditScreen c form -> handleEventRequestEdit c form
+      HelpScreen                  -> const $ return ()
+      ConsoleScreen               -> const $ return ()
+    _ -> return ()
+
 
 saveState :: AppState -> IO ()
 saveState s = do
