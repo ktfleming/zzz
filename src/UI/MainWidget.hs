@@ -30,8 +30,7 @@ import           UI.Responses.Details           ( responseBodyWidget )
 
 formHelpText :: Widget Name
 formHelpText =
-  txtWrap
-    "Use Tab and Shift-Tab to navigate between fields. Press Enter to save your changes."
+  txtWrap "Use Tab and Shift-Tab to navigate between fields. Press Enter to save your changes."
 
 -- shortcut for padding a form widget one on top and 2 on the left
 padForm :: Widget Name -> Widget Name
@@ -46,8 +45,7 @@ mainWidget (AnyAppState s) = case s ^. screen of
       <=> padTop (Pad 1) (renderGenericList True list)
   ProjectEditScreen _ form -> formHelpText <=> padForm (renderForm form)
   ProjectDetailsScreen _ list ->
-    txtWrap
-        "Select a request definition to view its details and send a request."
+    txtWrap "Select a request definition to view its details and send a request."
       <=> padTop (Pad 1) (renderGenericList True list)
   RequestDefAddScreen _ form -> renderForm form
   RequestDefDetailsScreen c list ring ->

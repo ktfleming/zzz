@@ -50,13 +50,9 @@ import           Utils.IxState                  ( (>>>)
 -- This is the function that's provided to Brick's `App` and must have this exact signature
 -- (note AnyAppState instead of AppState, since the input and output state must have the same type,
 -- we can't use AppState which is parameterized by a ScreenTag)
-handleEvent
-  :: AnyAppState
-  -> BrickEvent Name CustomEvent
-  -> EventM Name (Next AnyAppState)
+handleEvent :: AnyAppState -> BrickEvent Name CustomEvent -> EventM Name (Next AnyAppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
-handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) =
-  liftIO (saveState s) >> continue s
+handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) = liftIO (saveState s) >> continue s
 -- Except for a few exceptional cases, delegate the handling to our own function
 
 handleEvent s ev = (runIxStateT $ handleEventInState ev) s >>= (continue . snd)
@@ -70,13 +66,10 @@ handleEvent s ev = (runIxStateT $ handleEventInState ev) s >>= (continue . snd)
 
 -- This function does the actual event handling, inside the IxStateT monad
 handleEventInState
-  :: BrickEvent Name CustomEvent
-  -> IxStateT (EventM Name) AnyAppState AnyAppState ()
+  :: BrickEvent Name CustomEvent -> IxStateT (EventM Name) AnyAppState AnyAppState ()
 handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) = toggleConsole
-handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
-  iget >>>= \(AnyAppState s) ->
-    let updated = s & helpPanelVisible . coerced %~ not
-    in  iput $ AnyAppState updated
+handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) = iget >>>= \(AnyAppState s) ->
+  let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
 
 handleEventInState (VtyEvent (EvKey key [])) = iget >>>= \(AnyAppState s) ->
   case (s ^. modal, key) of

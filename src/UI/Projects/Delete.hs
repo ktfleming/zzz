@@ -12,8 +12,7 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 )
 import qualified Data.Text                     as T
 
-deleteProject
-  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
+deleteProject :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
 deleteProject (ProjectContext pid) = imodify $ projects . at pid .~ Nothing
 
 deleteProjectWarning :: AppState a -> ProjectContext -> T.Text

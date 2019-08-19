@@ -22,10 +22,9 @@ requestDefBaseTitle s c@(RequestDefContext pid _) =
 
 title :: AppState a -> T.Text
 title s = case s ^. screen of
-  ProjectAddScreen  _ -> "New Project"
-  ProjectListScreen _ -> "All Projects"
-  ProjectEditScreen c _ ->
-    let p = lookupProject s c in p ^. name . coerced <> " (Editing)"
+  ProjectAddScreen  _           -> "New Project"
+  ProjectListScreen _           -> "All Projects"
+  ProjectEditScreen    c _      -> let p = lookupProject s c in p ^. name . coerced <> " (Editing)"
   ProjectDetailsScreen c _      -> let p = lookupProject s c in display p
   RequestDefAddScreen  _ _      -> "New Request Definition"
   RequestDefDetailsScreen c _ _ -> requestDefBaseTitle s c

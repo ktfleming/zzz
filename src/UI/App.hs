@@ -44,19 +44,15 @@ uiApp = App { appDraw         = drawUI
 
 drawUI :: AnyAppState -> [Widget Name]
 drawUI wrapper@(AnyAppState s) =
-  let titleLine = txt $ title s
-      titleAndMain =
-          titleLine <=> hBorder <=> padBottom Max (mainWidget wrapper)
-      everything = if s ^. helpPanelVisible . coerced
+  let titleLine    = txt $ title s
+      titleAndMain = titleLine <=> hBorder <=> padBottom Max (mainWidget wrapper)
+      everything   = if s ^. helpPanelVisible . coerced
         then titleAndMain <=> hBorder <=> helpPanel (s ^. screen)
         else titleAndMain
-      borderedEverything =
-          withBorderStyle unicodeRounded $ (joinBorders . border) everything
-      modalWidget  = maybeToList $ renderModal s <$> (s ^. modal)
-      maybeConsole = console (s ^. messages)
-  in  if s ^. consoleVisible . coerced
-        then [maybeConsole]
-        else modalWidget ++ [borderedEverything]
+      borderedEverything = withBorderStyle unicodeRounded $ (joinBorders . border) everything
+      modalWidget        = maybeToList $ renderModal s <$> (s ^. modal)
+      maybeConsole       = console (s ^. messages)
+  in  if s ^. consoleVisible . coerced then [maybeConsole] else modalWidget ++ [borderedEverything]
 startEvent :: AnyAppState -> EventM Name AnyAppState
 startEvent = return
 

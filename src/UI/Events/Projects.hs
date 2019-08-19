@@ -44,15 +44,13 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , imodify
                                                 )
 
-handleEventProjectAdd
-  :: Key -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
+handleEventProjectAdd :: Key -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
 handleEventProjectAdd key = case key of
   KEnter -> submerge finishAddingProject
   KEsc   -> submerge showProjectListScreen
   _      -> submerge $ updateProjectAddForm (VtyEvent (EvKey key []))
 
-handleEventProjectEdit
-  :: Key -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
+handleEventProjectEdit :: Key -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
 handleEventProjectEdit key = iget >>>= \s ->
   let ProjectEditScreen c _ = s ^. screen
   in  case key of
@@ -66,8 +64,7 @@ handleEventProjectDetails key = iget >>>= \s ->
   let ProjectDetailsScreen c list = s ^. screen
   in  case key of
         KEnter -> case listSelectedElement list of
-          Just (_, RequestDefListItem reqContext _) ->
-            submerge $ showRequestDefDetails reqContext
+          Just (_, RequestDefListItem reqContext _) -> submerge $ showRequestDefDetails reqContext
           Nothing -> submerge $ ireturn ()
         KChar 'e' -> submerge $ showEditProjectScreen c
         KChar 'a' -> submerge $ showAddRequestDefScreen c
@@ -75,14 +72,12 @@ handleEventProjectDetails key = iget >>>= \s ->
         KLeft     -> submerge showProjectListScreen
         _         -> submerge $ updateProjectDetailsList key
 
-handleEventProjectList
-  :: Key -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
+handleEventProjectList :: Key -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
 handleEventProjectList key = iget >>>= \s ->
   let ProjectListScreen list = s ^. screen
   in  case key of
         KEnter -> case listSelectedElement list of
-          Just (_, ProjectListItem context _) ->
-            submerge $ showProjectDetails context
-          Nothing -> submerge $ ireturn ()
+          Just (_, ProjectListItem context _) -> submerge $ showProjectDetails context
+          Nothing                             -> submerge $ ireturn ()
         KChar 'a' -> submerge showProjectAddScreen
         _         -> submerge $ updateProjectList key

@@ -36,35 +36,25 @@ import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
 finishAddingProject
-  :: MonadIO m
-  => IxStateT m (AppState 'ProjectAddTag) (AppState 'ProjectAddTag) ()
+  :: MonadIO m => IxStateT m (AppState 'ProjectAddTag) (AppState 'ProjectAddTag) ()
 finishAddingProject = do
   s <- iget
   let AppState { appStateScreen = ProjectAddScreen form } = s
   pid <- liftIO $ ProjectId <$> nextRandom
-  let project = Project { projectName        = formState form ^. name
-                        , projectRequestDefs = Map.empty
-                        }
+  let project = Project { projectName = formState form ^. name, projectRequestDefs = Map.empty }
   imodify $ projects . at pid ?~ project
 
 makeProjectAddForm :: ZZZForm ProjectFormState
 makeProjectAddForm = newForm
-  [ (txt "Project Name: " <+>)
-      @@= editTextField (name . coerced) ProjectFormNameField (Just 1)
-  ]
+  [(txt "Project Name: " <+>) @@= editTextField (name . coerced) ProjectFormNameField (Just 1)]
   ProjectFormState { projectFormStateName = ProjectName "New Project" }
 
-showProjectAddScreen
-  :: Monad m => IxStateT m (AppState a) (AppState 'ProjectAddTag) ()
+showProjectAddScreen :: Monad m => IxStateT m (AppState a) (AppState 'ProjectAddTag) ()
 showProjectAddScreen = imodify $ screen .~ ProjectAddScreen makeProjectAddForm
 
 updateProjectAddForm
   :: BrickEvent Name CustomEvent
-  -> IxStateT
-       (EventM Name)
-       (AppState 'ProjectAddTag)
-       (AppState 'ProjectAddTag)
-       ()
+  -> IxStateT (EventM Name) (AppState 'ProjectAddTag) (AppState 'ProjectAddTag) ()
 updateProjectAddForm ev = do
   s <- iget
   let ProjectAddScreen form = s ^. screen

@@ -15,10 +15,7 @@ import           Types.Models.Screen
 (>>>) f g = f >>>= const g
 
 -- "Submerges" the tagged output state of an IxStateT into an AnyAppState
-submerge
-  :: Monad m
-  => IxStateT m i (AppState (o :: ScreenTag)) ()
-  -> IxStateT m i AnyAppState ()
+submerge :: Monad m => IxStateT m i (AppState (o :: ScreenTag)) () -> IxStateT m i AnyAppState ()
 submerge ixs = ixs >>> imodify AnyAppState
 
 -- Submerge the tagged output of the left side into AnyAppState so that the right side can accept it as input

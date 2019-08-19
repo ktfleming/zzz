@@ -45,10 +45,8 @@ makeFields ''Project
 makeFields ''ProjectFormState
 
 instance ToJSON Project where
-  toJSON p = object
-    [ "name" .= (p ^. name . coerced :: T.Text)
-    , "request_definitions" .= (p ^. requestDefs)
-    ]
+  toJSON p =
+    object ["name" .= (p ^. name . coerced :: T.Text), "request_definitions" .= (p ^. requestDefs)]
 
 instance FromJSON Project where
   parseJSON = withObject "Project" $ \o -> do

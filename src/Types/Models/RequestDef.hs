@@ -67,7 +67,4 @@ instance FromJSON RequestDef where
     n <- o .: "name"
     u <- o .: "url"
     m <- o .: "method"
-    return RequestDef { requestDefName   = n
-                      , requestDefUrl    = u
-                      , requestDefMethod = m
-                      }
+    return RequestDef { requestDefName = n, requestDefUrl = u, requestDefMethod = m }

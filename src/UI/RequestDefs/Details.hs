@@ -55,9 +55,7 @@ updateResponseList key = do
   imodify $ screen .~ RequestDefDetailsScreen c updatedList ring
 
 showRequestDefDetails
-  :: Monad m
-  => RequestDefContext
-  -> IxStateT m (AppState a) (AppState 'RequestDefDetailsTag) ()
+  :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefDetailsTag) ()
 showRequestDefDetails c = do
   s <- iget
   let rs   = lookupResponses s c
@@ -66,7 +64,6 @@ showRequestDefDetails c = do
 
 requestDefDetailsWidget :: AppState a -> RequestDefContext -> Widget Name
 requestDefDetailsWidget s c =
-  let r = lookupRequestDef s c
-      fullText =
-          "Request: " <> display (r ^. method) <> " " <> (r ^. url . coerced)
+  let r        = lookupRequestDef s c
+      fullText = "Request: " <> display (r ^. method) <> " " <> (r ^. url . coerced)
   in  txt fullText

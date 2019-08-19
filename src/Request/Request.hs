@@ -45,9 +45,7 @@ import           Types.Models.Url               ( Url(..) )
 
 
 type EitherReq
-  = Either
-      (Req.Url 'Req.Http, Req.Option 'Req.Http)
-      (Req.Url 'Req.Https, Req.Option 'Req.Https)
+  = Either (Req.Url 'Req.Http, Req.Option 'Req.Http) (Req.Url 'Req.Https, Req.Option 'Req.Https)
 
 -- This is the function called from the event handler; it uses the same monad stack that all
 -- the event handlers use/require. But our main function that sends the request has an extra
@@ -71,46 +69,29 @@ sendRequest c = do
 type Step a
   = ExceptT
       String
-      ( IxStateT
-          (EventM Name)
-          (AppState 'RequestDefDetailsTag)
-          (AppState 'RequestDefDetailsTag)
-      )
+      (IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag))
       a
 
 -- Since the HTTP request can throw an exception, this function adds an ExceptT to the top of the monad stack to
 -- deal with that case.
-sendRequest'
-  :: RequestDefContext
-  -> ExceptT
-       String
-       ( IxStateT
-           (EventM Name)
-           (AppState 'RequestDefDetailsTag)
-           (AppState 'RequestDefDetailsTag)
-       )
-       ()
+sendRequest' :: RequestDefContext -> Step ()
 sendRequest' c@(RequestDefContext _ rid) = do
   s <- lift iget :: Step (AppState 'RequestDefDetailsTag)
   let r :: RequestDef = model s c
       u :: T.Text     = r ^. url . coerced
   lift $ logMessage $ "Preparing to send request to URL " <> u :: Step ()
-  validatedUrl <-
-    failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u)) :: Step EitherReq
-  bsResponse <-
-    hoist liftIO $ handleExceptT (\(e :: Req.HttpException) -> show e)
-                                 (runRequest validatedUrl) :: Step
+  validatedUrl <- failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u)) :: Step EitherReq
+  bsResponse   <-
+    hoist liftIO $ handleExceptT (\(e :: Req.HttpException) -> show e) (runRequest validatedUrl) :: Step
       Req.BsResponse
   now <- liftIO getCurrentTime :: Step UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
-      response =
-        Response { responseBody = responseMsg, responseDateTime = now }
+      response              = Response { responseBody = responseMsg, responseDateTime = now }
   lift $ logMessage $ "Response: " <> responseMsg :: Step ()
   lift $ imodify $ responses . at rid . non S.empty %~ (response <|) :: Step ()
 
 -- Helper function called from sendRequest' that performs the actual request
 runRequest :: EitherReq -> IO Req.BsResponse
-runRequest validatedUrl =
-  Req.runReq Req.defaultHttpConfig $ case validatedUrl of
-    Left  (l, opts) -> Req.req Req.GET l Req.NoReqBody Req.bsResponse opts
-    Right (r, opts) -> Req.req Req.GET r Req.NoReqBody Req.bsResponse opts
+runRequest validatedUrl = Req.runReq Req.defaultHttpConfig $ case validatedUrl of
+  Left  (l, opts) -> Req.req Req.GET l Req.NoReqBody Req.bsResponse opts
+  Right (r, opts) -> Req.req Req.GET r Req.NoReqBody Req.bsResponse opts

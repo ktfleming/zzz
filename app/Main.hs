@@ -29,23 +29,15 @@ getResponsesFromFile = ExceptT $ eitherDecode <$> readFile responseHistoryFile
 main :: IO ()
 main = do
   runOrError :: Either String AnyAppState <- runExceptT $ do
-    mainFileExists     <- liftIO $ doesFileExist mainSettingsFile
+    mainFileExists <- liftIO $ doesFileExist mainSettingsFile
     responseFileExists <- liftIO $ doesFileExist responseHistoryFile
-    s                  <- if mainFileExists
-      then getAppStateFromFile
-      else liftIO $ return emptyAppState
-    rs <- if responseFileExists
-      then getResponsesFromFile
-      else liftIO $ return Map.empty
+    s <- if mainFileExists then getAppStateFromFile else liftIO $ return emptyAppState
+    rs <- if responseFileExists then getResponsesFromFile else liftIO $ return Map.empty
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to
     -- ProjectListScreen here, and insert the Responses read from a separate file
     let updatedState =
-          s
-            &  screen
-            .~ ProjectListScreen (makeProjectList (s ^. projects))
-            &  responses
-            .~ rs
+          s & screen .~ ProjectListScreen (makeProjectList (s ^. projects)) & responses .~ rs
     liftIO $ defaultMain uiApp (AnyAppState updatedState)
 
   case runOrError of

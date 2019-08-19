@@ -35,5 +35,4 @@ console :: Seq Message -> Widget Name
 console ms = txt $ T.intercalate "\n" $ coerce (toList ms)
 
 toggleConsole :: Monad m => IxStateT m AnyAppState AnyAppState ()
-toggleConsole = iget >>>= \(AnyAppState s) ->
-  submerge $ iput $ s & consoleVisible . coerced %~ not
+toggleConsole = iget >>>= \(AnyAppState s) -> submerge $ iput $ s & consoleVisible . coerced %~ not

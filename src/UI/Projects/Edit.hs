@@ -38,8 +38,7 @@ import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm )
 
 finishEditingProject
-  :: Monad m
-  => IxStateT m (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
+  :: Monad m => IxStateT m (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
 finishEditingProject = do
   s <- iget
   let ProjectEditScreen c@(ProjectContext pid) form = s ^. screen
@@ -61,19 +60,13 @@ makeEditProjectForm s c =
         editState
 
 showEditProjectScreen
-  :: Monad m
-  => ProjectContext
-  -> IxStateT m (AppState a) (AppState 'ProjectEditTag) ()
+  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectEditTag) ()
 showEditProjectScreen c =
   imodify $ \s -> s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
 
 updateEditProjectForm
   :: BrickEvent Name CustomEvent
-  -> IxStateT
-       (EventM Name)
-       (AppState 'ProjectEditTag)
-       (AppState 'ProjectEditTag)
-       ()
+  -> IxStateT (EventM Name) (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
 updateEditProjectForm ev = do
   s <- iget
   let ProjectEditScreen c form = s ^. screen

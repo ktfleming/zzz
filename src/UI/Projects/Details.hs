@@ -42,31 +42,19 @@ import           Types.Models.RequestDef        ( RequestDef
 import           Types.Models.Screen
 
 showProjectDetails
-  :: Monad m
-  => ProjectContext
-  -> IxStateT m (AppState a) (AppState 'ProjectDetailsTag) ()
+  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectDetailsTag) ()
 showProjectDetails c = iget >>>= \s ->
   let p         = model s c
       listItems = foldr f S.empty (Map.toList (p ^. requestDefs))
          where
-          f
-            :: (RequestDefId, RequestDef)
-            -> Seq RequestDefListItem
-            -> Seq RequestDefListItem
-          f (rid, r) items =
-            let rc = requestDefContext c rid in items |> requestDefListItem rc r
+          f :: (RequestDefId, RequestDef) -> Seq RequestDefListItem -> Seq RequestDefListItem
+          f (rid, r) items = let rc = requestDefContext c rid in items |> requestDefListItem rc r
       reqList = list RequestDefList listItems 1
-      newState :: AppState 'ProjectDetailsTag =
-          s & screen .~ ProjectDetailsScreen c reqList
+      newState :: AppState 'ProjectDetailsTag = s & screen .~ ProjectDetailsScreen c reqList
   in  iput newState
 
 updateProjectDetailsList
-  :: Key
-  -> IxStateT
-       (EventM Name)
-       (AppState 'ProjectDetailsTag)
-       (AppState 'ProjectDetailsTag)
-       ()
+  :: Key -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) (AppState 'ProjectDetailsTag) ()
 updateProjectDetailsList key = do
   s <- iget
   let ProjectDetailsScreen c l = s ^. screen

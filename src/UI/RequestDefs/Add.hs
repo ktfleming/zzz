@@ -44,12 +44,7 @@ import           Data.String                    ( fromString )
 import           Types.Brick.CustomEvent        ( CustomEvent )
 
 finishAddingRequestDef
-  :: MonadIO m
-  => IxStateT
-       m
-       (AppState 'RequestDefAddTag)
-       (AppState 'RequestDefAddTag)
-       ()
+  :: MonadIO m => IxStateT m (AppState 'RequestDefAddTag) (AppState 'RequestDefAddTag) ()
 finishAddingRequestDef = do
   s <- iget
   let RequestDefAddScreen (ProjectContext pid) form = s ^. screen
@@ -64,29 +59,20 @@ makeAddRequestDefForm :: ZZZForm RequestDefFormState
 makeAddRequestDefForm = newForm
   [ (txt "Request Definition Name: " <+>)
     @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
-  , (txt "URL: " <+>)
-    @@= editTextField (url . coerced) RequestDefFormUrlField (Just 1)
+  , (txt "URL: " <+>) @@= editTextField (url . coerced) RequestDefFormUrlField (Just 1)
   ]
-  RequestDefFormState
-    { requestDefFormStateName   = RequestDefName "New Request Definition"
-    , requestDefFormStateUrl    = Url "http://example.com"
-    , requestDefFormStateMethod = Get
-    }
+  RequestDefFormState { requestDefFormStateName   = RequestDefName "New Request Definition"
+                      , requestDefFormStateUrl    = Url "http://example.com"
+                      , requestDefFormStateMethod = Get
+                      }
 
 showAddRequestDefScreen
-  :: Monad m
-  => ProjectContext
-  -> IxStateT m (AppState a) (AppState 'RequestDefAddTag) ()
-showAddRequestDefScreen c =
-  imodify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm
+  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'RequestDefAddTag) ()
+showAddRequestDefScreen c = imodify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm
 
 updateAddRequestDefForm
   :: BrickEvent Name CustomEvent
-  -> IxStateT
-       (EventM Name)
-       (AppState 'RequestDefAddTag)
-       (AppState 'RequestDefAddTag)
-       ()
+  -> IxStateT (EventM Name) (AppState 'RequestDefAddTag) (AppState 'RequestDefAddTag) ()
 updateAddRequestDefForm ev = do
   s <- iget
   let RequestDefAddScreen c form = s ^. screen

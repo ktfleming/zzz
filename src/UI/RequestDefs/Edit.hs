@@ -48,12 +48,7 @@ import           Data.String                    ( fromString )
 import           Types.Brick.CustomEvent        ( CustomEvent )
 
 finishEditingRequestDef
-  :: Monad m
-  => IxStateT
-       m
-       (AppState 'RequestDefEditTag)
-       (AppState 'RequestDefEditTag)
-       ()
+  :: Monad m => IxStateT m (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
 finishEditingRequestDef = do
   s <- iget
   let RequestDefEditScreen c@(RequestDefContext pid rid) form = s ^. screen
@@ -63,51 +58,39 @@ finishEditingRequestDef = do
 
 updateRequestDef :: RequestDef -> RequestDefFormState -> RequestDef
 updateRequestDef base form =
-  base
-    &  name
-    .~ (form ^. name)
-    &  url
-    .~ (form ^. url)
-    &  method
-    .~ (form ^. method)
+  base & name .~ (form ^. name) & url .~ (form ^. url) & method .~ (form ^. method)
 
-makeEditRequestDefForm
-  :: AppState a -> RequestDefContext -> ZZZForm RequestDefFormState
+makeEditRequestDefForm :: AppState a -> RequestDefContext -> ZZZForm RequestDefFormState
 makeEditRequestDefForm s c =
-  let r         = model s c
-      editState = RequestDefFormState { requestDefFormStateName   = r ^. name
-                                      , requestDefFormStateUrl    = r ^. url
-                                      , requestDefFormStateMethod = r ^. method
-                                      }
-  in  newForm
-        [ (txt "Name:   " <+>)
-          @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
-        , (txt "URL:    " <+>)
-          @@= editField (url . coerced)
-                        RequestDefFormUrlField
-                        (Just 1)
-                        coerce
-                        validateUrl
-                        renderText
-                        id
-        , (txt "Method: " <+>) @@= radioField method allMethodsRadio
-        ]
-        editState
+  let
+    r         = model s c
+    editState = RequestDefFormState { requestDefFormStateName   = r ^. name
+                                    , requestDefFormStateUrl    = r ^. url
+                                    , requestDefFormStateMethod = r ^. method
+                                    }
+  in
+    newForm
+      [ (txt "Name:   " <+>) @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
+      , (txt "URL:    " <+>)
+        @@= editField (url . coerced)
+                      RequestDefFormUrlField
+                      (Just 1)
+                      coerce
+                      validateUrl
+                      renderText
+                      id
+      , (txt "Method: " <+>) @@= radioField method allMethodsRadio
+      ]
+      editState
 
 showEditRequestDefScreen
-  :: Monad m
-  => RequestDefContext
-  -> IxStateT m (AppState a) (AppState 'RequestDefEditTag) ()
-showEditRequestDefScreen c = imodify
-  $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)
+  :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefEditTag) ()
+showEditRequestDefScreen c =
+  imodify $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)
 
 updateEditRequestDefForm
   :: BrickEvent Name CustomEvent
-  -> IxStateT
-       (EventM Name)
-       (AppState 'RequestDefEditTag)
-       (AppState 'RequestDefEditTag)
-       ()
+  -> IxStateT (EventM Name) (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
 updateEditRequestDefForm ev = do
   s <- iget
   let RequestDefEditScreen c form = s ^. screen

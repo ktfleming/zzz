@@ -77,7 +77,7 @@ emptyAppState :: AppState 'HelpTag
 emptyAppState = AppState { appStateScreen            = HelpScreen
                          , _appStateProjects         = Map.empty
                          , _appStateModal            = Nothing
-                         , _appStateMessages = S.singleton (Message "Started")
+                         , _appStateMessages         = S.singleton (Message "Started")
                          , _appStateResponses        = Map.empty
                          , _appStateHelpPanelVisible = HelpPanelVisible False
                          , _appStateConsoleVisible   = ConsoleVisible False
@@ -99,8 +99,7 @@ lookupProject s (ProjectContext pid) = (Map.!) (s ^. projects) pid
 
 lookupRequestDef :: AppState a -> RequestDefContext -> RequestDef
 lookupRequestDef s (RequestDefContext pid rid) =
-  let p = lookupProject s (ProjectContext pid)
-  in  (Map.!) (p ^. requestDefs) rid
+  let p = lookupProject s (ProjectContext pid) in (Map.!) (p ^. requestDefs) rid
 
 lookupResponses :: AppState a -> RequestDefContext -> Seq Response
 lookupResponses s (RequestDefContext _ rid) =

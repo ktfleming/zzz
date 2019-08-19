@@ -22,6 +22,5 @@ import           Types.AppState
 logMessage :: MonadIO m => T.Text -> IxStateT m (AppState a) (AppState a) ()
 logMessage m = do
   currentTime <- liftIO getCurrentTime
-  let fullMessage =
-        Message $ T.pack $ formatISO8601 currentTime <> ": " <> T.unpack m
+  let fullMessage = Message $ T.pack $ formatISO8601 currentTime <> ": " <> T.unpack m
   imodify $ messages %~ (|> fullMessage)
