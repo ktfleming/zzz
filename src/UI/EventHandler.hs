@@ -53,16 +53,9 @@ import           Utils.IxState                  ( (>>>)
 handleEvent :: AnyAppState -> BrickEvent Name CustomEvent -> EventM Name (Next AnyAppState)
 handleEvent s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
 handleEvent s (VtyEvent (EvKey (KChar 's') [MCtrl])) = liftIO (saveState s) >> continue s
+
 -- Except for a few exceptional cases, delegate the handling to our own function
-
 handleEvent s ev = (runIxStateT $ handleEventInState ev) s >>= (continue . snd)
-
---handleEvent s ev = execStateT (handleEventInState ev) s >>= continue
-
--- Start:  Any    Any
--- after iput s', we have Any Tagged
--- Next:   Any    Tagged
--- Finish: Tagged Any
 
 -- This function does the actual event handling, inside the IxStateT monad
 handleEventInState

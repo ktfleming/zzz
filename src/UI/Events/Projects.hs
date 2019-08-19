@@ -44,6 +44,10 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , imodify
                                                 )
 
+-- Since each branch of the `case key` expression can lead to a different phantom type
+-- parameterizing the state, we can only say that the ultimate output type will be
+-- `AnyAppState` (as expected by `handleEventInState`, which calls all of these functions),
+-- and we have to apply `submerge` on every branch.
 handleEventProjectAdd :: Key -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
 handleEventProjectAdd key = case key of
   KEnter -> submerge finishAddingProject

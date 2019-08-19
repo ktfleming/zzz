@@ -18,14 +18,6 @@ import           Types.Models.Screen
 submerge :: Monad m => IxStateT m i (AppState (o :: ScreenTag)) () -> IxStateT m i AnyAppState ()
 submerge ixs = ixs >>> imodify AnyAppState
 
--- Submerge the tagged output of the left side into AnyAppState so that the right side can accept it as input
-(>>>\)
-  :: Monad m
-  => IxStateT m i (AppState (a :: ScreenTag)) ()
-  -> IxStateT m AnyAppState j ()
-  -> IxStateT m i j ()
-(>>>\) f g = submerge f >>> g
-
 -- Given a tagged AppState and a function in IxStateT which has
 --   input state: that tagged AppState (with the matching tag)
 --   output state: AnyAppState
@@ -35,5 +27,5 @@ submerge ixs = ixs >>> imodify AnyAppState
   => IxStateT m (AppState (i :: ScreenTag)) AnyAppState ()
   -> AppState (i :: ScreenTag)
   -> IxStateT m AnyAppState AnyAppState ()
-(|$|) ixs i = iput i >>>= const ixs
+(|$|) ixs i = iput i >>> ixs
 
