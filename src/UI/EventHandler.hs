@@ -13,12 +13,6 @@ import           Brick                          ( BrickEvent(..)
                                                 , continue
                                                 , halt
                                                 )
-import           Prelude                 hiding ( writeFile )
-
-import           Types.Brick.CustomEvent        ( CustomEvent )
-
-import           Types.Brick.Name               ( Name(..) )
-
 import           Control.Lens
 import           Control.Monad.Indexed          ( ireturn
                                                 , (>>>=)
@@ -32,7 +26,10 @@ import           Control.Monad.IO.Class         ( liftIO )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( writeFile )
 import           Graphics.Vty.Input.Events
+import           Prelude                 hiding ( writeFile )
 import           Types.AppState
+import           Types.Brick.CustomEvent        ( CustomEvent )
+import           Types.Brick.Name               ( Name(..) )
 import           Types.Constants                ( mainSettingsFile
                                                 , responseHistoryFile
                                                 )

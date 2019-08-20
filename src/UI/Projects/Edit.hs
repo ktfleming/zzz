@@ -5,19 +5,11 @@
 
 module UI.Projects.Edit where
 
-import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
-                                                , pure
-                                                )
-
-import           Brick                          ( BrickEvent
-                                                , EventM
-                                                , txt
+import           Brick                          ( txt
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( editTextField
                                                 , formState
-                                                , handleFormEvent
                                                 , newForm
                                                 , (@@=)
                                                 )
@@ -26,10 +18,12 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import           Data.String                    ( fromString )
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
+                                                )
 import           Types.AppState
-import           Types.Brick.CustomEvent        ( CustomEvent )
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
 import           Types.Models.Project
@@ -63,12 +57,3 @@ showEditProjectScreen
   :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectEditTag) ()
 showEditProjectScreen c =
   imodify $ \s -> s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
-
-updateEditProjectForm
-  :: BrickEvent Name CustomEvent
-  -> IxStateT (EventM Name) (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
-updateEditProjectForm ev = do
-  s <- iget
-  let ProjectEditScreen c form = s ^. screen
-  updatedForm <- ilift $ handleFormEvent ev form
-  imodify $ screen .~ ProjectEditScreen c updatedForm

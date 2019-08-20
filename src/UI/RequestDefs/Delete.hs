@@ -3,14 +3,13 @@
 module UI.RequestDefs.Delete where
 
 import           Control.Lens
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , imodify
+                                                )
 import qualified Data.Text                     as T
 import           Types.AppState
 import           Types.Models.Project           ( requestDefs )
 import           Types.Models.RequestDef
-
-import           Control.Monad.Indexed.State    ( IxStateT
-                                                , imodify
-                                                )
 
 deleteRequestDef :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState a) ()
 deleteRequestDef (RequestDefContext pid rid) =

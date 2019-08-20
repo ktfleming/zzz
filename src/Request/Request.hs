@@ -9,13 +9,6 @@ module Request.Request
   )
 where
 
-import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
-                                                , pure
-                                                )
-
-import           Types.Models.RequestDef
-
 import           Brick                          ( EventM )
 import           Control.Error
 import           Control.Lens
@@ -34,11 +27,16 @@ import           Data.Text.Encoding             ( decodeUtf8
                                                 )
 import           Data.Time                      ( getCurrentTime )
 import           Data.Time.Clock                ( UTCTime )
+import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
 import qualified Network.HTTP.Req              as Req
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
+                                                )
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Classes.HasId            ( model )
+import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )

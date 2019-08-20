@@ -5,28 +5,19 @@
 
 module UI.Projects.Details where
 
-import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
-                                                , pure
-                                                )
-
-import           Brick                          ( EventM )
-import           Brick.Widgets.List             ( handleListEvent
-                                                , list
-                                                )
+import           Brick.Widgets.List             ( list )
 import           Control.Lens
 import           Control.Monad.Indexed          ( (>>>=) )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
-                                                , imodify
                                                 , iput
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import qualified Data.HashMap.Strict           as Map
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
-import           Graphics.Vty                   ( Event(EvKey)
-                                                , Key
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
                                                 )
 import           Types.AppState
 import           Types.Brick.Name
@@ -52,11 +43,3 @@ showProjectDetails c = iget >>>= \s ->
       reqList = list RequestDefList listItems 1
       newState :: AppState 'ProjectDetailsTag = s & screen .~ ProjectDetailsScreen c reqList
   in  iput newState
-
-updateProjectDetailsList
-  :: Key -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) (AppState 'ProjectDetailsTag) ()
-updateProjectDetailsList key = do
-  s <- iget
-  let ProjectDetailsScreen c l = s ^. screen
-  updatedList <- ilift $ handleListEvent (EvKey key []) l
-  imodify $ screen .~ ProjectDetailsScreen c updatedList

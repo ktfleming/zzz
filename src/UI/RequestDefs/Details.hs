@@ -5,29 +5,21 @@
 
 module UI.RequestDefs.Details where
 
-import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
-                                                , pure
-                                                )
-
-import           Brick                          ( EventM
-                                                , Widget
+import           Brick                          ( Widget
                                                 , txt
                                                 )
 import           Brick.Focus                    ( focusRing )
-import           Brick.Widgets.List             ( handleListEvent
-                                                , list
-                                                )
+import           Brick.Widgets.List             ( list )
 import           Control.Lens
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import           Data.Sequence                  ( Seq )
 import           Data.String                    ( fromString )
-import           Graphics.Vty                   ( Event(EvKey)
-                                                , Key
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
                                                 )
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
@@ -40,19 +32,6 @@ import           UI.List                        ( ZZZList )
 
 makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
-
-updateResponseList
-  :: Key
-  -> IxStateT
-       (EventM Name)
-       (AppState 'RequestDefDetailsTag)
-       (AppState 'RequestDefDetailsTag)
-       ()
-updateResponseList key = do
-  s <- iget
-  let RequestDefDetailsScreen c l ring = s ^. screen
-  updatedList <- ilift $ handleListEvent (EvKey key []) l
-  imodify $ screen .~ RequestDefDetailsScreen c updatedList ring
 
 showRequestDefDetails
   :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefDetailsTag) ()

@@ -5,26 +5,27 @@
 
 module UI.RequestDefs.Edit where
 
-import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
-                                                , pure
-                                                )
-
-import           Brick                          ( BrickEvent
-                                                , EventM
-                                                , txt
+import           Brick                          ( txt
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( editField
                                                 , editTextField
                                                 , formState
-                                                , handleFormEvent
                                                 , newForm
                                                 , radioField
                                                 , (@@=)
                                                 )
 import           Control.Lens
+import           Control.Monad.Indexed.State    ( IxStateT
+                                                , iget
+                                                , imodify
+                                                )
 import           Data.Coerce                    ( coerce )
+import           Data.String                    ( fromString )
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(..)
+                                                , pure
+                                                )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
@@ -38,14 +39,6 @@ import           Types.Models.Url               ( Url(..)
 import           UI.Form                        ( ZZZForm
                                                 , renderText
                                                 )
-
-import           Control.Monad.Indexed.State    ( IxStateT
-                                                , iget
-                                                , imodify
-                                                )
-import           Control.Monad.Indexed.Trans    ( ilift )
-import           Data.String                    ( fromString )
-import           Types.Brick.CustomEvent        ( CustomEvent )
 
 finishEditingRequestDef
   :: Monad m => IxStateT m (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
@@ -87,12 +80,3 @@ showEditRequestDefScreen
   :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefEditTag) ()
 showEditRequestDefScreen c =
   imodify $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)
-
-updateEditRequestDefForm
-  :: BrickEvent Name CustomEvent
-  -> IxStateT (EventM Name) (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
-updateEditRequestDefForm ev = do
-  s <- iget
-  let RequestDefEditScreen c form = s ^. screen
-  updatedForm <- ilift $ handleFormEvent ev form
-  imodify $ screen .~ RequestDefEditScreen c updatedForm

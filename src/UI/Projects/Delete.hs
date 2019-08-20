@@ -2,15 +2,14 @@
 
 module UI.Projects.Delete where
 
-import           Types.AppState
-import           Types.Models.Project
-import           Types.Models.RequestDef        ( name )
-
 import           Control.Lens
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , imodify
                                                 )
 import qualified Data.Text                     as T
+import           Types.AppState
+import           Types.Models.Project
+import           Types.Models.RequestDef        ( name )
 
 deleteProject :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
 deleteProject (ProjectContext pid) = imodify $ projects . at pid .~ Nothing
