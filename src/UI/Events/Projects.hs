@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Events.Projects where
+import           Brick.BChan                    ( BChan )
 import           Brick.Types                    ( EventM )
 import           Brick.Widgets.List             ( listSelectedElement )
 import           Control.Lens
@@ -18,6 +19,7 @@ import           Prelude                 hiding ( Monad(..)
                                                 , pure
                                                 )
 import           Types.AppState
+import           Types.Brick.CustomEvent        ( CustomEvent )
 import           Types.Brick.Name               ( Name )
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectListItem(..) )
@@ -36,50 +38,67 @@ import           UI.Projects.Edit               ( finishEditingProject
 import           UI.Projects.List               ( showProjectListScreen )
 import           UI.RequestDefs.Add             ( showAddRequestDefScreen )
 import           UI.RequestDefs.Details         ( showRequestDefDetails )
-import           Utils.IxState                  ( runOnScreen
+import           Utils.IxState                  ( extractScreen
+                                                , save
                                                 , submerge
+                                                , wrapScreen
                                                 , (>>>)
                                                 )
 
 -- Since each branch of the case expression can lead to a different phantom type
 -- parameterizing the state, we can only say that the ultimate output type will be
 -- `AnyAppState` (as expected by `handleEventInState`, which calls all of these functions),
--- and we have to apply `submerge` or `runOnScreen` on every branch to ensure the output
--- type is `AnyAppState`.
-handleEventProjectAdd :: Key -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
-handleEventProjectAdd key = case key of
-  KEnter -> submerge finishAddingProject
-  KEsc   -> submerge showProjectListScreen
-  _      -> runOnScreen $ updateBrickForm key
+-- and we have to apply `submerge` on every branch to ensure the output type is `AnyAppState`.
+handleEventProjectAdd
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
+handleEventProjectAdd key mods chan = iget >>>= \s -> case (key, mods) of
+  (KChar 's', [MCtrl]) -> finishAddingProject >>> save chan >>> showProjectListScreen >>> submerge
+  (KEsc     , []     ) -> showProjectListScreen >>> submerge
+  _                    -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
-handleEventProjectEdit :: Key -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
-handleEventProjectEdit key = iget >>>= \s ->
+handleEventProjectEdit
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
+handleEventProjectEdit key mods chan = iget >>>= \s ->
   let ProjectEditScreen c _ = s ^. screen
-  in  case key of
-        KEnter -> finishEditingProject >>> submerge (showProjectDetails c)
-        KEsc   -> submerge $ showProjectDetails c
-        _      -> runOnScreen $ updateBrickForm key
+  in  case (key, mods) of
+        (KEnter, []) -> finishEditingProject >>> save chan >>> showProjectDetails c >>> submerge
+        (KEsc  , []) -> showProjectDetails c >>> submerge
+        _            -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
 handleEventProjectDetails
-  :: Key -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) AnyAppState ()
-handleEventProjectDetails key = iget >>>= \s ->
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) AnyAppState ()
+handleEventProjectDetails key mods _ = iget >>>= \s ->
   let ProjectDetailsScreen c list = s ^. screen
-  in  case key of
-        KEnter -> case listSelectedElement list of
-          Just (_, RequestDefListItem reqContext _) -> submerge $ showRequestDefDetails reqContext
-          Nothing -> submerge $ ireturn ()
-        KChar 'e' -> submerge $ showEditProjectScreen c
-        KChar 'a' -> submerge $ showAddRequestDefScreen c
-        KChar 'd' -> submerge $ imodify $ modal ?~ DeleteProjectModal c
-        KLeft     -> submerge showProjectListScreen
-        _         -> runOnScreen $ updateBrickList key
+  in  case (key, mods) of
+        (KEnter, []) -> case listSelectedElement list of
+          Just (_, RequestDefListItem reqContext _) ->
+            showRequestDefDetails reqContext >>> submerge
+          Nothing -> ireturn () >>> submerge
+        (KChar 'e', []) -> showEditProjectScreen c >>> submerge
+        (KChar 'a', []) -> showAddRequestDefScreen c >>> submerge
+        (KChar 'd', []) -> imodify (modal ?~ DeleteProjectModal c) >>> submerge
+        (KLeft    , []) -> showProjectListScreen >>> submerge
+        _               -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
 
-handleEventProjectList :: Key -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
-handleEventProjectList key = iget >>>= \s ->
+handleEventProjectList
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
+handleEventProjectList key mods _ = iget >>>= \s ->
   let ProjectListScreen list = s ^. screen
-  in  case key of
-        KEnter -> case listSelectedElement list of
-          Just (_, ProjectListItem context _) -> submerge $ showProjectDetails context
-          Nothing                             -> submerge $ ireturn ()
-        KChar 'a' -> submerge showProjectAddScreen
-        _         -> runOnScreen $ updateBrickList key
+  in  case (key, mods) of
+        (KEnter, []) -> case listSelectedElement list of
+          Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
+          Nothing                             -> ireturn () >>> submerge
+        (KChar 'a', []) -> showProjectAddScreen >>> submerge
+        _               -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge

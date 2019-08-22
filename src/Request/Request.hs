@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE RebindableSyntax    #-}
@@ -25,6 +26,7 @@ import qualified Data.Text                     as T
 import           Data.Text.Encoding             ( decodeUtf8
                                                 , encodeUtf8
                                                 )
+
 import           Data.Time                      ( getCurrentTime )
 import           Data.Time.Clock                ( UTCTime )
 import           Language.Haskell.DoNotation
@@ -36,14 +38,25 @@ import           Prelude                 hiding ( Monad(..)
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Classes.HasId            ( model )
+import           Types.Classes.HasName
+import           Types.Models.Header
 import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 
 
+-- GADT to hide the scheme
+data AnyReq where
+  AnyReq ::Req.Url scheme -> Req.Option scheme -> AnyReq
+
+-- This is what is returned from Req.parseUrl
 type EitherReq
   = Either (Req.Url 'Req.Http, Req.Option 'Req.Http) (Req.Url 'Req.Https, Req.Option 'Req.Https)
+
+eitherReqToAnyReq :: EitherReq -> AnyReq
+eitherReqToAnyReq (Left  (u, opts)) = AnyReq u opts
+eitherReqToAnyReq (Right (u, opts)) = AnyReq u opts
 
 -- This is the function called from the event handler; it uses the same monad stack that all
 -- the event handlers use/require. But our main function that sends the request has an extra
@@ -79,8 +92,9 @@ sendRequest' c@(RequestDefContext _ rid) = do
       u :: T.Text     = r ^. url . coerced
   lift $ logMessage $ "Preparing to send request to URL " <> u :: Step ()
   validatedUrl <- failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u)) :: Step EitherReq
-  bsResponse   <-
-    hoist liftIO $ handleExceptT (\(e :: Req.HttpException) -> show e) (runRequest validatedUrl) :: Step
+  let anyReq = eitherReqToAnyReq validatedUrl
+  bsResponse <-
+    hoist liftIO $ handleExceptT (\(e :: Req.HttpException) -> show e) (runRequest anyReq r) :: Step
       Req.BsResponse
   now <- liftIO getCurrentTime :: Step UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
@@ -89,7 +103,13 @@ sendRequest' c@(RequestDefContext _ rid) = do
   lift $ imodify $ responses . at rid . non S.empty %~ (response <|) :: Step ()
 
 -- Helper function called from sendRequest' that performs the actual request
-runRequest :: EitherReq -> IO Req.BsResponse
-runRequest validatedUrl = Req.runReq Req.defaultHttpConfig $ case validatedUrl of
-  Left  (l, opts) -> Req.req Req.GET l Req.NoReqBody Req.bsResponse opts
-  Right (r, opts) -> Req.req Req.GET r Req.NoReqBody Req.bsResponse opts
+runRequest :: AnyReq -> RequestDef -> IO Req.BsResponse
+runRequest (AnyReq u opts) r =
+  let headerToOpt :: Header -> Req.Option scheme
+      headerToOpt h =
+          Req.header (encodeUtf8 $ h ^. name . coerced) (encodeUtf8 $ h ^. value . coerced)
+
+      headerOpts :: Req.Option scheme
+      headerOpts = foldr (<>) mempty (headerToOpt <$> S.filter isHeaderEnabled (r ^. headers))
+  in  Req.runReq Req.defaultHttpConfig
+        $ Req.req Req.GET u Req.NoReqBody Req.bsResponse (opts <> headerOpts)

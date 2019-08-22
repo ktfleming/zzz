@@ -1,9 +1,11 @@
 {-# LANGUAGE DataKinds        #-}
-{-# LANGUAGE KindSignatures   #-}
 {-# LANGUAGE RebindableSyntax #-}
 
 module Utils.IxState where
 
+import           Brick.BChan                    ( BChan
+                                                , writeBChan
+                                                )
 import           Control.Lens
 import           Control.Monad.Indexed          ( (>>>=) )
 import           Control.Monad.Indexed.State    ( IxStateT
@@ -11,11 +13,16 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , imodify
                                                 , iput
                                                 )
+import           Control.Monad.Indexed.Trans    ( ilift )
+import           Control.Monad.IO.Class         ( MonadIO
+                                                , liftIO
+                                                )
 import           Language.Haskell.DoNotation
 import           Prelude                 hiding ( Monad(..)
                                                 , pure
                                                 )
 import           Types.AppState
+import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Models.Screen
 
 -- Analogous to >> for regular monads
@@ -23,8 +30,17 @@ import           Types.Models.Screen
 (>>>) f g = f >>>= const g
 
 -- "Submerges" the tagged output state of an IxStateT into an AnyAppState
-submerge :: Monad m => IxStateT m i (AppState (o :: ScreenTag)) () -> IxStateT m i AnyAppState ()
-submerge ixs = ixs >>> imodify AnyAppState
+submerge :: Monad m => IxStateT m (AppState i) AnyAppState ()
+submerge = imodify AnyAppState
+
+-- Extract a tagged screen from a tagged AppState
+extractScreen :: Monad m => IxStateT m (AppState i) (Screen i) ()
+extractScreen = iget >>>= \s -> iput $ s ^. screen
+
+-- Given a tagged AppState, update its screen to the tagged screen currently
+-- in the state, and put the updated AppState in the state
+wrapScreen :: Monad m => AppState i -> IxStateT m (Screen i) (AppState i) ()
+wrapScreen s = iget >>>= \scr -> iput $ s & screen .~ scr
 
 -- Given a tagged AppState and a function in IxStateT which has
 --   input state: that tagged AppState (with the matching tag)
@@ -32,24 +48,10 @@ submerge ixs = ixs >>> imodify AnyAppState
 -- , run the function on the input state and return the appropriate IxStateT that can be used in `handleEventInState`
 (|$|)
   :: Monad m
-  => IxStateT m (AppState (i :: ScreenTag)) AnyAppState ()
-  -> AppState (i :: ScreenTag)
+  => IxStateT m (AppState i) AnyAppState ()
+  -> AppState i
   -> IxStateT m AnyAppState AnyAppState ()
 (|$|) ixs i = iput i >>> ixs
 
-
--- Given a Screen-level IxStateT function, extract the appropriately-typed Screen from the current
--- state, apply the function, then wrap the resulting screen into AnyAppState.
--- n.b. This is intended to be called from an IxStateT context where the input is a typed AppState and
--- the output is AnyAppState.
-runOnScreen
-  :: Monad m
-  => IxStateT m (Screen i) (Screen (o :: ScreenTag)) ()
-  -> IxStateT m (AppState i) AnyAppState ()
-
-runOnScreen t = do
-  s             <- iget               -- Extract the tagged AppState
-  _             <- iput $ s ^. screen -- replace the state with the tagged Screen
-  _             <- t                  -- Apply the function that uses/modifies that tagged Screen
-  updatedScreen <- iget   -- Extract the modified tagged Screen
-  iput $ AnyAppState (s & screen .~ updatedScreen) -- Wrap into AnyAppState and place in the state
+save :: MonadIO m => BChan CustomEvent -> IxStateT m i i ()
+save chan = (ilift . liftIO) (writeBChan chan Save)

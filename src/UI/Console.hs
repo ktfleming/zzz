@@ -29,10 +29,13 @@ import           Prelude                 hiding ( Monad(..)
                                                 )
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
-import           Utils.IxState                  ( submerge )
+import           Utils.IxState                  ( submerge
+                                                , (>>>)
+                                                )
 
 console :: Seq Message -> Widget Name
 console ms = txt $ T.intercalate "\n" $ coerce (toList ms)
 
 toggleConsole :: Monad m => IxStateT m AnyAppState AnyAppState ()
-toggleConsole = iget >>>= \(AnyAppState s) -> submerge $ iput $ s & consoleVisible . coerced %~ not
+toggleConsole =
+  iget >>>= \(AnyAppState s) -> iput (s & consoleVisible . coerced %~ not) >>> submerge

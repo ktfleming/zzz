@@ -54,9 +54,9 @@ renderModal s m = case m of
 -- Note: right now modals only support one action (e.g. deleting a resource).
 handleConfirm :: Monad m => Modal -> IxStateT m AnyAppState AnyAppState ()
 handleConfirm m = iget >>>= \(AnyAppState s) -> case m of
-  DeleteProjectModal c -> iput s >>> deleteProject c >>> submerge showProjectListScreen
+  DeleteProjectModal c -> iput s >>> deleteProject c >>> showProjectListScreen >>> submerge
   DeleteRequestDefModal c@(RequestDefContext pid _) ->
-    iput s >>> deleteRequestDef c >>> submerge (showProjectDetails (ProjectContext pid))
+    iput s >>> deleteRequestDef c >>> showProjectDetails (ProjectContext pid) >>> submerge
 
 dismissModal :: Monad m => IxStateT m AnyAppState AnyAppState ()
-dismissModal = iget >>>= \(AnyAppState s) -> submerge $ iput $ s & modal .~ Nothing
+dismissModal = iget >>>= \(AnyAppState s) -> iput (s & modal .~ Nothing) >>> submerge

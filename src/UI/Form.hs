@@ -2,8 +2,11 @@
 
 module UI.Form where
 
-import           Brick                          ( Widget
+import           Brick                          ( Padding(Pad)
+                                                , Widget
+                                                , padBottom
                                                 , txt
+                                                , vBox
                                                 )
 import           Brick.Forms                    ( Form )
 import qualified Data.Text                     as T
@@ -16,3 +19,8 @@ type ZZZForm a = Form a CustomEvent Name
 -- taken from Brick's code
 renderText :: [T.Text] -> Widget Name
 renderText = txt . T.intercalate "\n"
+
+-- Custom concat function for rendering forms so that each field
+-- has a blank line after it
+spacedConcat :: [Widget Name] -> Widget Name
+spacedConcat ws = vBox $ padBottom (Pad 1) <$> ws

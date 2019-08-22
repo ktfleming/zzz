@@ -8,8 +8,8 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 )
 import qualified Data.Text                     as T
 import           Types.AppState
+import           Types.Classes.HasName
 import           Types.Models.Project
-import           Types.Models.RequestDef        ( name )
 
 deleteProject :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
 deleteProject (ProjectContext pid) = imodify $ projects . at pid .~ Nothing

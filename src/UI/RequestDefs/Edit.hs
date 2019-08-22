@@ -13,6 +13,7 @@ import           Brick.Forms                    ( editField
                                                 , formState
                                                 , newForm
                                                 , radioField
+                                                , setFormConcat
                                                 , (@@=)
                                                 )
 import           Control.Lens
@@ -29,8 +30,9 @@ import           Prelude                 hiding ( Monad(..)
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
+import           Types.Classes.HasName
 import           Types.Methods                  ( allMethodsRadio )
-import           Types.Models.Project
+import           Types.Models.Project           ( requestDefs )
 import           Types.Models.RequestDef
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..)
@@ -38,7 +40,9 @@ import           Types.Models.Url               ( Url(..)
                                                 )
 import           UI.Form                        ( ZZZForm
                                                 , renderText
+                                                , spacedConcat
                                                 )
+import           UI.Forms.Headers               ( makeHeadersForm )
 
 finishEditingRequestDef
   :: Monad m => IxStateT m (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
@@ -51,20 +55,29 @@ finishEditingRequestDef = do
 
 updateRequestDef :: RequestDef -> RequestDefFormState -> RequestDef
 updateRequestDef base form =
-  base & name .~ (form ^. name) & url .~ (form ^. url) & method .~ (form ^. method)
+  base
+    &  name
+    .~ (form ^. name)
+    &  url
+    .~ (form ^. url)
+    &  method
+    .~ (form ^. method)
+    &  headers
+    .~ (form ^. headers)
 
 makeEditRequestDefForm :: AppState a -> RequestDefContext -> ZZZForm RequestDefFormState
 makeEditRequestDefForm s c =
   let
     r         = model s c
-    editState = RequestDefFormState { requestDefFormStateName   = r ^. name
-                                    , requestDefFormStateUrl    = r ^. url
-                                    , requestDefFormStateMethod = r ^. method
+    editState = RequestDefFormState { requestDefFormStateName    = r ^. name
+                                    , requestDefFormStateUrl     = r ^. url
+                                    , requestDefFormStateMethod  = r ^. method
+                                    , requestDefFormStateHeaders = r ^. headers
                                     }
   in
-    newForm
-      [ (txt "Name:   " <+>) @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
-      , (txt "URL:    " <+>)
+    setFormConcat spacedConcat $ newForm
+      [ (txt "Name:     " <+>) @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
+      , (txt "URL:      " <+>)
         @@= editField (url . coerced)
                       RequestDefFormUrlField
                       (Just 1)
@@ -72,7 +85,8 @@ makeEditRequestDefForm s c =
                       validateUrl
                       renderText
                       id
-      , (txt "Method: " <+>) @@= radioField method allMethodsRadio
+      , (txt "Method:   " <+>) @@= radioField method allMethodsRadio
+      , (txt "Headers:  " <+>) @@= makeHeadersForm
       ]
       editState
 

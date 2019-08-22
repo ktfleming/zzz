@@ -8,6 +8,7 @@ import           Brick                          ( EventM
                                                 , vScrollBy
                                                 , viewportScroll
                                                 )
+import           Brick.BChan                    ( BChan )
 import           Brick.Focus                    ( focusGetCurrent
                                                 , focusNext
                                                 , focusPrev
@@ -24,6 +25,7 @@ import           Control.Monad.Indexed.Trans    ( ilift )
 import           Graphics.Vty.Input.Events
 import           Request.Request                ( sendRequest )
 import           Types.AppState
+import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Brick.Name
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectContext(..) )
@@ -38,47 +40,63 @@ import           UI.RequestDefs.Details         ( showRequestDefDetails )
 import           UI.RequestDefs.Edit            ( finishEditingRequestDef
                                                 , showEditRequestDefScreen
                                                 )
-import           Utils.IxState                  ( runOnScreen
+import           Utils.IxState                  ( extractScreen
+                                                , save
                                                 , submerge
+                                                , wrapScreen
                                                 , (>>>)
                                                 )
 
-handleEventRequestAdd :: Key -> IxStateT (EventM Name) (AppState 'RequestDefAddTag) AnyAppState ()
-handleEventRequestAdd key = iget >>>= \s ->
+handleEventRequestAdd
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'RequestDefAddTag) AnyAppState ()
+handleEventRequestAdd key mods chan = iget >>>= \s ->
   let RequestDefAddScreen c _ = s ^. screen
-  in  case key of
-        KEnter -> submerge finishAddingRequestDef
-        KEsc   -> submerge $ showProjectDetails c
-        _      -> runOnScreen $ updateBrickForm key
+  in  case (key, mods) of
+        (KChar 's', [MCtrl]) ->
+          finishAddingRequestDef >>> save chan >>> showProjectDetails c >>> submerge
+        (KEsc, []) -> showProjectDetails c >>> submerge
+        _          -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
 handleEventRequestEdit
-  :: Key -> IxStateT (EventM Name) (AppState 'RequestDefEditTag) AnyAppState ()
-handleEventRequestEdit key = iget >>>= \s ->
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'RequestDefEditTag) AnyAppState ()
+handleEventRequestEdit key mods chan = iget >>>= \s ->
   let RequestDefEditScreen c _ = s ^. screen
-  in  case key of
-        KEnter -> finishEditingRequestDef >>> submerge (showRequestDefDetails c)
-        KEsc   -> submerge $ showRequestDefDetails c
-        _      -> runOnScreen $ updateBrickForm key
+  in  case (key, mods) of
+        (KChar 's', [MCtrl]) ->
+          finishEditingRequestDef >>> save chan >>> showRequestDefDetails c >>> submerge
+        (KEsc, []) -> showRequestDefDetails c >>> submerge
+        _          -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
 handleEventRequestDetails
-  :: Key -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
-handleEventRequestDetails key = iget >>>= \s ->
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
+handleEventRequestDetails key mods chan = iget >>>= \s ->
   let RequestDefDetailsScreen c list ring = s ^. screen
   in
-    case key of
-      KLeft ->
-        let (RequestDefContext pid _) = c in submerge $ showProjectDetails (ProjectContext pid)
-      KChar 'e'  -> submerge $ showEditRequestDefScreen c
-      KChar 'd'  -> submerge $ imodify $ modal ?~ DeleteRequestDefModal c
-      KEnter     -> submerge $ sendRequest c
-      KChar '\t' -> submerge $ imodify $ screen .~ RequestDefDetailsScreen c list (focusNext ring) -- TODO: better way of doing this, without setting the whole screen?
-      KBackTab   -> submerge $ imodify $ screen .~ RequestDefDetailsScreen c list (focusPrev ring)
-      _          -> case focusGetCurrent ring of
-        Just ResponseList -> runOnScreen $ updateBrickList key
+    case (key, mods) of
+      (KLeft, []) ->
+        let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
+      (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
+      (KChar 'd', []) -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
+      (KEnter   , []) -> sendRequest c >>> save chan >>> submerge
+      (KChar '\t', []) ->
+        imodify (screen .~ RequestDefDetailsScreen c list (focusNext ring)) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm
+      (KBackTab, []) ->
+        imodify (screen .~ RequestDefDetailsScreen c list (focusPrev ring)) >>> submerge
+      _ -> case focusGetCurrent ring of
+        Just ResponseList -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
         Just ResponseBody ->
           let vp = viewportScroll ResponseBodyViewport
           in  case key of
-                KUp   -> submerge $ ilift $ vScrollBy vp (-1)
-                KDown -> submerge $ ilift $ vScrollBy vp 1
-                _     -> submerge $ ireturn ()
-        _ -> submerge $ ireturn ()
+                KUp   -> ilift (vScrollBy vp (-1)) >>> submerge
+                KDown -> ilift (vScrollBy vp 1) >>> submerge
+                _     -> ireturn () >>> submerge
+        _ -> ireturn () >>> submerge

@@ -12,6 +12,7 @@ import           Brick                          ( txt
 import           Brick.Forms                    ( editTextField
                                                 , formState
                                                 , newForm
+                                                , setFormConcat
                                                 , (@@=)
                                                 )
 import           Control.Lens
@@ -26,11 +27,13 @@ import qualified Data.HashMap.Strict           as Map
 import           Data.UUID.V4                   ( nextRandom )
 import           Types.AppState
 import           Types.Brick.Name
+import           Types.Classes.HasName
 import           Types.Models.Id                ( ProjectId(..) )
 import           Types.Models.Project
-import           Types.Models.RequestDef        ( name )
 import           Types.Models.Screen
-import           UI.Form                        ( ZZZForm )
+import           UI.Form                        ( ZZZForm
+                                                , spacedConcat
+                                                )
 
 finishAddingProject
   :: MonadIO m => IxStateT m (AppState 'ProjectAddTag) (AppState 'ProjectAddTag) ()
@@ -42,7 +45,7 @@ finishAddingProject = do
   imodify $ projects . at pid ?~ project
 
 makeProjectAddForm :: ZZZForm ProjectFormState
-makeProjectAddForm = newForm
+makeProjectAddForm = setFormConcat spacedConcat $ newForm
   [(txt "Project Name: " <+>) @@= editTextField (name . coerced) ProjectFormNameField (Just 1)]
   ProjectFormState { projectFormStateName = ProjectName "New Project" }
 

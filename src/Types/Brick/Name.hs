@@ -22,4 +22,5 @@ data Name =
           | PostRadioField
           | PutRadioField
           | PatchRadioField
+          | HeadersField
           deriving (Eq, Ord, Show)

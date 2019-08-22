@@ -19,7 +19,7 @@ import           Prelude                 hiding ( Monad(..)
 import           Types.AppState
 
 logMessage :: MonadIO m => T.Text -> IxStateT m (AppState a) (AppState a) ()
-logMessage m = do
+logMessage msg = do
   currentTime <- liftIO getCurrentTime
-  let fullMessage = Message $ T.pack $ formatISO8601 currentTime <> ": " <> T.unpack m
+  let fullMessage = Message $ T.pack $ formatISO8601 currentTime <> ": " <> T.unpack msg
   imodify $ messages %~ (|> fullMessage)

@@ -11,6 +11,7 @@ import           Brick                          ( txt
 import           Brick.Forms                    ( editTextField
                                                 , formState
                                                 , newForm
+                                                , setFormConcat
                                                 , (@@=)
                                                 )
 import           Control.Lens
@@ -26,10 +27,12 @@ import           Prelude                 hiding ( Monad(..)
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.HasId            ( model )
+import           Types.Classes.HasName
 import           Types.Models.Project
-import           Types.Models.RequestDef        ( name )
 import           Types.Models.Screen
-import           UI.Form                        ( ZZZForm )
+import           UI.Form                        ( ZZZForm
+                                                , spacedConcat
+                                                )
 
 finishEditingProject
   :: Monad m => IxStateT m (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
@@ -47,7 +50,7 @@ makeEditProjectForm :: AppState a -> ProjectContext -> ZZZForm ProjectFormState
 makeEditProjectForm s c =
   let p         = model s c
       editState = ProjectFormState { projectFormStateName = p ^. name }
-  in  newForm
+  in  setFormConcat spacedConcat $ newForm
         [ (txt "Project Name: " <+>)
             @@= editTextField (name . coerced) ProjectFormNameField (Just 1)
         ]

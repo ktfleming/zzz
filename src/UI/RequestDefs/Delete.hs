@@ -8,6 +8,7 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 )
 import qualified Data.Text                     as T
 import           Types.AppState
+import           Types.Classes.HasName
 import           Types.Models.Project           ( requestDefs )
 import           Types.Models.RequestDef
 

@@ -1,3 +1,4 @@
+{-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE MultiParamTypeClasses      #-}
@@ -20,9 +21,12 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.=)
                                                 )
 import           Data.Coerce                    ( coerce )
+import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable
+import           Types.Classes.HasName
 import           Types.Methods                  ( Method )
+import           Types.Models.Header
 import           Types.Models.Id                ( ProjectId
                                                 , RequestDefId
                                                 )
@@ -34,12 +38,14 @@ data RequestDef = RequestDef {
     requestDefName :: RequestDefName
   , requestDefUrl :: Url
   , requestDefMethod :: Method
+  , requestDefHeaders :: Seq Header
   } deriving (Show)
 
 data RequestDefFormState = RequestDefFormState {
     requestDefFormStateName :: RequestDefName
   , requestDefFormStateUrl :: Url
   , requestDefFormStateMethod :: Method
+  , requestDefFormStateHeaders :: Seq Header
   } deriving (Show)
 
 data RequestDefContext = RequestDefContext ProjectId RequestDefId deriving (Show)
@@ -60,6 +66,7 @@ instance ToJSON RequestDef where
     [ "name" .= (r ^. name . coerced :: T.Text)
     , "url" .= (r ^. url . coerced :: T.Text)
     , "method" .= (r ^. method)
+    , "headers" .= (r ^. headers)
     ]
 
 instance FromJSON RequestDef where
@@ -67,4 +74,9 @@ instance FromJSON RequestDef where
     n <- o .: "name"
     u <- o .: "url"
     m <- o .: "method"
-    return RequestDef { requestDefName = n, requestDefUrl = u, requestDefMethod = m }
+    h <- o .: "headers"
+    return RequestDef { requestDefName    = n
+                      , requestDefUrl     = u
+                      , requestDefMethod  = m
+                      , requestDefHeaders = h
+                      }

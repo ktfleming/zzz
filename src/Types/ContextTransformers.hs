@@ -1,8 +1,9 @@
 module Types.ContextTransformers where
 
 import           Control.Lens
+import           Types.Classes.HasName
 import           Types.Models.Id                ( RequestDefId )
-import           Types.Models.Project
+import           Types.Models.Project           ( ProjectContext(..) )
 import           Types.Models.RequestDef
 
 requestDefContext :: ProjectContext -> RequestDefId -> RequestDefContext
