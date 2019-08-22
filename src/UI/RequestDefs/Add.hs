@@ -31,7 +31,7 @@ import           Prelude                 hiding ( Monad(..)
                                                 )
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Methods
 import           Types.Models.Id                ( RequestDefId(..) )
 import           Types.Models.Project           ( ProjectContext(..)

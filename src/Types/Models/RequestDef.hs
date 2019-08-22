@@ -24,7 +24,7 @@ import           Data.Coerce                    ( coerce )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Methods                  ( Method )
 import           Types.Models.Header
 import           Types.Models.Id                ( ProjectId

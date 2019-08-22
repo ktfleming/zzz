@@ -14,7 +14,7 @@ import qualified Data.HashMap.Strict           as Map
 import qualified Data.Sequence                 as S
 import           Types.AppState
 import           Types.Brick.Name
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Models.Id                ( ProjectId )
 import           Types.Models.Project
 import           Types.Models.Screen

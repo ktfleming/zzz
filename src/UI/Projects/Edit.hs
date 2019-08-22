@@ -26,8 +26,8 @@ import           Prelude                 hiding ( Monad(..)
                                                 )
 import           Types.AppState
 import           Types.Brick.Name
+import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
-import           Types.Classes.HasName
 import           Types.Models.Project
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm

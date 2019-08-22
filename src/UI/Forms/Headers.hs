@@ -24,7 +24,7 @@ import           Data.Sequence                  ( Seq )
 import           Data.Text                     as T
 import           Types.Brick.CustomEvent        ( CustomEvent )
 import           Types.Brick.Name               ( Name(..) )
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Models.Header
 import           Types.Models.RequestDef
 import           UI.Attr                        ( disabledAttr

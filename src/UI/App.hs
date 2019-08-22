@@ -14,8 +14,7 @@ import           Brick.BChan                    ( BChan )
 import           Brick.Forms                    ( invalidFormInputAttr )
 import           Brick.Types                    ( Padding(Max) )
 import           Brick.Util
-import           Brick.Widgets.Border           ( hBorder
-                                                )
+import           Brick.Widgets.Border           ( hBorder )
 import           Brick.Widgets.List             ( listSelectedFocusedAttr )
 import           Control.Lens
 import           Data.Maybe                     ( maybeToList )
@@ -46,8 +45,8 @@ drawUI wrapper@(AnyAppState s) =
       everything   = if s ^. helpPanelVisible . coerced
         then titleAndMain <=> hBorder <=> helpPanel (s ^. screen)
         else titleAndMain
-      modalWidget        = maybeToList $ renderModal s <$> (s ^. modal)
-      maybeConsole       = console (s ^. messages)
+      modalWidget  = maybeToList $ renderModal s <$> (s ^. modal)
+      maybeConsole = console (s ^. messages)
   in  if s ^. consoleVisible . coerced then [maybeConsole] else modalWidget ++ [everything]
 startEvent :: AnyAppState -> EventM Name AnyAppState
 startEvent = return
@@ -60,4 +59,9 @@ myMap = attrMap
   , (headerNameAttr         , Brick.Util.fg V.blue)
   , (headerValueAttr        , Brick.Util.fg V.green)
   , (disabledAttr           , Brick.Util.fg (V.Color240 252))
+  , (jsonKeyAttr            , Brick.Util.fg V.blue)
+  , (jsonStringAttr         , Brick.Util.fg V.green)
+  , (jsonNumberAttr         , Brick.Util.fg V.cyan)
+  , (jsonBoolAttr           , Brick.Util.fg V.magenta)
+  , (jsonNullAttr           , V.white `on` V.black)
   ]

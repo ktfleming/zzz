@@ -27,6 +27,7 @@ import           Prelude                 hiding ( Monad(..)
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Displayable      ( display )
+import           Types.Classes.Fields
 import           Types.Models.Header            ( isHeaderEnabled )
 import           Types.Models.RequestDef
 import           Types.Models.Response
@@ -43,7 +44,7 @@ showRequestDefDetails
 showRequestDefDetails c = do
   s <- iget
   let rs   = lookupResponses s c
-      ring = focusRing [ResponseList, ResponseBody]
+      ring = focusRing [ResponseList, ResponseBodyDetails]
   imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList rs) ring
 
 requestDefDetailsWidget :: AppState a -> RequestDefContext -> Widget Name

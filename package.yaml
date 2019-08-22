@@ -45,6 +45,8 @@ dependencies:
 - indexed-extras == 0.2
 - do-notation
 - text-zipper
+- megaparsec
+- either
 
 library:
   source-dirs:

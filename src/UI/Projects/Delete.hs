@@ -8,7 +8,7 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 )
 import qualified Data.Text                     as T
 import           Types.AppState
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Models.Project
 
 deleteProject :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()

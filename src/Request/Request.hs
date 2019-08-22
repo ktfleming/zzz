@@ -37,8 +37,8 @@ import           Prelude                 hiding ( Monad(..)
                                                 )
 import           Types.AppState
 import           Types.Brick.Name               ( Name )
+import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
-import           Types.Classes.HasName
 import           Types.Models.Header
 import           Types.Models.RequestDef
 import           Types.Models.Response
@@ -98,7 +98,11 @@ sendRequest' c@(RequestDefContext _ rid) = do
       Req.BsResponse
   now <- liftIO getCurrentTime :: Step UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
-      response              = Response { responseBody = responseMsg, responseDateTime = now }
+      response              = Response { responseBody     = ResponseBody responseMsg
+                                       , responseDateTime = now
+                                       , responseUrl      = r ^. url
+                                       , responseHeaders  = S.filter isHeaderEnabled $ r ^. headers
+                                       }
   lift $ logMessage $ "Response: " <> responseMsg :: Step ()
   lift $ imodify $ responses . at rid . non S.empty %~ (response <|) :: Step ()
 

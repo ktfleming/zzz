@@ -26,7 +26,7 @@ import           Types.Brick.Name               ( Name(..) )
 import           Types.Models.Screen
 import           UI.List                        ( renderGenericList )
 import           UI.RequestDefs.Details         ( requestDefDetailsWidget )
-import           UI.Responses.Details           ( responseBodyWidget )
+import           UI.Responses.Details           ( responseDetails )
 
 formHelpText :: Widget Name
 formHelpText =
@@ -51,7 +51,7 @@ mainWidget (AnyAppState s) = case s ^. screen of
   RequestDefDetailsScreen c list ring ->
     let historyListFocused = focusGetCurrent ring == Just ResponseList
         responseWidget     = case listSelectedElement list of
-          Just (_, r) -> responseBodyWidget r (not historyListFocused)
+          Just (_, r) -> responseDetails r (not historyListFocused)
           Nothing     -> txt "No response selected."
     in 
       -- TODO: depending on how wide the screen is, place response widget on right side?

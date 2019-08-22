@@ -11,7 +11,7 @@ import           Data.Text.Encoding             ( encodeUtf8 )
 import           Network.HTTP.Req               ( parseUrl )
 import           Safe                           ( headMay )
 
-newtype Url = Url T.Text deriving (Show, FromJSON, ToJSON)
+newtype Url = Url T.Text deriving (Show, FromJSON, ToJSON, Eq)
 
 -- To be used with Brick's `editField`. Given a list of Texts, validate it and possibly return
 -- a Url newtype. Note that the edit field we provide will only have one line, so we only need

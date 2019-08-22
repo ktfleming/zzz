@@ -1,7 +1,7 @@
 module Types.ContextTransformers where
 
 import           Control.Lens
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Models.Id                ( RequestDefId )
 import           Types.Models.Project           ( ProjectContext(..) )
 import           Types.Models.RequestDef

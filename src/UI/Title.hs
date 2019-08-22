@@ -10,8 +10,8 @@ import           Control.Lens
 import qualified Data.Text                     as T
 import           Types.AppState
 import           Types.Classes.Displayable      ( display )
+import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
-import           Types.Classes.HasName
 import           Types.Models.Project
 import           Types.Models.RequestDef
 import           Types.Models.Screen

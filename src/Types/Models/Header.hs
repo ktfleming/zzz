@@ -20,12 +20,12 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.=)
                                                 )
 import qualified Data.Text                     as T
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 
-newtype HeaderName = HeaderName T.Text deriving (FromJSON, ToJSON, Show)
-newtype HeaderValue = HeaderValue T.Text deriving (FromJSON, ToJSON, Show)
+newtype HeaderName = HeaderName T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype HeaderValue = HeaderValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
 
-data Header = Header { headerName :: HeaderName, headerValue :: HeaderValue } deriving (Show)
+data Header = Header { headerName :: HeaderName, headerValue :: HeaderValue } deriving (Show, Eq)
 makeFields ''Header
 
 -- If a header's name starts with "--", this means that the header should be disabled ("commented

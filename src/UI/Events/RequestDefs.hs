@@ -93,7 +93,7 @@ handleEventRequestDetails key mods chan = iget >>>= \s ->
         imodify (screen .~ RequestDefDetailsScreen c list (focusPrev ring)) >>> submerge
       _ -> case focusGetCurrent ring of
         Just ResponseList -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
-        Just ResponseBody ->
+        Just ResponseBodyDetails ->
           let vp = viewportScroll ResponseBodyViewport
           in  case key of
                 KUp   -> ilift (vScrollBy vp (-1)) >>> submerge

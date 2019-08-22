@@ -26,7 +26,7 @@ import qualified Data.Text                     as T
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
                                                 )
-import           Types.Classes.HasName
+import           Types.Classes.Fields
 import           Types.Models.Id                ( ProjectId
                                                 , RequestDefId
                                                 )

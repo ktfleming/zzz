@@ -12,7 +12,7 @@ data Name =
 
           -- Request details screen
           | ResponseList
-          | ResponseBody
+          | ResponseBodyDetails
           | ResponseBodyViewport
 
           -- Request add/edit screen
