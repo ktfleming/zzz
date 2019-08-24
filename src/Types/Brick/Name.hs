@@ -23,4 +23,5 @@ data Name =
           | PutRadioField
           | PatchRadioField
           | HeadersField
+          | RequestBodyField
           deriving (Eq, Ord, Show)

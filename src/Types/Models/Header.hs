@@ -41,7 +41,4 @@ instance ToJSON Header where
     object ["name" .= (h ^. name . coerced :: T.Text), "value" .= (h ^. value . coerced :: T.Text)]
 
 instance FromJSON Header where
-  parseJSON = withObject "Header" $ \o -> do
-    n <- o .: "name"
-    v <- o .: "value"
-    return Header { headerName = n, headerValue = v }
+  parseJSON = withObject "Header" $ \o -> Header <$> (o .: "name") <*> (o .: "value")

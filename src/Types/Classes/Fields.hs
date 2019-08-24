@@ -13,3 +13,7 @@ class HasUrl s a | s -> a where
 
 class HasHeaders s a | s -> a where
   headers :: Lens' s a
+
+class HasBody s a | s -> a where
+  body :: Lens' s a
+

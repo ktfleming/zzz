@@ -54,6 +54,7 @@ finishAddingRequestDef = do
   let req = RequestDef { requestDefName    = formState form ^. name
                        , requestDefUrl     = formState form ^. url
                        , requestDefMethod  = formState form ^. method
+                       , requestDefBody    = formState form ^. body
                        , requestDefHeaders = formState form ^. headers
                        }
   imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
@@ -67,6 +68,7 @@ makeAddRequestDefForm = setFormConcat spacedConcat $ newForm
   RequestDefFormState { requestDefFormStateName    = RequestDefName "New Request Definition"
                       , requestDefFormStateUrl     = Url "http://example.com"
                       , requestDefFormStateMethod  = Get
+                      , requestDefFormStateBody    = RequestBody ""
                       , requestDefFormStateHeaders = S.empty
                       }
 

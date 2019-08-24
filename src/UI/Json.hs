@@ -1,7 +1,7 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.Json
-  ( colorizedJsonLine
+  ( readOnlyJson
   )
 where
 
@@ -9,18 +9,25 @@ import           Brick                          ( Widget
                                                 , emptyWidget
                                                 , txt
                                                 , txtWrap
+                                                , vBox
                                                 , withAttr
                                                 , (<+>)
                                                 )
 
+import           Data.Either.Combinators        ( rightToMaybe )
+import           Data.Maybe                     ( fromMaybe )
+import qualified Data.Text                     as T
 import           Parsing.JsonParser             ( EndingComma(..)
                                                 , Indentation(..)
                                                 , JsonKey(..)
                                                 , JsonLine(..)
                                                 , JsonValue(..)
+                                                , parseLine
                                                 )
+import           Text.Megaparsec                ( runParser )
 import           Types.Brick.Name               ( Name )
 import           UI.Attr
+import           Utils.Text                     ( tryPretty )
 
 indent :: Indentation -> Widget Name
 indent (Indentation i) = txt i
@@ -51,3 +58,13 @@ colorizedJsonLine (EmptyArray i key comma) =
 colorizedJsonLine (ArrayStart i key  ) = indent i <+> renderKey key <+> txt ": ["
 colorizedJsonLine (JustRCB    i comma) = indent i <+> txt "}" <+> renderComma comma
 colorizedJsonLine (JustRSB    i comma) = indent i <+> txt "]" <+> renderComma comma
+
+-- Tries to 1. parse the text as JSON, 2. pretty-print it, 3. re-parse it with our custom
+-- parser made for colorizing, 4. assign attributes based on the results of (3).
+-- If any of these fail, just fall back to displaying the plain text.
+readOnlyJson :: T.Text -> Widget Name
+readOnlyJson t = fromMaybe (txtWrap t) $ do
+  prettied <- tryPretty t
+  parsed   <-
+    (rightToMaybe . sequence) $ runParser parseLine "JSON response body" <$> T.lines prettied
+  return $ vBox (colorizedJsonLine <$> parsed)

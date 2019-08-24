@@ -38,7 +38,7 @@ focusAwareEditField
   -> ([T.Text] -> Maybe a)
   -> ([T.Text] -> Widget n)
   -> (Widget n -> Widget n)
-  -> ([T.Text] -> Widget n) -- This is the `readOnlyRender` function that I added
+  -> Maybe ([T.Text] -> Widget n) -- This is the `readOnlyRender` function that I added
   -> s
   -> FormFieldState s e n
 focusAwareEditField stLens n limit ini val renderText wrapEditor readOnlyRender initialState =
@@ -50,6 +50,7 @@ focusAwareEditField stLens n limit ini val renderText wrapEditor readOnlyRender 
       initialText = ini $ initialState ^. stLens
       handleEvent (VtyEvent e) ed = handleEditorEvent e ed
       handleEvent _            ed = return ed
+      defaultRender focused e = wrapEditor $ renderEditor renderText focused e
   in  FormFieldState
         { formFieldState        = initVal
         , formFields            = [ FormField
@@ -57,8 +58,10 @@ focusAwareEditField stLens n limit ini val renderText wrapEditor readOnlyRender 
                                       (val . getEditContents)
                                       True
                                       (\focused e -> if focused -- This is the only part that's changed from Brick
-                                        then wrapEditor $ renderEditor renderText focused e
-                                        else readOnlyRender $ getEditContents e
+                                        then defaultRender True e
+                                        else case readOnlyRender of
+                                          Just f  -> f $ getEditContents e
+                                          Nothing -> defaultRender False e
                                       )
                                       handleEvent
                                   ]

@@ -29,6 +29,7 @@ import           Types.Classes.Displayable      ( Displayable
                                                 )
 import           Types.Classes.Fields
 import           Types.Models.Header            ( Header )
+import           Types.Models.RequestDef        ( RequestBody(..) )
 import           Types.Models.Url               ( Url(..) )
 
 -- TODO: should this be ByteString?
@@ -38,6 +39,7 @@ data Response = Response {
     responseBody :: ResponseBody
   , responseDateTime :: UTCTime
   , responseUrl :: Url
+  , responseRequestBody :: RequestBody
   , responseHeaders :: Seq Header
   } deriving (Show, Eq)
 
@@ -49,16 +51,17 @@ instance ToJSON Response where
     , "date_time" .= (r ^. dateTime)
     , "url" .= (r ^. url . coerced :: T.Text)
     , "headers" .= (r ^. headers)
+    , "request_body" .= (r ^. requestBody . coerced :: T.Text)
     ]
 
 instance FromJSON Response where
-  parseJSON = withObject "Response" $ \o -> do
-    b  <- o .: "body"
-    dt <- o .: "date_time"
-    u  <- o .: "url"
-    h  <- o .: "headers"
-    return
-      $ Response { responseBody = b, responseDateTime = dt, responseUrl = u, responseHeaders = h }
+  parseJSON = withObject "Response" $ \o ->
+    Response
+      <$> (o .: "body")
+      <*> (o .: "date_time")
+      <*> (o .: "url")
+      <*> (o .: "request_body")
+      <*> (o .: "headers")
 
 instance Displayable Response where
   display r = T.pack $ formatISO8601 (r ^. dateTime)

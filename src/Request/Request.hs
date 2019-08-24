@@ -27,6 +27,7 @@ import           Data.Text.Encoding             ( decodeUtf8
                                                 , encodeUtf8
                                                 )
 
+import           Data.String.Conversions        ( cs )
 import           Data.Time                      ( getCurrentTime )
 import           Data.Time.Clock                ( UTCTime )
 import           Language.Haskell.DoNotation
@@ -39,6 +40,7 @@ import           Types.AppState
 import           Types.Brick.Name               ( Name )
 import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
+import           Types.Methods                  ( Method(..) )
 import           Types.Models.Header
 import           Types.Models.RequestDef
 import           Types.Models.Response
@@ -98,10 +100,11 @@ sendRequest' c@(RequestDefContext _ rid) = do
       Req.BsResponse
   now <- liftIO getCurrentTime :: Step UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
-      response              = Response { responseBody     = ResponseBody responseMsg
-                                       , responseDateTime = now
-                                       , responseUrl      = r ^. url
-                                       , responseHeaders  = S.filter isHeaderEnabled $ r ^. headers
+      response              = Response { responseBody        = ResponseBody responseMsg
+                                       , responseDateTime    = now
+                                       , responseUrl         = r ^. url
+                                       , responseHeaders = S.filter isHeaderEnabled $ r ^. headers
+                                       , responseRequestBody = r ^. body
                                        }
   lift $ logMessage $ "Response: " <> responseMsg :: Step ()
   lift $ imodify $ responses . at rid . non S.empty %~ (response <|) :: Step ()
@@ -115,5 +118,11 @@ runRequest (AnyReq u opts) r =
 
       headerOpts :: Req.Option scheme
       headerOpts = foldr (<>) mempty (headerToOpt <$> S.filter isHeaderEnabled (r ^. headers))
-  in  Req.runReq Req.defaultHttpConfig
-        $ Req.req Req.GET u Req.NoReqBody Req.bsResponse (opts <> headerOpts)
+
+      allOpts    = opts <> headerOpts
+      reqBody    = Req.ReqBodyBs $ cs (r ^. body . coerced :: T.Text)
+  in  Req.runReq Req.defaultHttpConfig $ case r ^. method of
+        Get   -> Req.req Req.GET u Req.NoReqBody Req.bsResponse allOpts
+        Post  -> Req.req Req.POST u reqBody Req.bsResponse allOpts
+        Patch -> Req.req Req.PATCH u reqBody Req.bsResponse allOpts
+        _     -> error "TODO"

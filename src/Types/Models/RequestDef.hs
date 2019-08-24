@@ -33,11 +33,13 @@ import           Types.Models.Id                ( ProjectId
 import           Types.Models.Url               ( Url(..) )
 
 newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show)
+newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
 
 data RequestDef = RequestDef {
     requestDefName :: RequestDefName
   , requestDefUrl :: Url
   , requestDefMethod :: Method
+  , requestDefBody :: RequestBody
   , requestDefHeaders :: Seq Header
   } deriving (Show)
 
@@ -45,6 +47,7 @@ data RequestDefFormState = RequestDefFormState {
     requestDefFormStateName :: RequestDefName
   , requestDefFormStateUrl :: Url
   , requestDefFormStateMethod :: Method
+  , requestDefFormStateBody :: RequestBody
   , requestDefFormStateHeaders :: Seq Header
   } deriving (Show)
 
@@ -66,17 +69,16 @@ instance ToJSON RequestDef where
     [ "name" .= (r ^. name . coerced :: T.Text)
     , "url" .= (r ^. url . coerced :: T.Text)
     , "method" .= (r ^. method)
+    , "body" .= (r ^. body)
     , "headers" .= (r ^. headers)
     ]
 
 instance FromJSON RequestDef where
-  parseJSON = withObject "RequestDef" $ \o -> do
-    n <- o .: "name"
-    u <- o .: "url"
-    m <- o .: "method"
-    h <- o .: "headers"
-    return RequestDef { requestDefName    = n
-                      , requestDefUrl     = u
-                      , requestDefMethod  = m
-                      , requestDefHeaders = h
-                      }
+  parseJSON = withObject "RequestDef" $ \o ->
+    RequestDef
+      <$> (o .: "name")
+      <*> (o .: "url")
+      <*> (o .: "method")
+      <*> (o .: "body")
+      <*> (o .: "headers")
+

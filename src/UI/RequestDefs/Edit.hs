@@ -43,6 +43,7 @@ import           UI.Form                        ( ZZZForm
                                                 , spacedConcat
                                                 )
 import           UI.Forms.Headers               ( makeHeadersForm )
+import           UI.Forms.RequestBody           ( requestBodyForm )
 
 finishEditingRequestDef
   :: Monad m => IxStateT m (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
@@ -62,6 +63,8 @@ updateRequestDef base form =
     .~ (form ^. url)
     &  method
     .~ (form ^. method)
+    &  body
+    .~ (form ^. body)
     &  headers
     .~ (form ^. headers)
 
@@ -72,6 +75,7 @@ makeEditRequestDefForm s c =
     editState = RequestDefFormState { requestDefFormStateName    = r ^. name
                                     , requestDefFormStateUrl     = r ^. url
                                     , requestDefFormStateMethod  = r ^. method
+                                    , requestDefFormStateBody    = r ^. body
                                     , requestDefFormStateHeaders = r ^. headers
                                     }
   in
@@ -86,6 +90,7 @@ makeEditRequestDefForm s c =
                       renderText
                       id
       , (txt "Method:   " <+>) @@= radioField method allMethodsRadio
+      , (txt "Body      " <+>) @@= requestBodyForm
       , (txt "Headers:  " <+>) @@= makeHeadersForm
       ]
       editState

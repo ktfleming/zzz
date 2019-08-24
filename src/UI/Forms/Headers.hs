@@ -13,10 +13,12 @@ import           Brick                          ( Widget
                                                 , vBox
                                                 , vLimit
                                                 , withAttr
+                                                , withBorderStyle
                                                 , (<+>)
                                                 )
 import           Brick.Forms                    ( FormFieldState(..) )
 import           Brick.Widgets.Border           ( border )
+import           Brick.Widgets.Border.Style     ( unicodeRounded )
 import           Control.Lens
 import           Data.Foldable                  ( toList )
 import           Data.Sequence                 as S
@@ -31,6 +33,7 @@ import           UI.Attr                        ( disabledAttr
                                                 , headerNameAttr
                                                 , headerValueAttr
                                                 )
+import           UI.Form                        ( renderText )
 import           UI.Forms.FocusAwareEditor      ( focusAwareEditField )
 
 -- Splits a Text into everything before the first '=', and everything after it
@@ -47,9 +50,7 @@ parseHeader t =
 
 makeHeadersForm :: RequestDefFormState -> FormFieldState RequestDefFormState CustomEvent Name
 makeHeadersForm s =
-  let maxLines = Nothing
-
-      initFn :: Seq Header -> T.Text
+  let initFn :: Seq Header -> T.Text
       initFn =
           let oneHeaderText :: Header -> T.Text
               oneHeaderText h = (h ^. name . coerced) <> "=" <> (h ^. value . coerced)
@@ -71,9 +72,6 @@ makeHeadersForm s =
                                          }
           in  (sequence . S.fromList . fmap textToHeader) (Prelude.filter (not . T.null) ts)
 
-      render :: [T.Text] -> Widget Name
-      render = vBox . fmap txt
-
       readOnlyRender :: [T.Text] -> Widget name
       readOnlyRender = vBox . fmap readOnlyRenderOneLine
 
@@ -89,15 +87,15 @@ makeHeadersForm s =
           rightWidget              = withAttr headerValueAttr $ txt right
 
       augment :: Widget Name -> Widget Name
-      augment = vLimit 10 . border
+      augment = vLimit 10 . withBorderStyle unicodeRounded . border
   in  focusAwareEditField headers
                           HeadersField
-                          maxLines
+                          Nothing
                           initFn
                           validate
-                          render
+                          renderText
                           augment
-                          readOnlyRender
+                          (Just readOnlyRender)
                           s
 
 -- Similar to the read-only rendering in the form, but works directly on a valid

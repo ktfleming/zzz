@@ -50,10 +50,8 @@ instance ToJSON Project where
     object ["name" .= (p ^. name . coerced :: T.Text), "request_definitions" .= (p ^. requestDefs)]
 
 instance FromJSON Project where
-  parseJSON = withObject "Project" $ \o -> do
-    n       <- o .: "name"
-    reqDefs <- o .: "request_definitions"
-    return $ Project { projectName = n, projectRequestDefs = reqDefs }
+  parseJSON =
+    withObject "Project" $ \o -> Project <$> (o .: "name") <*> (o .: "request_definitions")
 
 instance Displayable Project where
   display p = p ^. name . coerced
