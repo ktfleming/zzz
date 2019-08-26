@@ -32,3 +32,7 @@ jsonBoolAttr = attrName "jsonBool"
 
 jsonNullAttr :: AttrName
 jsonNullAttr = attrName "jsonNull"
+
+-- HTTP methods
+methodAttr :: AttrName
+methodAttr = attrName "method"

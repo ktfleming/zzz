@@ -69,4 +69,5 @@ myMap = attrMap
   , (jsonNumberAttr         , Brick.Util.fg V.cyan)
   , (jsonBoolAttr           , Brick.Util.fg V.magenta)
   , (jsonNullAttr           , V.white `on` V.black)
+  , (methodAttr             , Brick.Util.fg V.magenta)
   ]
