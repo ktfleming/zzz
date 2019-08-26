@@ -3,15 +3,10 @@
 module UI.Forms.RequestBody where
 
 import           Brick                          ( Widget
-
-
                                                 , vLimit
-
                                                 , withBorderStyle
                                                 )
-import           Brick.Forms                    ( FormFieldState(..)
-
-                                                )
+import           Brick.Forms                    ( FormFieldState(..) )
 import           Brick.Widgets.Border           ( border )
 import           Brick.Widgets.Border.Style     ( unicodeRounded )
 import           Data.Maybe                     ( fromMaybe )

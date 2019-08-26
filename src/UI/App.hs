@@ -11,10 +11,13 @@ import           Brick                          ( App(..)
                                                 , (<=>)
                                                 )
 import           Brick.BChan                    ( BChan )
-import           Brick.Forms                    ( invalidFormInputAttr )
+import           Brick.Forms                    ( focusedFormInputAttr
+                                                , invalidFormInputAttr
+                                                )
 import           Brick.Types                    ( Padding(Max) )
 import           Brick.Util
 import           Brick.Widgets.Border           ( hBorder )
+import           Brick.Widgets.Edit             ( editFocusedAttr )
 import           Brick.Widgets.List             ( listSelectedFocusedAttr )
 import           Control.Lens
 import           Data.Maybe                     ( maybeToList )
@@ -56,6 +59,8 @@ myMap = attrMap
   V.defAttr
   [ (listSelectedFocusedAttr, V.white `on` V.blue)
   , (invalidFormInputAttr   , V.white `on` V.red)
+  , (editFocusedAttr        , V.black `on` V.cyan)
+  , (focusedFormInputAttr   , V.black `on` V.cyan)
   , (headerNameAttr         , Brick.Util.fg V.blue)
   , (headerValueAttr        , Brick.Util.fg V.green)
   , (disabledAttr           , Brick.Util.fg (V.Color240 252))
