@@ -30,16 +30,17 @@ import           Types.Models.Response
 import           Types.Models.Url
 import           UI.Forms.Headers               ( readOnlyHeaders )
 import           UI.Json                        ( readOnlyJson )
+import           UI.Text                        ( methodWidget )
 
 -- Response body plus URL, request body, and headers
 responseBodyViewport :: Response -> Widget Name
 responseBodyViewport r =
   let u :: T.Text      = r ^. url . coerced
       hs :: Seq Header = r ^. headers
-      urlWidget        = txt $ "URL:     " <> u
+      requestWidget    = txt "Request: " <+> methodWidget (r ^. method) <+> txt (" " <> u)
       headersWidget    = txt "Headers: " <+> readOnlyHeaders hs
   in  viewport ResponseBodyViewport Vertical
-        $   urlWidget
+        $   padBottom (Pad 1) requestWidget
         <=> padBottom (Pad 1) headersWidget
         <=> txt "Request body:"
         <=> padBottom (Pad 1) (readOnlyJson (r ^. requestBody . coerced))

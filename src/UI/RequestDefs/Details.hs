@@ -34,7 +34,7 @@ import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
 import           UI.Forms.Headers               ( readOnlyHeaders )
 import           UI.List                        ( ZZZList )
-import UI.Text (methodWidget)
+import           UI.Text                        ( methodWidget )
 
 makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
@@ -50,8 +50,9 @@ showRequestDefDetails c = do
 requestDefDetailsWidget :: AppState a -> RequestDefContext -> Widget Name
 requestDefDetailsWidget s c =
   let
-    r             = lookupRequestDef s c
-    titleWidget   = txt "Request: " <+> methodWidget (r ^. method) <+> txt (" " <> r ^. url . coerced)
+    r = lookupRequestDef s c
+    titleWidget =
+      txt "Request: " <+> methodWidget (r ^. method) <+> txt (" " <> r ^. url . coerced)
     headersWidget = txt "Headers: " <+> readOnlyHeaders (S.filter isHeaderEnabled (r ^. headers))
   in
     titleWidget <=> headersWidget

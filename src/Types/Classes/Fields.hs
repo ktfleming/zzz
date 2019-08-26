@@ -17,3 +17,5 @@ class HasHeaders s a | s -> a where
 class HasBody s a | s -> a where
   body :: Lens' s a
 
+class HasMethod s a | s -> a where
+  method :: Lens' s a

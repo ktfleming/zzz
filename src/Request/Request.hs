@@ -102,6 +102,7 @@ sendRequest' c@(RequestDefContext _ rid) = do
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
       response              = Response { responseBody        = ResponseBody responseMsg
                                        , responseDateTime    = now
+                                       , responseMethod      = r ^. method
                                        , responseUrl         = r ^. url
                                        , responseHeaders = S.filter isHeaderEnabled $ r ^. headers
                                        , responseRequestBody = r ^. body
