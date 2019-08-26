@@ -38,10 +38,10 @@ responseBodyViewport r =
   let u :: T.Text      = r ^. url . coerced
       hs :: Seq Header = r ^. headers
       requestWidget    = txt "Request: " <+> methodWidget (r ^. method) <+> txt (" " <> u)
-      headersWidget    = txt "Headers: " <+> readOnlyHeaders hs
   in  viewport ResponseBodyViewport Vertical
         $   padBottom (Pad 1) requestWidget
-        <=> padBottom (Pad 1) headersWidget
+        <=> txt "Headers:"
+        <=> padBottom (Pad 1) (readOnlyHeaders hs)
         <=> txt "Request body:"
         <=> padBottom (Pad 1) (readOnlyJson (r ^. requestBody . coerced))
         <=> txt "Response body:"
