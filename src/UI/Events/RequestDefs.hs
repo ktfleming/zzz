@@ -22,8 +22,12 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , imodify
                                                 )
 import           Control.Monad.Indexed.Trans    ( ilift )
+import qualified Data.HashMap.Strict           as Map
+import           Data.Maybe                     ( isNothing )
 import           Graphics.Vty.Input.Events
-import           Request.Request                ( sendRequest )
+import           Request.Request                ( cancelRequest
+                                                , sendRequest
+                                                )
 import           Types.AppState
 import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Brick.Name
@@ -79,19 +83,25 @@ handleEventRequestDetails
   -> BChan CustomEvent
   -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
 handleEventRequestDetails key mods chan = iget >>>= \s ->
-  let RequestDefDetailsScreen c list ring = s ^. screen
+  let
+    RequestDefDetailsScreen c@(RequestDefContext _ rid) list ring = s ^. screen
+    focused       = focusGetCurrent ring
+    activeRequest = Map.lookup rid (s ^. activeRequests)
   in
     case (key, mods) of
       (KLeft, []) ->
         let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
+      (KChar 'x', []) -> maybe (ireturn ()) (cancelRequest c) activeRequest >>> submerge
       (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
       (KChar 'd', []) -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
-      (KEnter   , []) -> sendRequest c >>> save chan >>> submerge
+      (KEnter   , []) -> if focused == Just RequestDetails && isNothing activeRequest
+        then sendRequest c chan >>> submerge
+        else ireturn () >>> submerge
       (KChar '\t', []) ->
         imodify (screen .~ RequestDefDetailsScreen c list (focusNext ring)) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm
       (KBackTab, []) ->
         imodify (screen .~ RequestDefDetailsScreen c list (focusPrev ring)) >>> submerge
-      _ -> case focusGetCurrent ring of
+      _ -> case focused of
         Just ResponseList -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
         Just ResponseBodyDetails ->
           let vp = viewportScroll ResponseBodyViewport

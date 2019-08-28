@@ -11,14 +11,10 @@ import           Brick                          ( Padding(..)
                                                 , Widget
                                                 , padBottom
                                                 , txt
-                                                , txtWrap
                                                 , viewport
-                                                , withAttr
                                                 , (<+>)
                                                 , (<=>)
                                                 )
-import           Brick.Widgets.Center           ( hCenter )
-import           Brick.Widgets.List             ( listSelectedFocusedAttr )
 import           Control.Lens
 import           Data.Sequence                  ( Seq )
 import           Data.Text                     as T
@@ -28,9 +24,12 @@ import           Types.Models.Header            ( Header )
 import           Types.Models.RequestDef        ( RequestBody(..) )
 import           Types.Models.Response
 import           Types.Models.Url
+import           UI.Attr
 import           UI.Forms.Headers               ( readOnlyHeaders )
 import           UI.Json                        ( readOnlyJson )
-import           UI.Text                        ( methodWidget )
+import           UI.Text                        ( explanationWithAttr
+                                                , methodWidget
+                                                )
 
 -- Response body plus URL, request body, and headers
 responseBodyViewport :: Response -> Widget Name
@@ -51,12 +50,8 @@ responseBodyViewport r =
 responseDetails :: Response -> Bool -> Widget Name
 responseDetails r focused = if focused
   then
-    let
-      explanation =
-        padBottom (Pad 1)
-          $ withAttr listSelectedFocusedAttr
-          $ hCenter
-          $ txtWrap
-              "Response body focused -- use the arrow keys to scroll, or TAB to return to the response list."
+    let explanation = explanationWithAttr
+          explanationAttr
+          "Response body focused -- use the arrow keys to scroll, or TAB to switch focus"
     in  explanation <=> responseBodyViewport r
   else responseBodyViewport r

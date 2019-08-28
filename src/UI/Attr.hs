@@ -36,3 +36,11 @@ jsonNullAttr = attrName "jsonNull"
 -- HTTP methods
 methodAttr :: AttrName
 methodAttr = attrName "method"
+
+-- Explanations
+
+explanationAttr :: AttrName
+explanationAttr = attrName "explanation"
+
+importantExplanationAttr :: AttrName
+importantExplanationAttr = explanationAttr <> attrName "important"

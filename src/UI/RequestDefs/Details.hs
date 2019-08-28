@@ -7,8 +7,8 @@ module UI.RequestDefs.Details where
 
 import           Brick                          ( Widget
                                                 , txt
+                                                , vBox
                                                 , (<+>)
-                                                , (<=>)
                                                 )
 import           Brick.Focus                    ( focusRing )
 import           Brick.Widgets.List             ( list )
@@ -17,6 +17,7 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
                                                 )
+import qualified Data.HashMap.Strict           as Map
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
@@ -32,9 +33,12 @@ import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
+import           UI.Attr
 import           UI.Forms.Headers               ( readOnlyHeaders )
 import           UI.List                        ( ZZZList )
-import           UI.Text                        ( methodWidget )
+import           UI.Text                        ( explanationWithAttr
+                                                , methodWidget
+                                                )
 
 makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
@@ -43,16 +47,31 @@ showRequestDefDetails
   :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefDetailsTag) ()
 showRequestDefDetails c = do
   s <- iget
-  let rs   = lookupResponses s c
-      ring = focusRing [ResponseList, ResponseBodyDetails]
-  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList rs) ring
+  let ring = focusRing [RequestDetails, ResponseList, ResponseBodyDetails]
+  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c)) ring
 
-requestDefDetailsWidget :: AppState a -> RequestDefContext -> Widget Name
-requestDefDetailsWidget s c =
+refreshResponseList
+  :: Monad m => IxStateT m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
+refreshResponseList = do
+  s <- iget
+  let RequestDefDetailsScreen c _ ring = s ^. screen
+  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c)) ring
+
+
+requestDefDetailsWidget :: AppState a -> RequestDefContext -> Bool -> Widget Name
+requestDefDetailsWidget s c@(RequestDefContext _ rid) focused =
   let
-    r = lookupRequestDef s c
+    r                = lookupRequestDef s c
+    hasActiveRequest = Map.member rid (s ^. activeRequests)
     titleWidget =
       txt "Request: " <+> methodWidget (r ^. method) <+> txt (" " <> r ^. url . coerced)
     headersWidget = txt "Headers: " <+> readOnlyHeaders (S.filter isHeaderEnabled (r ^. headers))
+    explanation   = case (hasActiveRequest, focused) of
+      (True, _) ->
+        [ explanationWithAttr importantExplanationAttr
+                              "Currently sending request -- press x to cancel"
+        ]
+      (False, True ) -> [explanationWithAttr explanationAttr "Press ENTER to send this request"]
+      (False, False) -> []
   in
-    titleWidget <=> headersWidget
+    vBox $ explanation <> [titleWidget, headersWidget]

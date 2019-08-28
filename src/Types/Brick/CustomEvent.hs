@@ -1,3 +1,10 @@
 module Types.Brick.CustomEvent where
 
-data CustomEvent = Save
+import           Types.Models.Response          ( Response )
+
+import           Types.Models.RequestDef        ( RequestDefContext )
+
+data CustomEvent =
+    Save
+  | ResponseSuccess RequestDefContext Response
+  | ResponseError RequestDefContext String

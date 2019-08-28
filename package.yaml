@@ -40,13 +40,13 @@ dependencies:
 - iso8601-time
 - hashable
 - string-conversions
-- mmorph
 - indexed == 0.1.3
 - indexed-extras == 0.2
 - do-notation
 - text-zipper
 - megaparsec
 - either
+- async
 
 library:
   source-dirs:

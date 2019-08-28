@@ -10,9 +10,12 @@ data Name =
           -- Project details screen
           | RequestDefList
 
-          -- Request details screen
+          -- Request details screen (focus ring)
+          | RequestDetails
           | ResponseList
           | ResponseBodyDetails
+
+          -- Request details screen (viewport)
           | ResponseBodyViewport
 
           -- Request add/edit screen

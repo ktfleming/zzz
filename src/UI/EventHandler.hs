@@ -22,6 +22,7 @@ import           Control.Monad.Indexed          ( ireturn
                                                 )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
+                                                , imodify
                                                 , iput
                                                 , runIxStateT
                                                 )
@@ -31,7 +32,9 @@ import           Control.Monad.IO.Class         ( MonadIO
                                                 )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( writeFile )
+import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
+import qualified Data.Text                     as T
 import           Graphics.Vty.Input.Events
 import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
@@ -45,6 +48,7 @@ import           Types.Brick.Name               ( Name(..) )
 import           Types.Constants                ( mainSettingsFile
                                                 , responseHistoryFile
                                                 )
+import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Screen
 import           UI.Console                     ( toggleConsole )
 import           UI.Events.Projects
@@ -52,6 +56,7 @@ import           UI.Events.RequestDefs
 import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 )
+import           UI.RequestDefs.Details         ( refreshResponseList )
 import           Utils.IxState                  ( save
                                                 , submerge
                                                 , (>>>)
@@ -77,9 +82,8 @@ handleEventInState
   -> BChan CustomEvent
   -> IxStateT (EventM Name) AnyAppState AnyAppState ()
 
-handleEventInState (AppEvent Save) _ =
-  iget >>>= \(AnyAppState s) -> iput s >>> saveState >>> submerge
-
+handleEventInState (AppEvent customEvent) _ =
+  iget >>>= \(AnyAppState s) -> iput s >>> handleCustomEvent customEvent >>> submerge
 handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = toggleConsole
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
@@ -99,6 +103,23 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       RequestDefAddScreen{}     -> handleEventRequestAdd key mods chan |$| s
       HelpScreen                -> ireturn ()
 handleEventInState _ _ = ireturn ()
+
+handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()
+handleCustomEvent Save = saveState
+handleCustomEvent (ResponseError (RequestDefContext _ rid) e) = do
+  _ <- logMessage ("Error: " <> T.pack e)
+  _ <- imodify $ activeRequests . at rid .~ Nothing
+  saveState
+
+handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) = do
+  _ <- logMessage "Received response"
+  _ <- imodify $ responses . at rid . non S.empty %~ (response <|)
+  _ <- imodify $ activeRequests . at rid .~ Nothing
+  _ <- saveState
+  s <- iget
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> refreshResponseList -- Only need to refresh the list if they're looking at it
+    _                         -> ireturn ()
 
 saveState :: MonadIO m => IxStateT m (AppState a) (AppState a) ()
 saveState = do

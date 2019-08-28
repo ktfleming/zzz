@@ -12,6 +12,7 @@
 
 module Types.AppState where
 
+import           Control.Concurrent.Async       ( Async )
 import           Control.Lens                   ( Lens
                                                 , at
                                                 , coerced
@@ -61,7 +62,8 @@ data AppState (a :: ScreenTag) = AppState {
                          , _appStateResponses :: HashMap RequestDefId (Seq Response)
                          , _appStateHelpPanelVisible :: HelpPanelVisible
                          , _appStateConsoleVisible :: ConsoleVisible
-                         } deriving (Show)
+                         , _appStateActiveRequests :: HashMap RequestDefId (Async ())
+                         }
 
 makeFields ''AppState
 
@@ -81,6 +83,7 @@ emptyAppState = AppState { appStateScreen            = HelpScreen
                          , _appStateResponses        = Map.empty
                          , _appStateHelpPanelVisible = HelpPanelVisible False
                          , _appStateConsoleVisible   = ConsoleVisible False
+                         , _appStateActiveRequests   = Map.empty
                          }
 
 data AnyAppState where

@@ -12,6 +12,7 @@ import           Brick                          ( Widget
                                                 , padTop
                                                 , txt
                                                 , txtWrap
+                                                , vBox
                                                 , vLimit
                                                 , (<=>)
                                                 )
@@ -49,15 +50,22 @@ mainWidget (AnyAppState s) = case s ^. screen of
       <=> padTop (Pad 1) (renderGenericList True list)
   RequestDefAddScreen _ form -> renderForm form
   RequestDefDetailsScreen c list ring ->
-    let historyListFocused = focusGetCurrent ring == Just ResponseList
-        responseWidget     = case listSelectedElement list of
-          Just (_, r) -> responseDetails r (not historyListFocused)
-          Nothing     -> txt "No response selected."
-    in 
-      -- TODO: depending on how wide the screen is, place response widget on right side?
-        padLeft (Pad 2) (requestDefDetailsWidget s c)
-          <=> hBorder
-          <=> vLimit 10 (renderGenericList historyListFocused list)
-          <=> hBorder
-          <=> responseWidget
+    let focused            = focusGetCurrent ring
+        requestFocused     = focused == Just RequestDetails
+        historyListFocused = focused == Just ResponseList
+        bodyFocused        = focused == Just ResponseBodyDetails
+
+        topPart =
+            [ padLeft (Pad 2) (requestDefDetailsWidget s c requestFocused)
+            , hBorder
+            , padLeft (Pad 2) $ txtWrap "Response history:"
+            , vLimit 10 (renderGenericList historyListFocused list)
+            ]
+        bodyWidget = case listSelectedElement list of
+          Just (_, r) -> responseDetails r bodyFocused
+          Nothing     -> txtWrap "No response selected."
+        bottomPart = [hBorder, bodyWidget]
+            -- Only display the bottom part (request body) when the "request" part of the screen
+            -- (the part that you send a request from) is not focused
+    in  vBox $ topPart <> (if requestFocused then [] else bottomPart)
   RequestDefEditScreen _ form -> formHelpText <=> padForm (renderForm form)
