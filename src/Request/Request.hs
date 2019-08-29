@@ -37,9 +37,10 @@ import           Control.Concurrent.Async       ( Async
                                                 , async
                                                 , cancel
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import           Data.String.Conversions        ( cs )
-import           Data.Time                      ( getCurrentTime )
+import           Data.Time                      ( diffUTCTime
+                                                , getCurrentTime
+                                                )
 import           Data.Time.Clock                ( UTCTime )
 import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
@@ -113,8 +114,9 @@ sendRequest' c@(RequestDefContext _ rid) chan = do
       u :: T.Text     = r ^. url . coerced
   lift $ logMessage $ "Preparing to send request to URL " <> u :: Step ()
   validatedUrl <- failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u)) :: Step EitherReq
+  startTime    <- liftIO getCurrentTime :: Step UTCTime
   asyncResult  <-
-    (lift . liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r chan :: Step
+    (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r chan startTime :: Step
       (Async ())
   lift $ imodify $ activeRequests . at rid ?~ asyncResult :: Step ()
   return ()
@@ -122,16 +124,17 @@ sendRequest' c@(RequestDefContext _ rid) chan = do
 -- Tries sending the request and constructing the Response model, then sends a custom
 -- event into Brick's BChan depending on whether it was a success or failure.
 -- Should be run on a background thread.
-backgroundSend :: AnyReq -> RequestDefContext -> RequestDef -> BChan CustomEvent -> IO ()
-backgroundSend anyReq c r chan = runExceptT (constructResponse anyReq r) >>= \case
-  Left  e        -> writeBChan chan (ResponseError c e)
-  Right response -> writeBChan chan (ResponseSuccess c response)
+backgroundSend :: AnyReq -> RequestDefContext -> RequestDef -> BChan CustomEvent -> UTCTime -> IO ()
+backgroundSend anyReq c r chan startTime =
+  runExceptT (constructResponse anyReq r startTime) >>= \case
+    Left  e        -> writeBChan chan (ResponseError c e)
+    Right response -> writeBChan chan (ResponseSuccess c response)
 
 -- Tries sending the request and constructs the resulting Response model if it was successful.
 -- If an HttpException is encountered, will return an error string in ExceptT's error channel.
 -- Should be run on a background thread.
-constructResponse :: AnyReq -> RequestDef -> ExceptT String IO Response
-constructResponse anyReq r = do
+constructResponse :: AnyReq -> RequestDef -> UTCTime -> ExceptT String IO Response
+constructResponse anyReq r startTime = do
   bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r)
   now        <- lift getCurrentTime :: ExceptT String IO UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
@@ -141,6 +144,7 @@ constructResponse anyReq r = do
                                        , responseUrl         = r ^. url
                                        , responseHeaders = S.filter isHeaderEnabled $ r ^. headers
                                        , responseRequestBody = r ^. body
+                                       , responseElapsedTime = diffUTCTime now startTime
                                        }
   return response
 
@@ -166,4 +170,4 @@ cancelRequest
   :: MonadIO m => RequestDefContext -> Async () -> IxStateT m (AppState a) (AppState a) ()
 cancelRequest (RequestDefContext _ rid) target = do
   imodify $ activeRequests . at rid .~ Nothing
-  (ilift . liftIO) (cancel target)
+  liftIO $ cancel target

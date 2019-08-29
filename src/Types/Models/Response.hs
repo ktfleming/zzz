@@ -22,7 +22,9 @@ import           Data.Aeson                     ( FromJSON
                                                 )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
-import           Data.Time                      ( UTCTime )
+import           Data.Time                      ( NominalDiffTime
+                                                , UTCTime
+                                                )
 import           Data.Time.ISO8601              ( formatISO8601 )
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
@@ -43,6 +45,7 @@ data Response = Response {
   , responseUrl :: Url
   , responseRequestBody :: RequestBody
   , responseHeaders :: Seq Header
+  , responseElapsedTime :: NominalDiffTime
   } deriving (Show, Eq)
 
 makeFields ''Response
@@ -55,6 +58,7 @@ instance ToJSON Response where
     , "url" .= (r ^. url . coerced :: T.Text)
     , "headers" .= (r ^. headers)
     , "request_body" .= (r ^. requestBody . coerced :: T.Text)
+    , "elapsed_time" .= (r ^. elapsedTime)
     ]
 
 instance FromJSON Response where
@@ -66,6 +70,7 @@ instance FromJSON Response where
       <*> (o .: "url")
       <*> (o .: "request_body")
       <*> (o .: "headers")
+      <*> (o .: "elapsed_time")
 
 instance Displayable Response where
   display r = T.pack $ formatISO8601 (r ^. dateTime)

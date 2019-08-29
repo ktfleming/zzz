@@ -67,9 +67,9 @@ handleEventProjectEdit
 handleEventProjectEdit key mods chan = iget >>>= \s ->
   let ProjectEditScreen c _ = s ^. screen
   in  case (key, mods) of
-        (KEnter, []) -> finishEditingProject >>> save chan >>> showProjectDetails c >>> submerge
-        (KEsc  , []) -> showProjectDetails c >>> submerge
-        _            -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
+        (KChar 's', []) -> finishEditingProject >>> save chan >>> showProjectDetails c >>> submerge
+        (KEsc     , []) -> showProjectDetails c >>> submerge
+        _               -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
 handleEventProjectDetails
   :: Key
@@ -79,7 +79,7 @@ handleEventProjectDetails
 handleEventProjectDetails key mods _ = iget >>>= \s ->
   let ProjectDetailsScreen c list = s ^. screen
   in  case (key, mods) of
-        (KEnter, []) -> case listSelectedElement list of
+        (KRight, []) -> case listSelectedElement list of
           Just (_, RequestDefListItem reqContext _) ->
             showRequestDefDetails reqContext >>> submerge
           Nothing -> ireturn () >>> submerge
@@ -97,7 +97,7 @@ handleEventProjectList
 handleEventProjectList key mods _ = iget >>>= \s ->
   let ProjectListScreen list = s ^. screen
   in  case (key, mods) of
-        (KEnter, []) -> case listSelectedElement list of
+        (KRight, []) -> case listSelectedElement list of
           Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
           Nothing                             -> ireturn () >>> submerge
         (KChar 'a', []) -> showProjectAddScreen >>> submerge

@@ -20,7 +20,9 @@ import           Brick.Focus                    ( focusGetCurrent )
 import           Brick.Forms                    ( renderForm )
 import           Brick.Types                    ( Padding(Pad) )
 import           Brick.Widgets.Border           ( hBorder )
-import           Brick.Widgets.List             ( listSelectedElement )
+import           Brick.Widgets.List             ( listElements
+                                                , listSelectedElement
+                                                )
 import           Control.Lens
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
@@ -54,18 +56,20 @@ mainWidget (AnyAppState s) = case s ^. screen of
         requestFocused     = focused == Just RequestDetails
         historyListFocused = focused == Just ResponseList
         bodyFocused        = focused == Just ResponseBodyDetails
+        hasResponses       = not $ null (listElements list)
 
-        topPart =
-            [ padLeft (Pad 2) (requestDefDetailsWidget s c requestFocused)
-            , hBorder
-            , padLeft (Pad 2) $ txtWrap "Response history:"
-            , vLimit 10 (renderGenericList historyListFocused list)
-            ]
-        bodyWidget = case listSelectedElement list of
+        bodyWidget         = case listSelectedElement list of
           Just (_, r) -> responseDetails r bodyFocused
           Nothing     -> txtWrap "No response selected."
-        bottomPart = [hBorder, bodyWidget]
-            -- Only display the bottom part (request body) when the "request" part of the screen
-            -- (the part that you send a request from) is not focused
-    in  vBox $ topPart <> (if requestFocused then [] else bottomPart)
+
+        allWidgets = fst <$> filter
+          snd
+          [ (padLeft (Pad 2) (requestDefDetailsWidget s c requestFocused), True)
+          , (hBorder   , hasResponses)
+          , (padLeft (Pad 2) $ txtWrap "Response history:", hasResponses)
+          , (vLimit 10 (renderGenericList historyListFocused list), hasResponses)
+          , (hBorder   , not requestFocused)
+          , (bodyWidget, not requestFocused)
+          ]
+    in  vBox allWidgets
   RequestDefEditScreen _ form -> formHelpText <=> padForm (renderForm form)
