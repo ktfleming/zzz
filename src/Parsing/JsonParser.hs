@@ -54,7 +54,9 @@ data JsonLine =
   | ObjectStart Indentation JsonKey                     -- "something": {
   | KeyValue Indentation JsonKey JsonValue EndingComma  -- "something": "value", "something": true, etc with optional ending comma
   | EmptyArray Indentation JsonKey EndingComma          -- "something" : []
+  | EmptyObject Indentation JsonKey EndingComma         -- "something": {}
   | ArrayStart Indentation JsonKey                      -- "something" : [
+  | ValueInArray Indentation JsonValue EndingComma      -- "value"
   | JustRCB Indentation EndingComma                     -- } or },
   | JustRSB Indentation EndingComma                     -- ] or ],
   deriving (Show)
@@ -66,7 +68,17 @@ parseLine :: JsonParser JsonLine
 parseLine =
   choice
     $   try
-    <$> [justLCB, justLSB, objectStart, keyValue, emptyArray, arrayStart, justRCB, justRSB]
+    <$> [ justLCB
+        , justLSB
+        , objectStart
+        , keyValue
+        , emptyArray
+        , emptyObject
+        , arrayStart
+        , valueInArray
+        , justRCB
+        , justRSB
+        ]
 
 -- Individual parsers for each JsonLine pattern:
 
@@ -85,8 +97,14 @@ keyValue = KeyValue <$> indentation <*> key <* string ": " <*> value <*> endingC
 emptyArray :: JsonParser JsonLine
 emptyArray = EmptyArray <$> indentation <*> key <* string ": []" <*> endingComma
 
+emptyObject :: JsonParser JsonLine
+emptyObject = EmptyObject <$> indentation <*> key <* string ": {}" <*> endingComma
+
 arrayStart :: JsonParser JsonLine
 arrayStart = ArrayStart <$> indentation <*> key <* string ": [" <* eof
+
+valueInArray :: JsonParser JsonLine
+valueInArray = ValueInArray <$> indentation <*> value <*> endingComma
 
 justRCB :: JsonParser JsonLine
 justRCB = JustRCB <$> indentation <* char '}' <*> endingComma

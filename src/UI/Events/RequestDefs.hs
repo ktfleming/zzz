@@ -106,7 +106,7 @@ handleEventRequestDetails key mods chan = iget >>>= \s ->
         Just ResponseBodyDetails ->
           let vp = viewportScroll ResponseBodyViewport
           in  case key of
-                KUp   -> ilift (vScrollBy vp (-1)) >>> submerge
-                KDown -> ilift (vScrollBy vp 1) >>> submerge
+                KUp   -> ilift (vScrollBy vp (-5)) >>> submerge
+                KDown -> ilift (vScrollBy vp 5) >>> submerge
                 _     -> ireturn () >>> submerge
         _ -> ireturn () >>> submerge
