@@ -27,4 +27,9 @@ data Name =
           | PatchRadioField
           | HeadersField
           | RequestBodyField
+
+          -- Search screen
+          | SearchField
+          | SearchResultsList
+
           deriving (Eq, Ord, Show)

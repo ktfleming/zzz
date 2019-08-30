@@ -57,6 +57,9 @@ import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 )
 import           UI.RequestDefs.Details         ( refreshResponseList )
+import           UI.Search                      ( handleSearchEvent
+                                                , showSearchScreen
+                                                )
 import           Utils.IxState                  ( save
                                                 , submerge
                                                 , (>>>)
@@ -87,6 +90,8 @@ handleEventInState (AppEvent customEvent) _ =
 handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = toggleConsole
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
+handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ =
+  iget >>>= \(AnyAppState s) -> iput s >>> showSearchScreen >>> submerge
 
 handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s) ->
   case (s ^. modal, key) of
@@ -101,6 +106,7 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       RequestDefDetailsScreen{} -> handleEventRequestDetails key mods chan |$| s
       RequestDefEditScreen{}    -> handleEventRequestEdit key mods chan |$| s
       RequestDefAddScreen{}     -> handleEventRequestAdd key mods chan |$| s
+      SearchScreen{}            -> handleSearchEvent key mods |$| s
       HelpScreen                -> ireturn ()
 handleEventInState _ _ = ireturn ()
 

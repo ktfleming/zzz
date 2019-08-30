@@ -23,6 +23,7 @@ helpText s = case s of
   RequestDefAddScreen{}     -> "Enter: Finsh adding | ESC: Return without adding"
   RequestDefEditScreen{}    -> "Enter: Save | ESC: Return without saving"
   HelpScreen                -> "todo"
+  SearchScreen{}            -> "todo"
 
 helpPanel :: Screen a -> Widget Name
 helpPanel s = txt $ helpText s

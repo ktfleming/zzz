@@ -44,3 +44,7 @@ explanationAttr = attrName "explanation"
 
 importantExplanationAttr :: AttrName
 importantExplanationAttr = explanationAttr <> attrName "important"
+
+-- Search screen
+searchPlaceholderAttr :: AttrName
+searchPlaceholderAttr = attrName "searchPlaceholder"

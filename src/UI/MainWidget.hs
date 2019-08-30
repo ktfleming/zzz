@@ -30,6 +30,7 @@ import           Types.Models.Screen
 import           UI.List                        ( renderGenericList )
 import           UI.RequestDefs.Details         ( requestDefDetailsWidget )
 import           UI.Responses.Details           ( responseDetails )
+import           UI.Search                      ( searchWidget )
 
 formHelpText :: Widget Name
 formHelpText =
@@ -72,4 +73,5 @@ mainWidget (AnyAppState s) = case s ^. screen of
           , (bodyWidget, not requestFocused)
           ]
     in  vBox allWidgets
-  RequestDefEditScreen _ form -> formHelpText <=> padForm (renderForm form)
+  RequestDefEditScreen _ form   -> formHelpText <=> padForm (renderForm form)
+  SearchScreen edt resultList _ -> searchWidget edt resultList

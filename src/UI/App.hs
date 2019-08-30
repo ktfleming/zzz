@@ -15,7 +15,9 @@ import           Brick.Forms                    ( focusedFormInputAttr
                                                 , invalidFormInputAttr
                                                 )
 import           Brick.Types                    ( Padding(Max) )
-import           Brick.Util
+import           Brick.Util                     ( fg
+                                                , on
+                                                )
 import           Brick.Widgets.Border           ( hBorder )
 import           Brick.Widgets.Edit             ( editFocusedAttr )
 import           Brick.Widgets.List             ( listSelectedFocusedAttr )
@@ -61,15 +63,16 @@ myMap = attrMap
   , (invalidFormInputAttr    , V.white `on` V.red)
   , (editFocusedAttr         , V.black `on` V.cyan)
   , (focusedFormInputAttr    , V.black `on` V.cyan)
-  , (headerNameAttr          , Brick.Util.fg V.blue)
-  , (headerValueAttr         , Brick.Util.fg V.green)
-  , (disabledAttr            , Brick.Util.fg (V.Color240 252))
-  , (jsonKeyAttr             , Brick.Util.fg V.blue)
-  , (jsonStringAttr          , Brick.Util.fg V.green)
-  , (jsonNumberAttr          , Brick.Util.fg V.cyan)
-  , (jsonBoolAttr            , Brick.Util.fg V.magenta)
+  , (headerNameAttr          , fg V.blue)
+  , (headerValueAttr         , fg V.green)
+  , (disabledAttr            , fg (V.Color240 252))
+  , (jsonKeyAttr             , fg V.blue)
+  , (jsonStringAttr          , fg V.green)
+  , (jsonNumberAttr          , fg V.cyan)
+  , (jsonBoolAttr            , fg V.magenta)
   , (jsonNullAttr            , V.white `on` V.black)
-  , (methodAttr              , Brick.Util.fg V.magenta)
+  , (methodAttr              , fg V.magenta)
   , (explanationAttr         , V.blue `on` V.white)
   , (importantExplanationAttr, V.white `on` V.blue)
+  , (searchPlaceholderAttr   , fg V.magenta)
   ]

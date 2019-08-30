@@ -25,7 +25,7 @@ import qualified Data.Text.Zipper              as Z
 -- This is copied from Brick's `editField`, but takes an extra function that
 -- determines how to render the field when it's not focused. This allows for
 -- things like syntax highlighting on Header forms when they're not focused --
--- having syntax highlight even while editing seems to be pretty difficult
+-- having syntax highlighting even while editing seems to be pretty difficult
 -- because it would involve stitching together various Widgets with different
 -- attributes that change while the user is editing, plus handling cursor
 -- movement...so this is my compromise for now.

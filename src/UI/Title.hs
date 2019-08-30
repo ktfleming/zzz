@@ -32,3 +32,4 @@ title s = case s ^. screen of
   RequestDefDetailsScreen c _ _ -> requestDefBaseTitle s c
   RequestDefEditScreen c _      -> requestDefBaseTitle s c <> " (Editing)"
   HelpScreen                    -> "Help"
+  SearchScreen{}                -> "Search"

@@ -5,10 +5,14 @@
 module Types.Models.Screen where
 
 import           Brick.Focus                    ( FocusRing )
+import           Brick.Widgets.Edit             ( Editor )
+import           Data.Sequence                  ( Seq )
+import qualified Data.Text                     as T
 import           Types.Brick.Name               ( Name )
 import           Types.Models.Project
 import           Types.Models.RequestDef
 import           Types.Models.Response
+import           Types.Search                   ( SearchResult )
 import           UI.Form                        ( ZZZForm )
 import           UI.List                        ( ZZZList )
 
@@ -23,6 +27,7 @@ data ScreenTag =
   | RequestDefDetailsTag
   | RequestDefEditTag
   | RequestDefAddTag
+  | SearchTag
   | HelpTag
 
 -- Represents what main "view" of the app the user is looking at, and also holds the local state for that view
@@ -36,6 +41,7 @@ data Screen (a :: ScreenTag) where
   RequestDefEditScreen    ::RequestDefContext        -> ZZZForm RequestDefFormState ->                   Screen 'RequestDefEditTag
   RequestDefAddScreen     ::ProjectContext           -> ZZZForm RequestDefFormState ->                   Screen 'RequestDefAddTag
 
+  SearchScreen            ::Editor T.Text Name -> ZZZList SearchResult -> Seq SearchResult -> Screen 'SearchTag
   HelpScreen              ::Screen 'HelpTag
 
 instance Show (Screen a) where

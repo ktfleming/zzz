@@ -56,6 +56,7 @@ library:
     - Types.AppState
     - Types.Constants
     - Types.Models.Screen
+    - Types.Search
     - UI.App
     - UI.Projects.List
 
@@ -80,3 +81,4 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - zzz
+    - hspec
