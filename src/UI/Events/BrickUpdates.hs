@@ -29,6 +29,9 @@ import           Prelude                 hiding ( Monad(..)
                                                 , pure
                                                 )
 import           Types.Brick.Name               ( Name )
+import           Types.Models.Environment       ( EnvironmentFormState
+                                                , EnvironmentListItem
+                                                )
 import           Types.Models.Project           ( ProjectFormState
                                                 , ProjectListItem
                                                 )
@@ -59,10 +62,19 @@ instance HasBrickForm (Screen 'RequestDefAddTag) where
   formLens = lens (\(RequestDefAddScreen _ form) -> form)
                   (\(RequestDefAddScreen c _) form -> RequestDefAddScreen c form)
 
-instance HasBrickForm (Screen 'RequestDefEditTag)where
+instance HasBrickForm (Screen 'RequestDefEditTag) where
   type FormState (Screen 'RequestDefEditTag) = RequestDefFormState
   formLens = lens (\(RequestDefEditScreen _ form) -> form)
                   (\(RequestDefEditScreen c _) form -> RequestDefEditScreen c form)
+
+instance HasBrickForm (Screen 'EnvironmentEditTag) where
+  type FormState (Screen 'EnvironmentEditTag) = EnvironmentFormState
+  formLens = lens (\(EnvironmentEditScreen _ form) -> form)
+                  (\(EnvironmentEditScreen c _) form -> EnvironmentEditScreen c form)
+
+instance HasBrickForm (Screen 'EnvironmentAddTag) where
+  type FormState (Screen 'EnvironmentAddTag) = EnvironmentFormState
+  formLens = lens (\(EnvironmentAddScreen form) -> form) (\_ f -> EnvironmentAddScreen f)
 
 updateBrickForm :: HasBrickForm (Screen a) => Key -> IxStateT (EventM Name) (Screen a) (Screen a) ()
 updateBrickForm key = do
@@ -88,6 +100,10 @@ instance HasBrickList (Screen 'RequestDefDetailsTag) where
   type ListItem (Screen 'RequestDefDetailsTag) = Response
   listLens = lens (\(RequestDefDetailsScreen _ l _) -> l)
                   (\(RequestDefDetailsScreen c _ ring) l -> RequestDefDetailsScreen c l ring)
+
+instance HasBrickList (Screen 'EnvironmentListTag) where
+  type ListItem (Screen 'EnvironmentListTag) = EnvironmentListItem
+  listLens = lens (\(EnvironmentListScreen l) -> l) (\_ l -> EnvironmentListScreen l)
 
 instance HasBrickList (Screen 'SearchTag) where
   type ListItem (Screen 'SearchTag) = SearchResult

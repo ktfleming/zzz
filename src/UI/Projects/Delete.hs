@@ -9,6 +9,7 @@ import           Control.Monad.Indexed.State    ( IxStateT
 import qualified Data.Text                     as T
 import           Types.AppState
 import           Types.Classes.Fields
+import           Types.Classes.HasId            ( model )
 import           Types.Models.Project
 
 deleteProject :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
@@ -16,7 +17,7 @@ deleteProject (ProjectContext pid) = imodify $ projects . at pid .~ Nothing
 
 deleteProjectWarning :: AppState a -> ProjectContext -> T.Text
 deleteProjectWarning s c =
-  let p = lookupProject s c
+  let p = model s c
   in  "Are you sure you want to delete project '"
         <> p
         ^. name

@@ -7,20 +7,20 @@
 module Types.Models.Header where
 
 import           Control.Lens                   ( coerced
+                                                , from
+                                                , iso
+                                                , view
                                                 , (^.)
                                                 )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
-                                                , object
                                                 , parseJSON
                                                 , toJSON
-                                                , withObject
-                                                , (.:)
-                                                , (.=)
                                                 )
 import qualified Data.Text                     as T
 import           Types.Classes.Fields
+import           Types.Models.KeyValue
 
 newtype HeaderName = HeaderName T.Text deriving (FromJSON, ToJSON, Show, Eq)
 newtype HeaderValue = HeaderValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
@@ -28,17 +28,13 @@ newtype HeaderValue = HeaderValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
 data Header = Header { headerName :: HeaderName, headerValue :: HeaderValue } deriving (Show, Eq)
 makeFields ''Header
 
--- If a header's name starts with "--", this means that the header should be disabled ("commented
--- out", so to speak).
-isHeaderTextEnabled :: T.Text -> Bool
-isHeaderTextEnabled t = T.take 2 t /= "--"
-
-isHeaderEnabled :: Header -> Bool
-isHeaderEnabled h = isHeaderTextEnabled $ h ^. name . coerced
-
 instance ToJSON Header where
-  toJSON h =
-    object ["name" .= (h ^. name . coerced :: T.Text), "value" .= (h ^. value . coerced :: T.Text)]
+  toJSON = toJSON . view keyValueIso
 
 instance FromJSON Header where
-  parseJSON = withObject "Header" $ \o -> Header <$> (o .: "name") <*> (o .: "value")
+  parseJSON = fmap (view (from keyValueIso)) . parseJSON
+
+instance KeyValueIso Header where
+  keyValueIso = iso
+    (\h -> KeyValue (h ^. name . coerced) (h ^. value . coerced))
+    (\(KeyValue k v) -> Header { headerName = HeaderName k, headerValue = HeaderValue v })

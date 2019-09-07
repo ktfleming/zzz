@@ -38,6 +38,10 @@ import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , iput
                                                 )
+import           UI.Environments.Delete         ( deleteEnvironment
+                                                , deleteEnvironmentWarning
+                                                )
+import           UI.Environments.List           ( showEnvironmentListScreen )
 import           Utils.IxState                  ( submerge
                                                 , (>>>)
                                                 )
@@ -48,8 +52,9 @@ renderModalText t =
 
 renderModal :: AppState a -> Modal -> Widget Name
 renderModal s m = case m of
-  DeleteProjectModal    c -> renderModalText $ deleteProjectWarning s c
-  DeleteRequestDefModal c -> renderModalText $ deleteRequestDefWarning s c
+  DeleteProjectModal     c -> renderModalText $ deleteProjectWarning s c
+  DeleteRequestDefModal  c -> renderModalText $ deleteRequestDefWarning s c
+  DeleteEnvironmentModal c -> renderModalText $ deleteEnvironmentWarning s c
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
 handleConfirm :: Monad m => Modal -> IxStateT m AnyAppState AnyAppState ()
@@ -57,6 +62,8 @@ handleConfirm m = iget >>>= \(AnyAppState s) -> case m of
   DeleteProjectModal c -> iput s >>> deleteProject c >>> showProjectListScreen >>> submerge
   DeleteRequestDefModal c@(RequestDefContext pid _) ->
     iput s >>> deleteRequestDef c >>> showProjectDetails (ProjectContext pid) >>> submerge
+  DeleteEnvironmentModal c ->
+    iput s >>> deleteEnvironment c >>> showEnvironmentListScreen >>> submerge
 
 dismissModal :: Monad m => IxStateT m AnyAppState AnyAppState ()
 dismissModal = iget >>>= \(AnyAppState s) -> iput (s & modal .~ Nothing) >>> submerge

@@ -26,12 +26,14 @@ import           Data.Time.ISO8601              ( formatISO8601 )
 import           Numeric                        ( showFFloat )
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Fields
-import           Types.Models.Header            ( Header )
+import           Types.Models.KeyValue          ( KeyValue
+                                                , keyValueIso
+                                                )
 import           Types.Models.RequestDef        ( RequestBody(..) )
 import           Types.Models.Response
 import           Types.Models.Url
 import           UI.Attr
-import           UI.Forms.Headers               ( readOnlyHeaders )
+import           UI.Forms.KeyValueList          ( readOnlyKeyValues )
 import           UI.Json                        ( readOnlyJson )
 import           UI.Text                        ( explanationWithAttr
                                                 , methodWidget
@@ -43,18 +45,18 @@ centerSection t = hCenterWith (Just '-') (txt (" " <> t <> " "))
 -- Response body plus URL, request body, and headers
 responseBodyViewport :: Response -> Widget Name
 responseBodyViewport r =
-  let u :: T.Text             = r ^. url . coerced
-      sentBody :: T.Text      = r ^. requestBody . coerced
-      hs :: Seq Header        = r ^. headers
-      elapsedMillis :: Double = realToFrac (r ^. elapsedTime) * 1000
-      elapsedWidget           = str $ showFFloat (Just 0) elapsedMillis " ms"
+  let u :: T.Text               = r ^. url . coerced
+      sentBody :: T.Text        = r ^. requestBody . coerced
+      keyValues :: Seq KeyValue = fmap (view keyValueIso) (r ^. headers)
+      elapsedMillis :: Double   = realToFrac (r ^. elapsedTime) * 1000
+      elapsedWidget             = str $ showFFloat (Just 0) elapsedMillis " ms"
   in  viewport ResponseBodyViewport Vertical $ vBox $ fst <$> Prelude.filter
         snd
         [ (txt "Request:  " <+> methodWidget (r ^. method) <+> txt (" " <> u), True)
         , (str $ "Received: " <> formatISO8601 (r ^. dateTime), True)
         , (padBottom (Pad 1) $ txt "Elapsed:  " <+> elapsedWidget, True)
-        , (centerSection "Headers"           , not (S.null hs))
-        , (readOnlyHeaders hs                , not (S.null hs))
+        , (centerSection "Headers"           , not (S.null keyValues))
+        , (readOnlyKeyValues keyValues       , not (S.null keyValues))
         , (centerSection "Request Body"      , not (T.null sentBody))
         , (readOnlyJson sentBody             , not (T.null sentBody))
         , (centerSection "Response Body"     , True)

@@ -1,11 +1,14 @@
-{-# LANGUAGE DataKinds         #-}
-{-# LANGUAGE GADTs             #-}
-{-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RebindableSyntax  #-}
+{-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE GADTs               #-}
+{-# LANGUAGE OverloadedStrings   #-}
+{-# LANGUAGE RebindableSyntax    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.RequestDefs.Details where
 
-import           Brick                          ( Widget
+import           Brick                          ( Padding(Pad)
+                                                , Widget
+                                                , padLeft
                                                 , txt
                                                 , vBox
                                                 , (<+>)
@@ -28,17 +31,20 @@ import           Prelude                 hiding ( Monad(..)
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Fields
-import           Types.Models.Header            ( isHeaderEnabled )
+import           Types.Models.KeyValue          ( KeyValue
+                                                , isEnabled
+                                                , keyValueIso
+                                                )
 import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
-import           Types.Models.Url               ( Url(..) )
 import           UI.Attr
-import           UI.Forms.Headers               ( readOnlyHeaders )
+import           UI.Forms.KeyValueList          ( readOnlyKeyValues )
 import           UI.List                        ( ZZZList )
 import           UI.Text                        ( explanationWithAttr
                                                 , methodWidget
                                                 )
+import           UI.Url                         ( colorizedUrl )
 
 makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
@@ -58,20 +64,21 @@ refreshResponseList = do
   imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c)) ring
 
 
-requestDefDetailsWidget :: AppState a -> RequestDefContext -> Bool -> Widget Name
+requestDefDetailsWidget
+  :: AppState 'RequestDefDetailsTag -> RequestDefContext -> Bool -> Widget Name
 requestDefDetailsWidget s c@(RequestDefContext _ rid) focused =
-  let
-    r                = lookupRequestDef s c
-    hasActiveRequest = Map.member rid (s ^. activeRequests)
-    titleWidget =
-      txt "Request: " <+> methodWidget (r ^. method) <+> txt (" " <> r ^. url . coerced)
-    headersWidget = txt "Headers: " <+> readOnlyHeaders (S.filter isHeaderEnabled (r ^. headers))
-    explanation   = case (hasActiveRequest, focused) of
-      (True, _) ->
-        [ explanationWithAttr importantExplanationAttr
-                              "Currently sending request -- press x to cancel"
-        ]
-      (False, True ) -> [explanationWithAttr explanationAttr "Press ENTER to send this request"]
-      (False, False) -> []
-  in
-    vBox $ explanation <> [titleWidget, headersWidget]
+  let r                = lookupRequestDef s c
+      hasActiveRequest = Map.member rid (s ^. activeRequests)
+      titleWidget      = txt "Request: " <+> methodWidget (r ^. method) <+> padLeft
+        (Pad 1)
+        (colorizedUrl (currentVariables s) (r ^. url))
+      keyValues :: Seq KeyValue = (^. keyValueIso) <$> S.filter isEnabled (r ^. headers)
+      headersWidget             = txt "Headers: " <+> readOnlyKeyValues keyValues
+      explanation               = case (hasActiveRequest, focused) of
+        (True, _) ->
+          [ explanationWithAttr importantExplanationAttr
+                                "Currently sending request -- press x to cancel"
+          ]
+        (False, True ) -> [explanationWithAttr explanationAttr "Press ENTER to send this request"]
+        (False, False) -> []
+  in  vBox $ explanation <> [titleWidget, headersWidget]

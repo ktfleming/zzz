@@ -67,14 +67,15 @@ handleEventProjectEdit
 handleEventProjectEdit key mods chan = iget >>>= \s ->
   let ProjectEditScreen c _ = s ^. screen
   in  case (key, mods) of
-        (KChar 's', []) -> finishEditingProject >>> save chan >>> showProjectDetails c >>> submerge
-        (KEsc     , []) -> showProjectDetails c >>> submerge
-        _               -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
+        (KChar 's', [MCtrl]) ->
+          finishEditingProject >>> save chan >>> showProjectDetails c >>> submerge
+        (KEsc, []) -> showProjectDetails c >>> submerge
+        _          -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
 handleEventProjectDetails
   :: Key
   -> [Modifier]
-  -> BChan CustomEvent
+  -> BChan CustomEvent -- TODO: unnecessary
   -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) AnyAppState ()
 handleEventProjectDetails key mods _ = iget >>>= \s ->
   let ProjectDetailsScreen c list = s ^. screen

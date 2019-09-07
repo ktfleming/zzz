@@ -63,8 +63,8 @@ myMap = attrMap
   , (invalidFormInputAttr    , V.white `on` V.red)
   , (editFocusedAttr         , V.black `on` V.cyan)
   , (focusedFormInputAttr    , V.black `on` V.cyan)
-  , (headerNameAttr          , fg V.blue)
-  , (headerValueAttr         , fg V.green)
+  , (keyValueKeyAttr         , fg V.blue)
+  , (keyValueValueAttr       , fg V.green)
   , (disabledAttr            , fg (V.Color240 252))
   , (jsonKeyAttr             , fg V.blue)
   , (jsonStringAttr          , fg V.green)
@@ -75,4 +75,5 @@ myMap = attrMap
   , (explanationAttr         , V.blue `on` V.white)
   , (importantExplanationAttr, V.white `on` V.blue)
   , (searchPlaceholderAttr   , fg V.magenta)
+  , (templatedVariableAttr   , fg V.blue)
   ]

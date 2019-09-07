@@ -19,3 +19,9 @@ class HasBody s a | s -> a where
 
 class HasMethod s a | s -> a where
   method :: Lens' s a
+
+class HasValue s a | s -> a where
+  value :: Lens' s a
+
+class HasVariables s a | s -> a where
+  variables :: Lens' s a

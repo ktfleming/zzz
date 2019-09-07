@@ -13,6 +13,9 @@ import           Safe                           ( headMay )
 
 newtype Url = Url T.Text deriving (Show, FromJSON, ToJSON, Eq)
 
+-- TODO: with the introduction of variables that can be used in URLs,
+-- the following validation functions aren't used anymore. Could take them out.
+
 -- To be used with Brick's `editField`. Given a list of Texts, validate it and possibly return
 -- a Url newtype. Note that the edit field we provide will only have one line, so we only need
 -- to look at the head of this list.

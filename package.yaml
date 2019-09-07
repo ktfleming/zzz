@@ -53,12 +53,15 @@ library:
     - src
   exposed-modules:
     - Messages.Messages
+    - Parsing.TemplatedUrlParser
     - Types.AppState
     - Types.Constants
+    - Types.Models.Environment
     - Types.Models.Screen
     - Types.Search
     - UI.App
     - UI.Projects.List
+    - Utils.Text
 
 executables:
   zzz-exe:

@@ -4,7 +4,11 @@
 {-# LANGUAGE RankNTypes          #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module UI.Projects.Add where
+module UI.Projects.Add
+  ( finishAddingProject
+  , showProjectAddScreen
+  )
+where
 
 import           Brick                          ( txt
                                                 , (<+>)
@@ -39,7 +43,7 @@ finishAddingProject
   :: MonadIO m => IxStateT m (AppState 'ProjectAddTag) (AppState 'ProjectAddTag) ()
 finishAddingProject = do
   s <- iget
-  let AppState { appStateScreen = ProjectAddScreen form } = s
+  let ProjectAddScreen form = s ^. screen
   pid <- liftIO $ ProjectId <$> nextRandom
   let project = Project { projectName = formState form ^. name, projectRequestDefs = Map.empty }
   imodify $ projects . at pid ?~ project

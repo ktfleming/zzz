@@ -28,6 +28,13 @@ data Name =
           | HeadersField
           | RequestBodyField
 
+          -- Environment list screen
+          | EnvironmentList
+
+          -- Environment add/edit screen
+          | EnvironmentFormNameField
+          | VariablesField
+
           -- Search screen
           | SearchField
           | SearchResultsList

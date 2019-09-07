@@ -22,6 +22,10 @@ helpText s = case s of
   ProjectEditScreen{}       -> "Enter: Save | ESC: Return without saving"
   RequestDefAddScreen{}     -> "Enter: Finsh adding | ESC: Return without adding"
   RequestDefEditScreen{}    -> "Enter: Save | ESC: Return without saving"
+  EnvironmentListScreen{}   -> "todo"
+  EnvironmentEditScreen{}   -> "todo"
+  EnvironmentAddScreen{}    -> "todo"
+  --EnvironmentDetailsScreen{} -> "todo"
   HelpScreen                -> "todo"
   SearchScreen{}            -> "todo"
 

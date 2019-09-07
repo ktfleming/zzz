@@ -37,9 +37,11 @@ import           Types.Models.Url               ( Url(..) )
 
 -- TODO: should this be ByteString?
 newtype ResponseBody = ResponseBody T.Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype StatusCode = StatusCode Int deriving (Eq, Show, FromJSON, ToJSON)
 
 data Response = Response {
     responseBody :: ResponseBody
+  , responseStatusCode :: StatusCode
   , responseDateTime :: UTCTime
   , responseMethod :: Method
   , responseUrl :: Url
@@ -53,6 +55,7 @@ makeFields ''Response
 instance ToJSON Response where
   toJSON r = object
     [ "body" .= (r ^. body . coerced :: T.Text)
+    , "status_code" .= (r ^. statusCode . coerced :: Int)
     , "date_time" .= (r ^. dateTime)
     , "method" .= (r ^. method)
     , "url" .= (r ^. url . coerced :: T.Text)
@@ -65,6 +68,7 @@ instance FromJSON Response where
   parseJSON = withObject "Response" $ \o ->
     Response
       <$> (o .: "body")
+      <*> (o .: "status_code")
       <*> (o .: "date_time")
       <*> (o .: "method")
       <*> (o .: "url")

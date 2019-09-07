@@ -4,11 +4,11 @@ import           Brick.AttrMap                  ( AttrName
                                                 , attrName
                                                 )
 
-headerNameAttr :: AttrName
-headerNameAttr = attrName "headerName"
+keyValueKeyAttr :: AttrName
+keyValueKeyAttr = attrName "keyValueKey"
 
-headerValueAttr :: AttrName
-headerValueAttr = attrName "headerValue"
+keyValueValueAttr :: AttrName
+keyValueValueAttr = attrName "keyValueValue"
 
 -- For disabled Headers, etc
 disabledAttr :: AttrName
@@ -48,3 +48,7 @@ importantExplanationAttr = explanationAttr <> attrName "important"
 -- Search screen
 searchPlaceholderAttr :: AttrName
 searchPlaceholderAttr = attrName "searchPlaceholder"
+
+-- For variables that get substituted into a template
+templatedVariableAttr :: AttrName
+templatedVariableAttr = attrName "templatedVariable"

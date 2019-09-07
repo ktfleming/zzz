@@ -3,14 +3,15 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax  #-}
 
-module UI.Projects.Edit
-  ( finishEditingProject
-  , showEditProjectScreen
+module UI.Environments.Edit
+  ( finishEditingEnvironment
+  , showEnvironmentEditScreen
   )
 where
 
 import           Brick                          ( txt
                                                 , (<+>)
+                                                , (<=>)
                                                 )
 import           Brick.Forms                    ( editTextField
                                                 , formState
@@ -32,35 +33,38 @@ import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
-import           Types.Models.Project
+import           Types.Models.Environment
 import           Types.Models.Screen
 import           UI.Form                        ( ZZZForm
                                                 , spacedConcat
                                                 )
+import           UI.Forms.KeyValueList          ( makeKeyValueForm )
 
-finishEditingProject
-  :: Monad m => IxStateT m (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
-finishEditingProject = do
+finishEditingEnvironment
+  :: Monad m => IxStateT m (AppState 'EnvironmentEditTag) (AppState 'EnvironmentEditTag) ()
+finishEditingEnvironment = do
   s <- iget
-  let ProjectEditScreen c@(ProjectContext pid) form = s ^. screen
-      base     = model s c
-      newModel = updateProject base (formState form)
-  imodify $ projects . ix pid .~ newModel
+  let EnvironmentEditScreen c@(EnvironmentContext eid) form = s ^. screen
+      newModel = updateEnvironment (model s c) (formState form)
+  imodify $ environments . ix eid .~ newModel
 
-updateProject :: Project -> ProjectFormState -> Project
-updateProject base form = base & name .~ (form ^. name)
+updateEnvironment :: Environment -> EnvironmentFormState -> Environment
+updateEnvironment base form = base & name .~ (form ^. name) & variables .~ (form ^. variables)
 
-makeEditProjectForm :: AppState a -> ProjectContext -> ZZZForm ProjectFormState
-makeEditProjectForm s c =
-  let p         = model s c
-      editState = ProjectFormState { projectFormStateName = p ^. name }
+makeEnvironmentEditForm :: AppState a -> EnvironmentContext -> ZZZForm EnvironmentFormState
+makeEnvironmentEditForm s c =
+  let e         = model s c
+      editState = EnvironmentFormState { environmentFormStateName      = e ^. name
+                                       , environmentFormStateVariables = e ^. variables
+                                       }
   in  setFormConcat spacedConcat $ newForm
-        [ (txt "Project Name: " <+>)
-            @@= editTextField (name . coerced) ProjectFormNameField (Just 1)
+        [ (txt "Environment Name: " <+>)
+          @@= editTextField (name . coerced) EnvironmentFormNameField (Just 1)
+        , (txt "Variables:" <=>) @@= makeKeyValueForm variables VariablesField
         ]
         editState
 
-showEditProjectScreen
-  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectEditTag) ()
-showEditProjectScreen c =
-  imodify $ \s -> s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
+showEnvironmentEditScreen
+  :: Monad m => EnvironmentContext -> IxStateT m (AppState a) (AppState 'EnvironmentEditTag) ()
+showEnvironmentEditScreen c =
+  imodify $ \s -> s & screen .~ EnvironmentEditScreen c (makeEnvironmentEditForm s c)

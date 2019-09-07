@@ -43,7 +43,7 @@ import           Types.Models.Url               ( Url(..) )
 import           UI.Form                        ( ZZZForm
                                                 , spacedConcat
                                                 )
-import           UI.Forms.Headers               ( makeHeadersForm )
+import           UI.Forms.KeyValueList          ( makeKeyValueForm )
 
 finishAddingRequestDef
   :: MonadIO m => IxStateT m (AppState 'RequestDefAddTag) (AppState 'RequestDefAddTag) ()
@@ -63,7 +63,7 @@ makeAddRequestDefForm :: ZZZForm RequestDefFormState
 makeAddRequestDefForm = setFormConcat spacedConcat $ newForm
   [ (txt "Name:     " <+>) @@= editTextField (name . coerced) RequestDefFormNameField (Just 1)
   , (txt "URL:      " <+>) @@= editTextField (url . coerced) RequestDefFormUrlField (Just 1)
-  , (txt "Headers:  " <+>) @@= makeHeadersForm
+  , (txt "Headers:  " <+>) @@= makeKeyValueForm headers HeadersField
   ]
   RequestDefFormState { requestDefFormStateName    = RequestDefName "New Request Definition"
                       , requestDefFormStateUrl     = Url "http://example.com"

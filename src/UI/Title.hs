@@ -31,5 +31,9 @@ title s = case s ^. screen of
   RequestDefAddScreen  _ _      -> "New Request Definition"
   RequestDefDetailsScreen c _ _ -> requestDefBaseTitle s c
   RequestDefEditScreen c _      -> requestDefBaseTitle s c <> " (Editing)"
+  EnvironmentListScreen{}       -> "Environments"
+  --EnvironmentDetailsScreen{}    -> "Environment details"
+  EnvironmentEditScreen{}       -> "Environment edit"
+  EnvironmentAddScreen{}        -> "Environment add"
   HelpScreen                    -> "Help"
   SearchScreen{}                -> "Search"

@@ -37,6 +37,7 @@ import           Control.Concurrent.Async       ( Async
                                                 , async
                                                 , cancel
                                                 )
+import           Data.Foldable                  ( toList )
 import           Data.String.Conversions        ( cs )
 import           Data.Time                      ( diffUTCTime
                                                 , getCurrentTime
@@ -44,6 +45,8 @@ import           Data.Time                      ( diffUTCTime
 import           Data.Time.Clock                ( UTCTime )
 import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
+import           Network.HTTP.Req               ( HttpConfig )
+import           Network.HTTP.Req               ( httpConfigCheckResponse )
 import qualified Network.HTTP.Req              as Req
 import           Prelude                 hiding ( Monad(..)
                                                 , pure
@@ -54,11 +57,16 @@ import           Types.Brick.Name               ( Name )
 import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
 import           Types.Methods                  ( Method(..) )
+import           Types.Models.Environment       ( Environment
+                                                , Variable
+                                                )
 import           Types.Models.Header
+import           Types.Models.KeyValue          ( isEnabled )
 import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
 import           Types.Models.Url               ( Url(..) )
+import           Utils.Text                     ( substitute )
 
 
 -- GADT to hide the scheme
@@ -110,8 +118,10 @@ type Step a
 sendRequest' :: RequestDefContext -> BChan CustomEvent -> Step ()
 sendRequest' c@(RequestDefContext _ rid) chan = do
   s <- lift iget :: Step (AppState 'RequestDefDetailsTag)
-  let r :: RequestDef = model s c
-      u :: T.Text     = r ^. url . coerced
+  let r :: RequestDef        = model s c
+      e :: Maybe Environment = model s <$> s ^. environmentContext
+      vars :: [Variable]     = maybe [] (toList . view variables) e
+      u :: T.Text            = substitute (r ^. url . coerced) vars
   lift $ logMessage $ "Preparing to send request to URL " <> u :: Step ()
   validatedUrl <- failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u)) :: Step EitherReq
   startTime    <- liftIO getCurrentTime :: Step UTCTime
@@ -138,14 +148,15 @@ constructResponse anyReq r startTime = do
   bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r)
   now        <- lift getCurrentTime :: ExceptT String IO UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
-      response              = Response { responseBody        = ResponseBody responseMsg
-                                       , responseDateTime    = now
-                                       , responseMethod      = r ^. method
-                                       , responseUrl         = r ^. url
-                                       , responseHeaders = S.filter isHeaderEnabled $ r ^. headers
-                                       , responseRequestBody = r ^. body
-                                       , responseElapsedTime = diffUTCTime now startTime
-                                       }
+      response = Response { responseBody        = ResponseBody responseMsg
+                          , responseStatusCode  = StatusCode $ Req.responseStatusCode bsResponse
+                          , responseDateTime    = now
+                          , responseMethod      = r ^. method
+                          , responseUrl         = r ^. url
+                          , responseHeaders     = S.filter isEnabled $ r ^. headers
+                          , responseRequestBody = r ^. body
+                          , responseElapsedTime = diffUTCTime now startTime
+                          }
   return response
 
 -- This performs the actual request via the req library's `runReq`. Should be run on a background thread.
@@ -156,11 +167,11 @@ doHttpRequest (AnyReq u opts) r =
           Req.header (encodeUtf8 $ h ^. name . coerced) (encodeUtf8 $ h ^. value . coerced)
 
       headerOpts :: Req.Option scheme
-      headerOpts = foldr (<>) mempty (headerToOpt <$> S.filter isHeaderEnabled (r ^. headers))
+      headerOpts = foldr (<>) mempty (headerToOpt <$> S.filter isEnabled (r ^. headers))
 
       allOpts    = opts <> headerOpts
       reqBody    = Req.ReqBodyBs $ cs (r ^. body . coerced :: T.Text)
-  in  Req.runReq Req.defaultHttpConfig $ case r ^. method of
+  in  Req.runReq httpConfig $ case r ^. method of
         Get   -> Req.req Req.GET u Req.NoReqBody Req.bsResponse allOpts
         Post  -> Req.req Req.POST u reqBody Req.bsResponse allOpts
         Patch -> Req.req Req.PATCH u reqBody Req.bsResponse allOpts
@@ -171,3 +182,8 @@ cancelRequest
 cancelRequest (RequestDefContext _ rid) target = do
   imodify $ activeRequests . at rid .~ Nothing
   liftIO $ cancel target
+
+-- `Req`'s default config, but without throwing an exception on non-2xx status codes,
+-- since we want to keep those as normal Responses
+httpConfig :: HttpConfig
+httpConfig = Req.defaultHttpConfig { httpConfigCheckResponse = \_ _ _ -> Nothing }

@@ -51,6 +51,8 @@ import           Types.Constants                ( mainSettingsFile
 import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Screen
 import           UI.Console                     ( toggleConsole )
+import           UI.Environments.List           ( showEnvironmentListScreen )
+import           UI.Events.Environments
 import           UI.Events.Projects
 import           UI.Events.RequestDefs
 import           UI.Modal                       ( dismissModal
@@ -87,11 +89,14 @@ handleEventInState
 
 handleEventInState (AppEvent customEvent) _ =
   iget >>>= \(AnyAppState s) -> iput s >>> handleCustomEvent customEvent >>> submerge
-handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = toggleConsole
+handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = toggleConsole
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
 handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ =
   iget >>>= \(AnyAppState s) -> iput s >>> showSearchScreen >>> submerge
+handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ =
+  iget >>>= \(AnyAppState s) -> iput s >>> showEnvironmentListScreen >>> submerge
+
 
 handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s) ->
   case (s ^. modal, key) of
@@ -106,6 +111,10 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       RequestDefDetailsScreen{} -> handleEventRequestDetails key mods chan |$| s
       RequestDefEditScreen{}    -> handleEventRequestEdit key mods chan |$| s
       RequestDefAddScreen{}     -> handleEventRequestAdd key mods chan |$| s
+      EnvironmentListScreen{}   -> handleEventEnvironmentList key mods |$| s
+--      EnvironmentDetailsScreen{} -> handleEventEnvironmentDetails key mods |$| s
+      EnvironmentEditScreen{}   -> handleEventEnvironmentEdit key mods chan |$| s
+      EnvironmentAddScreen{}    -> handleEventEnvironmentAdd key mods chan |$| s
       SearchScreen{}            -> handleSearchEvent key mods |$| s
       HelpScreen                -> ireturn ()
 handleEventInState _ _ = ireturn ()

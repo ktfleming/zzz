@@ -17,6 +17,7 @@ import           Control.Lens                   ( Lens
                                                 , at
                                                 , coerced
                                                 , lens
+                                                , view
                                                 , (&)
                                                 , (.~)
                                                 , (^.)
@@ -29,6 +30,7 @@ import           Data.Aeson                     ( FromJSON
                                                 , toJSON
                                                 , withObject
                                                 , (.:)
+                                                , (.:?)
                                                 , (.=)
                                                 )
 import           Data.HashMap.Strict            ( HashMap )
@@ -37,8 +39,11 @@ import           Data.Maybe                     ( fromMaybe )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
+import           Types.Classes.Fields
 import           Types.Modal
-import           Types.Models.Id                ( ProjectId
+import           Types.Models.Environment
+import           Types.Models.Id                ( EnvironmentId
+                                                , ProjectId
                                                 , RequestDefId
                                                 )
 import           Types.Models.Project
@@ -57,6 +62,8 @@ type Responses = HashMap RequestDefId (Seq Response)
 data AppState (a :: ScreenTag) = AppState {
                             appStateScreen :: Screen a
                          , _appStateProjects :: HashMap ProjectId Project
+                         , _appStateEnvironments :: HashMap EnvironmentId Environment
+                         , _appStateEnvironmentContext :: Maybe EnvironmentContext -- the currently selected environment
                          , _appStateModal :: Maybe Modal
                          , _appStateMessages :: Seq Message
                          , _appStateResponses :: HashMap RequestDefId (Seq Response)
@@ -76,26 +83,34 @@ screen = lens getter setter
   setter appState newScreen = appState { appStateScreen = newScreen }
 
 emptyAppState :: AppState 'HelpTag
-emptyAppState = AppState { appStateScreen            = HelpScreen
-                         , _appStateProjects         = Map.empty
-                         , _appStateModal            = Nothing
-                         , _appStateMessages         = S.singleton (Message "Started")
-                         , _appStateResponses        = Map.empty
-                         , _appStateHelpPanelVisible = HelpPanelVisible False
-                         , _appStateConsoleVisible   = ConsoleVisible False
-                         , _appStateActiveRequests   = Map.empty
+emptyAppState = AppState { appStateScreen              = HelpScreen
+                         , _appStateProjects           = Map.empty
+                         , _appStateEnvironments       = Map.empty
+                         , _appStateEnvironmentContext = Nothing
+                         , _appStateModal              = Nothing
+                         , _appStateMessages           = S.singleton (Message "Started")
+                         , _appStateResponses          = Map.empty
+                         , _appStateHelpPanelVisible   = HelpPanelVisible False
+                         , _appStateConsoleVisible     = ConsoleVisible False
+                         , _appStateActiveRequests     = Map.empty
                          }
 
 data AnyAppState where
     AnyAppState ::AppState a -> AnyAppState
 
 instance ToJSON (AppState a) where
-  toJSON s = object ["projects" .= (s ^. projects)]
+  toJSON s = object
+    [ "projects" .= (s ^. projects)
+    , "environments" .= (s ^. environments)
+    , "environment_context" .= (s ^. environmentContext)
+    ]
 
 instance FromJSON (AppState 'HelpTag) where
   parseJSON = withObject "AppState" $ \o -> do
-    ps <- o .: "projects"
-    return $ emptyAppState & projects .~ ps
+    ps  <- o .: "projects"
+    es  <- o .: "environments"
+    eid <- o .:? "environment_context"
+    return $ emptyAppState & projects .~ ps & environments .~ es & environmentContext .~ eid
 
 lookupProject :: AppState a -> ProjectContext -> Project
 lookupProject s (ProjectContext pid) = (Map.!) (s ^. projects) pid
@@ -108,3 +123,12 @@ lookupResponses :: AppState a -> RequestDefContext -> Seq Response
 lookupResponses s (RequestDefContext _ rid) =
   let m :: HashMap RequestDefId (Seq Response) = s ^. responses . coerced
   in  fromMaybe S.empty (m ^. at rid)
+
+lookupEnvironment :: AppState a -> EnvironmentContext -> Environment
+lookupEnvironment s (EnvironmentContext eid) = (Map.!) (s ^. environments) eid
+
+currentEnvironment :: AppState a -> Maybe Environment
+currentEnvironment s = lookupEnvironment s <$> s ^. environmentContext
+
+currentVariables :: AppState a -> Seq Variable
+currentVariables s = maybe S.empty (view variables) (currentEnvironment s)
