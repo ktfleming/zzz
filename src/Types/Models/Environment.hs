@@ -77,3 +77,6 @@ instance ToJSON Variable where
 
 instance FromJSON Variable where
   parseJSON = fmap (view (from keyValueIso)) . parseJSON
+
+instance Displayable Environment where
+  display e = e ^. name . coerced

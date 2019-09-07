@@ -7,7 +7,6 @@ import           Brick                          ( App(..)
                                                 , attrMap
                                                 , padBottom
                                                 , showFirstCursor
-                                                , txt
                                                 , (<=>)
                                                 )
 import           Brick.BChan                    ( BChan )
@@ -33,7 +32,7 @@ import           UI.EventHandler                ( handleEvent )
 import           UI.HelpPanel                   ( helpPanel )
 import           UI.MainWidget                  ( mainWidget )
 import           UI.Modal                       ( renderModal )
-import           UI.Title                       ( title )
+import           UI.StatusBar                   ( statusBar )
 
 uiApp :: BChan CustomEvent -> App AnyAppState CustomEvent Name
 uiApp chan = App { appDraw         = drawUI
@@ -45,11 +44,10 @@ uiApp chan = App { appDraw         = drawUI
 
 drawUI :: AnyAppState -> [Widget Name]
 drawUI wrapper@(AnyAppState s) =
-  let titleLine    = txt $ title s
-      titleAndMain = titleLine <=> hBorder <=> padBottom Max (mainWidget wrapper)
-      everything   = if s ^. helpPanelVisible . coerced
-        then titleAndMain <=> hBorder <=> helpPanel (s ^. screen)
-        else titleAndMain
+  let main       = statusBar s <=> padBottom Max (mainWidget wrapper)
+      everything = if s ^. helpPanelVisible . coerced
+        then main <=> hBorder <=> helpPanel (s ^. screen)
+        else main
       modalWidget  = maybeToList $ renderModal s <$> (s ^. modal)
       maybeConsole = console (s ^. messages)
   in  if s ^. consoleVisible . coerced then [maybeConsole] else modalWidget ++ [everything]
@@ -72,8 +70,9 @@ myMap = attrMap
   , (jsonBoolAttr            , fg V.magenta)
   , (jsonNullAttr            , V.white `on` V.black)
   , (methodAttr              , fg V.magenta)
-  , (explanationAttr         , V.blue `on` V.white)
+  , (explanationAttr         , fg V.cyan)
   , (importantExplanationAttr, V.white `on` V.blue)
   , (searchPlaceholderAttr   , fg V.magenta)
   , (templatedVariableAttr   , fg V.blue)
+  , (statusBarAttr           , V.blue `on` V.white)
   ]

@@ -29,7 +29,6 @@ import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Displayable      ( Displayable )
 import           Types.Models.Screen
---import           UI.Environments.Details        ( environmentDetailsWidget )
 import           UI.List                        ( ZZZList
                                                 , renderGenericList
                                                 )
@@ -82,7 +81,6 @@ mainWidget (AnyAppState s) = case s ^. screen of
   RequestDefEditScreen _ form -> formHelpText <=> padForm (renderForm form)
   EnvironmentListScreen list ->
     listWithExplanation list "Select an environment to view its details."
---  EnvironmentDetailsScreen c    -> environmentDetailsWidget s c
   EnvironmentEditScreen _ form  -> formHelpText <=> padForm (renderForm form)
   EnvironmentAddScreen form     -> renderForm form
   SearchScreen edt resultList _ -> searchWidget edt resultList

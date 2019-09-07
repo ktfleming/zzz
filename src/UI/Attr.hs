@@ -52,3 +52,6 @@ searchPlaceholderAttr = attrName "searchPlaceholder"
 -- For variables that get substituted into a template
 templatedVariableAttr :: AttrName
 templatedVariableAttr = attrName "templatedVariable"
+
+statusBarAttr :: AttrName
+statusBarAttr = attrName "statusBar"

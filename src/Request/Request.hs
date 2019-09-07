@@ -37,6 +37,7 @@ import           Control.Concurrent.Async       ( Async
                                                 , async
                                                 , cancel
                                                 )
+import           Data.Coerce                    ( coerce )
 import           Data.Foldable                  ( toList )
 import           Data.String.Conversions        ( cs )
 import           Data.Time                      ( diffUTCTime
@@ -45,8 +46,6 @@ import           Data.Time                      ( diffUTCTime
 import           Data.Time.Clock                ( UTCTime )
 import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
-import           Network.HTTP.Req               ( HttpConfig )
-import           Network.HTTP.Req               ( httpConfigCheckResponse )
 import qualified Network.HTTP.Req              as Req
 import           Prelude                 hiding ( Monad(..)
                                                 , pure
@@ -121,12 +120,13 @@ sendRequest' c@(RequestDefContext _ rid) chan = do
   let r :: RequestDef        = model s c
       e :: Maybe Environment = model s <$> s ^. environmentContext
       vars :: [Variable]     = maybe [] (toList . view variables) e
-      u :: T.Text            = substitute (r ^. url . coerced) vars
-  lift $ logMessage $ "Preparing to send request to URL " <> u :: Step ()
-  validatedUrl <- failWith "Error parsing URL" (Req.parseUrl (encodeUtf8 u)) :: Step EitherReq
-  startTime    <- liftIO getCurrentTime :: Step UTCTime
-  asyncResult  <-
-    (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r chan startTime :: Step
+      u :: Url               = coerce $ substitute vars (r ^. url . coerced)
+  lift $ logMessage $ "Preparing to send request to URL " <> coerce u :: Step ()
+  validatedUrl <-
+    failWith "Error parsing URL" ((Req.parseUrl . encodeUtf8 . coerce) u) :: Step EitherReq
+  startTime   <- liftIO getCurrentTime :: Step UTCTime
+  asyncResult <-
+    (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan startTime :: Step
       (Async ())
   lift $ imodify $ activeRequests . at rid ?~ asyncResult :: Step ()
   return ()
@@ -134,17 +134,18 @@ sendRequest' c@(RequestDefContext _ rid) chan = do
 -- Tries sending the request and constructing the Response model, then sends a custom
 -- event into Brick's BChan depending on whether it was a success or failure.
 -- Should be run on a background thread.
-backgroundSend :: AnyReq -> RequestDefContext -> RequestDef -> BChan CustomEvent -> UTCTime -> IO ()
-backgroundSend anyReq c r chan startTime =
-  runExceptT (constructResponse anyReq r startTime) >>= \case
+backgroundSend
+  :: AnyReq -> RequestDefContext -> RequestDef -> Url -> BChan CustomEvent -> UTCTime -> IO ()
+backgroundSend anyReq c r u chan startTime =
+  runExceptT (constructResponse anyReq r u startTime) >>= \case
     Left  e        -> writeBChan chan (ResponseError c e)
     Right response -> writeBChan chan (ResponseSuccess c response)
 
 -- Tries sending the request and constructs the resulting Response model if it was successful.
 -- If an HttpException is encountered, will return an error string in ExceptT's error channel.
 -- Should be run on a background thread.
-constructResponse :: AnyReq -> RequestDef -> UTCTime -> ExceptT String IO Response
-constructResponse anyReq r startTime = do
+constructResponse :: AnyReq -> RequestDef -> Url -> UTCTime -> ExceptT String IO Response
+constructResponse anyReq r u startTime = do
   bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r)
   now        <- lift getCurrentTime :: ExceptT String IO UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
@@ -152,7 +153,7 @@ constructResponse anyReq r startTime = do
                           , responseStatusCode  = StatusCode $ Req.responseStatusCode bsResponse
                           , responseDateTime    = now
                           , responseMethod      = r ^. method
-                          , responseUrl         = r ^. url
+                          , responseUrl         = u
                           , responseHeaders     = S.filter isEnabled $ r ^. headers
                           , responseRequestBody = r ^. body
                           , responseElapsedTime = diffUTCTime now startTime
@@ -185,5 +186,5 @@ cancelRequest (RequestDefContext _ rid) target = do
 
 -- `Req`'s default config, but without throwing an exception on non-2xx status codes,
 -- since we want to keep those as normal Responses
-httpConfig :: HttpConfig
-httpConfig = Req.defaultHttpConfig { httpConfigCheckResponse = \_ _ _ -> Nothing }
+httpConfig :: Req.HttpConfig
+httpConfig = Req.defaultHttpConfig { Req.httpConfigCheckResponse = \_ _ _ -> Nothing }

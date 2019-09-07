@@ -22,6 +22,8 @@ tryPretty t = do
   return $ (cs . encodePretty) decoded
 
 -- Substitutes any variables like {{this}} inside the provided text
-substitute :: T.Text -> [Variable] -> T.Text
-substitute =
-  foldr $ \v curr -> T.replace ("{{" <> v ^. name . coerced <> "}}") (v ^. value . coerced) curr
+substitute :: [Variable] -> T.Text -> T.Text
+substitute vars t = foldr
+  (\v curr -> T.replace ("{{" <> v ^. name . coerced <> "}}") (v ^. value . coerced) curr)
+  t
+  vars
