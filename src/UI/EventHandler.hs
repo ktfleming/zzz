@@ -111,8 +111,7 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       RequestDefDetailsScreen{} -> handleEventRequestDetails key mods chan |$| s
       RequestDefEditScreen{}    -> handleEventRequestEdit key mods chan |$| s
       RequestDefAddScreen{}     -> handleEventRequestAdd key mods chan |$| s
-      EnvironmentListScreen{}   -> handleEventEnvironmentList key mods |$| s
---      EnvironmentDetailsScreen{} -> handleEventEnvironmentDetails key mods |$| s
+      EnvironmentListScreen{}   -> handleEventEnvironmentList key mods chan |$| s
       EnvironmentEditScreen{}   -> handleEventEnvironmentEdit key mods chan |$| s
       EnvironmentAddScreen{}    -> handleEventEnvironmentAdd key mods chan |$| s
       SearchScreen{}            -> handleSearchEvent key mods |$| s

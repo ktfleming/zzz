@@ -54,22 +54,29 @@ handleEventEnvironmentAdd key mods chan = iget >>>= \s -> case (key, mods) of
   _          -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
 handleEventEnvironmentList
-  :: Key -> [Modifier] -> IxStateT (EventM Name) (AppState 'EnvironmentListTag) AnyAppState ()
-handleEventEnvironmentList key mods = iget >>>= \s ->
+  :: Key
+  -> [Modifier]
+  -> BChan CustomEvent
+  -> IxStateT (EventM Name) (AppState 'EnvironmentListTag) AnyAppState ()
+handleEventEnvironmentList key mods chan = iget >>>= \s ->
   let EnvironmentListScreen list = s ^. screen
       selectedEnv                = snd <$> listSelectedElement list
   in  case (key, mods) of
         (KEnter, []) -> case selectedEnv of
-          Just (EnvironmentListItem c _) ->
-            imodify (environmentContext ?~ c) >>> showProjectListScreen >>> submerge
+          Just (AnEnvironment c _) ->
+            imodify (environmentContext ?~ c) >>> save chan >>> showProjectListScreen >>> submerge
+          Just NoEnvironment ->
+            imodify (environmentContext .~ Nothing)
+              >>> save chan
+              >>> showProjectListScreen
+              >>> submerge
           Nothing -> submerge
         (KChar 'd', []) -> case selectedEnv of
-          Just (EnvironmentListItem c _) ->
-            imodify (modal ?~ DeleteEnvironmentModal c) >>> submerge
-          Nothing -> submerge
+          Just (AnEnvironment c _) -> imodify (modal ?~ DeleteEnvironmentModal c) >>> submerge
+          _                        -> submerge
         (KChar 'e', []) -> case selectedEnv of
-          Just (EnvironmentListItem c _) -> showEnvironmentEditScreen c >>> submerge
-          Nothing                        -> submerge
+          Just (AnEnvironment c _) -> showEnvironmentEditScreen c >>> submerge
+          _                        -> submerge
         (KChar 'a', []) -> showEnvironmentAddScreen >>> submerge
         _               -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
 

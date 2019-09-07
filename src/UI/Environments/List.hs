@@ -23,10 +23,10 @@ makeEnvironmentList :: HashMap EnvironmentId Environment -> ZZZList EnvironmentL
 makeEnvironmentList em =
   let tuples    = Map.toList em
       listItems = foldr
-        (\(eid, e) items -> items |> EnvironmentListItem (EnvironmentContext eid) (e ^. name))
+        (\(eid, e) items -> items |> AnEnvironment (EnvironmentContext eid) (e ^. name))
         S.empty
         tuples
-  in  list EnvironmentList listItems 1
+  in  list EnvironmentList (NoEnvironment <| listItems) 1
 
 showEnvironmentListScreen :: Monad m => IxStateT m (AppState a) (AppState 'EnvironmentListTag) ()
 showEnvironmentListScreen =

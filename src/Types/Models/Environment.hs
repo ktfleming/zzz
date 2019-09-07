@@ -49,7 +49,7 @@ data Environment = Environment { environmentName :: EnvironmentName
                                }
 
 newtype EnvironmentContext = EnvironmentContext EnvironmentId deriving (FromJSON, ToJSON, Show)
-data EnvironmentListItem = EnvironmentListItem EnvironmentContext EnvironmentName
+data EnvironmentListItem = NoEnvironment | AnEnvironment EnvironmentContext EnvironmentName
 
 data EnvironmentFormState = EnvironmentFormState { environmentFormStateName :: EnvironmentName
                                                  , environmentFormStateVariables :: Seq Variable
@@ -70,7 +70,8 @@ instance FromJSON Environment where
   parseJSON = withObject "Environment" $ \o -> Environment <$> (o .: "name") <*> (o .: "variables")
 
 instance Displayable EnvironmentListItem where
-  display (EnvironmentListItem _ n) = coerce n
+  display NoEnvironment       = "(No environment)"
+  display (AnEnvironment _ n) = coerce n
 
 instance ToJSON Variable where
   toJSON = toJSON . view keyValueIso
