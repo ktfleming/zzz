@@ -19,8 +19,8 @@ extra-source-files:
 description:         Please see the README on GitHub at <https://github.com/kvnflm/zzz#readme>
 
 dependencies:
-- base >= 4.7 && < 5
-- brick == 0.47.1
+- base
+- brick == 0.49
 - vty
 - lens
 - generic-lens
