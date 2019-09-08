@@ -63,3 +63,4 @@ title s = case s ^. screen of
   EnvironmentAddScreen{}        -> "New Environment"
   HelpScreen                    -> "Help"
   SearchScreen{}                -> "Search"
+  MessagesScreen                -> "Messages"

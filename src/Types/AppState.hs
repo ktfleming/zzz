@@ -53,7 +53,6 @@ import           Types.Models.Screen
 
 newtype Message = Message T.Text deriving (Show)
 newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show)
-newtype ConsoleVisible = ConsoleVisible Bool deriving (Show)
 
 -- Just a regular type alias instead of a newtype because I had some trouble getting
 -- the lens for this field in `AppState` to work. Could revisit in the future.
@@ -68,8 +67,8 @@ data AppState (a :: ScreenTag) = AppState {
                          , _appStateMessages :: Seq Message
                          , _appStateResponses :: HashMap RequestDefId (Seq Response)
                          , _appStateHelpPanelVisible :: HelpPanelVisible
-                         , _appStateConsoleVisible :: ConsoleVisible
                          , _appStateActiveRequests :: HashMap RequestDefId (Async ())
+                         , _appStateStashedScreen :: Maybe AnyScreen
                          }
 
 makeFields ''AppState
@@ -91,8 +90,8 @@ emptyAppState = AppState { appStateScreen              = HelpScreen
                          , _appStateMessages           = S.singleton (Message "Started")
                          , _appStateResponses          = Map.empty
                          , _appStateHelpPanelVisible   = HelpPanelVisible False
-                         , _appStateConsoleVisible     = ConsoleVisible False
                          , _appStateActiveRequests     = Map.empty
+                         , _appStateStashedScreen      = Nothing
                          }
 
 data AnyAppState where

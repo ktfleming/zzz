@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE RankNTypes       #-}
 {-# LANGUAGE RebindableSyntax #-}
 
 module Utils.IxState where
@@ -56,3 +57,16 @@ wrapScreen s = iget >>>= \scr -> iput $ s & screen .~ scr
 -- Sends the 'save' event to Brick's event loop, inside the IxStateT stack
 save :: MonadIO m => BChan CustomEvent -> IxStateT m i i ()
 save chan = (ilift . liftIO) (writeBChan chan Save)
+
+stashScreen :: Monad m => IxStateT m (AppState a) (AppState a) ()
+stashScreen = do
+  s <- iget
+  imodify $ stashedScreen ?~ AnyScreen (s ^. screen)
+
+unstashScreen :: Monad m => IxStateT m (AppState i) AnyAppState ()
+unstashScreen = do
+  s <- iget
+  case s ^. stashedScreen of
+    Nothing                  -> submerge
+    Just (AnyScreen stashed) -> imodify $ AnyAppState . (screen .~ stashed)
+

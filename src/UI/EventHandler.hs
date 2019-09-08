@@ -50,7 +50,6 @@ import           Types.Constants                ( mainSettingsFile
                                                 )
 import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Screen
-import           UI.Console                     ( toggleConsole )
 import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.Events.Environments
 import           UI.Events.Projects
@@ -63,7 +62,9 @@ import           UI.Search                      ( handleSearchEvent
                                                 , showSearchScreen
                                                 )
 import           Utils.IxState                  ( save
+                                                , stashScreen
                                                 , submerge
+                                                , unstashScreen
                                                 , (>>>)
                                                 , (|$|)
                                                 )
@@ -89,13 +90,16 @@ handleEventInState
 
 handleEventInState (AppEvent customEvent) _ =
   iget >>>= \(AnyAppState s) -> iput s >>> handleCustomEvent customEvent >>> submerge
-handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = toggleConsole
+handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
+  iput s >>> case s ^. screen of
+    MessagesScreen -> unstashScreen
+    _              -> stashScreen >>> imodify (screen .~ MessagesScreen) >>> submerge
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
 handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ =
   iget >>>= \(AnyAppState s) -> iput s >>> showSearchScreen >>> submerge
 handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ =
-  iget >>>= \(AnyAppState s) -> iput s >>> showEnvironmentListScreen >>> submerge
+  iget >>>= \(AnyAppState s) -> iput s >>> stashScreen >>> showEnvironmentListScreen >>> submerge
 
 
 handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s) ->
@@ -116,6 +120,7 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       EnvironmentAddScreen{}    -> handleEventEnvironmentAdd key mods chan |$| s
       SearchScreen{}            -> handleSearchEvent key mods |$| s
       HelpScreen                -> ireturn ()
+      MessagesScreen            -> ireturn ()
 handleEventInState _ _ = ireturn ()
 
 handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()

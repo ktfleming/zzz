@@ -38,6 +38,7 @@ import           UI.Projects.List               ( showProjectListScreen )
 import           Utils.IxState                  ( extractScreen
                                                 , save
                                                 , submerge
+                                                , unstashScreen
                                                 , wrapScreen
                                                 , (>>>)
                                                 )
@@ -64,7 +65,7 @@ handleEventEnvironmentList key mods chan = iget >>>= \s ->
   in  case (key, mods) of
         (KEnter, []) -> case selectedEnv of
           Just (AnEnvironment c _) ->
-            imodify (environmentContext ?~ c) >>> save chan >>> showProjectListScreen >>> submerge
+            imodify (environmentContext ?~ c) >>> save chan >>> unstashScreen
           Just NoEnvironment ->
             imodify (environmentContext .~ Nothing)
               >>> save chan

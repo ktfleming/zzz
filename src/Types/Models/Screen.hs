@@ -33,6 +33,7 @@ data ScreenTag =
   | EnvironmentAddTag
   | SearchTag
   | HelpTag
+  | MessagesTag
 
 -- Represents what main "view" of the app the user is looking at, and also holds the local state for that view
 data Screen (a :: ScreenTag) where
@@ -49,6 +50,12 @@ data Screen (a :: ScreenTag) where
 
   SearchScreen            ::Editor T.Text Name -> ZZZList SearchResult -> Seq SearchResult -> Screen 'SearchTag
   HelpScreen              ::Screen 'HelpTag
+  MessagesScreen          ::Screen 'MessagesTag
 
 instance Show (Screen a) where
   show _ = "(Screen)"
+
+-- This is used in AppState's `stashedScreen`, using a GADT to hide the phantom type
+data AnyScreen where
+  AnyScreen ::Screen a -> AnyScreen
+

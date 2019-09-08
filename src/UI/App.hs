@@ -27,7 +27,6 @@ import           Types.AppState
 import           Types.Brick.CustomEvent
 import           Types.Brick.Name
 import           UI.Attr
-import           UI.Console                     ( console )
 import           UI.EventHandler                ( handleEvent )
 import           UI.HelpPanel                   ( helpPanel )
 import           UI.MainWidget                  ( mainWidget )
@@ -48,9 +47,8 @@ drawUI wrapper@(AnyAppState s) =
       everything = if s ^. helpPanelVisible . coerced
         then main <=> hBorder <=> helpPanel (s ^. screen)
         else main
-      modalWidget  = maybeToList $ renderModal s <$> (s ^. modal)
-      maybeConsole = console (s ^. messages)
-  in  if s ^. consoleVisible . coerced then [maybeConsole] else modalWidget ++ [everything]
+      modalWidget = maybeToList $ renderModal s <$> (s ^. modal)
+  in  modalWidget ++ [everything]
 startEvent :: AnyAppState -> EventM Name AnyAppState
 startEvent = return
 

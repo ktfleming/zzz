@@ -24,6 +24,9 @@ import           Brick.Widgets.List             ( listElements
                                                 , listSelectedElement
                                                 )
 import           Control.Lens
+import           Data.Coerce                    ( coerce )
+import           Data.Foldable                  ( toList )
+import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
@@ -46,6 +49,9 @@ padForm = padTop (Pad 1) . padLeft (Pad 2)
 
 listWithExplanation :: Displayable a => ZZZList a -> T.Text -> Widget Name
 listWithExplanation list e = txtWrap e <=> padTop (Pad 1) (renderGenericList True list)
+
+displayMessages :: Seq Message -> Widget Name
+displayMessages ms = txt $ T.intercalate "\n" $ coerce (toList ms)
 
 mainWidget :: AnyAppState -> Widget Name
 mainWidget (AnyAppState s) = case s ^. screen of
@@ -84,3 +90,4 @@ mainWidget (AnyAppState s) = case s ^. screen of
   EnvironmentEditScreen _ form  -> formHelpText <=> padForm (renderForm form)
   EnvironmentAddScreen form     -> renderForm form
   SearchScreen edt resultList _ -> searchWidget edt resultList
+  MessagesScreen                -> displayMessages $ s ^. messages
