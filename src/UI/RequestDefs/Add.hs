@@ -51,11 +51,12 @@ finishAddingRequestDef = do
   s <- iget
   let RequestDefAddScreen (ProjectContext pid) form = s ^. screen
   rid <- liftIO $ RequestDefId <$> nextRandom
-  let req = RequestDef { requestDefName    = formState form ^. name
-                       , requestDefUrl     = formState form ^. url
-                       , requestDefMethod  = formState form ^. method
-                       , requestDefBody    = formState form ^. body
-                       , requestDefHeaders = formState form ^. headers
+  let req = RequestDef { requestDefName      = formState form ^. name
+                       , requestDefUrl       = formState form ^. url
+                       , requestDefMethod    = formState form ^. method
+                       , requestDefBody      = formState form ^. body
+                       , requestDefHeaders   = formState form ^. headers
+                       , requestDefLastError = Nothing
                        }
   imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 

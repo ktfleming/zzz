@@ -8,6 +8,7 @@
 module UI.Events.BrickUpdates
   ( updateBrickForm
   , updateBrickList
+  , listLens
   )
 where
 

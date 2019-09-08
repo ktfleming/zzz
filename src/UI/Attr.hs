@@ -4,6 +4,9 @@ import           Brick.AttrMap                  ( AttrName
                                                 , attrName
                                                 )
 
+errorAttr :: AttrName
+errorAttr = attrName "error"
+
 keyValueKeyAttr :: AttrName
 keyValueKeyAttr = attrName "keyValueKey"
 

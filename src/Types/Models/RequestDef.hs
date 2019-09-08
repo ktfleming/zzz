@@ -23,6 +23,7 @@ import           Data.Aeson                     ( FromJSON
 import           Data.Coerce                    ( coerce )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
+import           Data.Time                      ( UTCTime )
 import           Types.Classes.Displayable
 import           Types.Classes.Fields
 import           Types.Methods                  ( Method )
@@ -34,6 +35,7 @@ import           Types.Models.Url               ( Url(..) )
 
 newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show)
 newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype LastError = LastError UTCTime deriving (Show)
 
 data RequestDef = RequestDef {
     requestDefName :: RequestDefName
@@ -41,6 +43,7 @@ data RequestDef = RequestDef {
   , requestDefMethod :: Method
   , requestDefBody :: RequestBody
   , requestDefHeaders :: Seq Header
+  , requestDefLastError :: Maybe LastError
   } deriving (Show)
 
 data RequestDefFormState = RequestDefFormState {
@@ -81,4 +84,4 @@ instance FromJSON RequestDef where
       <*> (o .: "method")
       <*> (o .: "body")
       <*> (o .: "headers")
-
+      <*> pure Nothing  -- LastError is not persisted to disk

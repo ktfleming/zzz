@@ -9,7 +9,8 @@ import           Brick                          ( EventM
                                                 , viewportScroll
                                                 )
 import           Brick.BChan                    ( BChan )
-import           Brick.Focus                    ( focusGetCurrent
+import           Brick.Focus                    ( FocusRing
+                                                , focusGetCurrent
                                                 , focusNext
                                                 , focusPrev
                                                 )
@@ -83,30 +84,30 @@ handleEventRequestDetails
   -> BChan CustomEvent
   -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
 handleEventRequestDetails key mods chan = iget >>>= \s ->
-  let
-    RequestDefDetailsScreen c@(RequestDefContext _ rid) list ring = s ^. screen
-    focused       = focusGetCurrent ring
-    activeRequest = Map.lookup rid (s ^. activeRequests)
-  in
-    case (key, mods) of
-      (KLeft, []) ->
-        let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
-      (KChar 'x', []) -> maybe (ireturn ()) (cancelRequest c) activeRequest >>> submerge
-      (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
-      (KChar 'd', []) -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
-      (KEnter   , []) -> if focused == Just RequestDetails && isNothing activeRequest
-        then sendRequest c chan >>> submerge
-        else ireturn () >>> submerge
-      (KChar '\t', []) ->
-        imodify (screen .~ RequestDefDetailsScreen c list (focusNext ring)) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm
-      (KBackTab, []) ->
-        imodify (screen .~ RequestDefDetailsScreen c list (focusPrev ring)) >>> submerge
-      _ -> case focused of
-        Just ResponseList -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
-        Just ResponseBodyDetails ->
-          let vp = viewportScroll ResponseBodyViewport
-          in  case key of
-                KUp   -> ilift (vScrollBy vp (-5)) >>> submerge
-                KDown -> ilift (vScrollBy vp 5) >>> submerge
-                _     -> ireturn () >>> submerge
-        _ -> ireturn () >>> submerge
+  let RequestDefDetailsScreen c@(RequestDefContext _ rid) _ ring = s ^. screen
+      focused       = focusGetCurrent ring
+      activeRequest = Map.lookup rid (s ^. activeRequests)
+      ringLens :: Lens' (Screen 'RequestDefDetailsTag) (FocusRing Name)
+      ringLens = lens
+        (\(RequestDefDetailsScreen _ _ target) -> target)
+        (\(RequestDefDetailsScreen x y _) toSet -> RequestDefDetailsScreen x y toSet)
+  in  case (key, mods) of
+        (KLeft, []) ->
+          let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
+        (KChar 'x', []) -> maybe (ireturn ()) (cancelRequest c) activeRequest >>> submerge
+        (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
+        (KChar 'd', []) -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
+        (KEnter   , []) -> if focused == Just RequestDetails && isNothing activeRequest
+          then sendRequest c chan >>> submerge
+          else ireturn () >>> submerge
+        (KChar '\t', []) -> imodify (screen . ringLens .~ focusNext ring) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm?
+        (KBackTab  , []) -> imodify (screen . ringLens .~ focusPrev ring) >>> submerge
+        _                -> case focused of
+          Just ResponseList -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
+          Just ResponseBodyDetails ->
+            let vp = viewportScroll ResponseBodyViewport
+            in  case key of
+                  KUp   -> ilift (vScrollBy vp (-5)) >>> submerge
+                  KDown -> ilift (vScrollBy vp 5) >>> submerge
+                  _     -> ireturn () >>> submerge
+          _ -> ireturn () >>> submerge

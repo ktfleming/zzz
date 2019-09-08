@@ -55,7 +55,8 @@ startEvent = return
 myMap :: AttrMap
 myMap = attrMap
   V.defAttr
-  [ (listSelectedFocusedAttr , V.white `on` V.blue)
+  [ (errorAttr               , V.white `on` V.red)
+  , (listSelectedFocusedAttr , V.white `on` V.blue)
   , (invalidFormInputAttr    , V.white `on` V.red)
   , (editFocusedAttr         , V.black `on` V.cyan)
   , (focusedFormInputAttr    , V.black `on` V.cyan)

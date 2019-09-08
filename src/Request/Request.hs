@@ -61,6 +61,7 @@ import           Types.Models.Environment       ( Environment
                                                 )
 import           Types.Models.Header
 import           Types.Models.KeyValue          ( isEnabled )
+import           Types.Models.Project           ( requestDefs )
 import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
@@ -94,11 +95,22 @@ sendRequest
        (AppState 'RequestDefDetailsTag)
        (AppState 'RequestDefDetailsTag)
        ()
-sendRequest c chan = do
+sendRequest c@(RequestDefContext pid rid) chan = do
   result <- runExceptT $ sendRequest' c chan
   case result of
-    Left  msg -> logMessage (T.pack msg)
-    Right _   -> return ()
+    Left msg -> do
+      now <- liftIO getCurrentTime
+      imodify
+        $  projects
+        .  at pid
+        .  _Just
+        .  requestDefs
+        .  at rid
+        .  _Just
+        .  lastError
+        ?~ LastError now
+      logMessage (T.pack msg)
+    Right _ -> return ()
 
 -- Seems like the sendRequest' function needs some help with type annotations, so this alias will make it
 -- not so verbose.
@@ -129,7 +141,6 @@ sendRequest' c@(RequestDefContext _ rid) chan = do
     (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan startTime :: Step
       (Async ())
   lift $ imodify $ activeRequests . at rid ?~ asyncResult :: Step ()
-  return ()
 
 -- Tries sending the request and constructing the Response model, then sends a custom
 -- event into Brick's BChan depending on whether it was a success or failure.

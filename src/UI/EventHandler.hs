@@ -35,6 +35,7 @@ import           Data.ByteString.Lazy           ( writeFile )
 import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
 import qualified Data.Text                     as T
+import           Data.Time                      ( getCurrentTime )
 import           Graphics.Vty.Input.Events
 import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
@@ -48,7 +49,11 @@ import           Types.Brick.Name               ( Name(..) )
 import           Types.Constants                ( mainSettingsFile
                                                 , responseHistoryFile
                                                 )
-import           Types.Models.RequestDef        ( RequestDefContext(..) )
+import           Types.Models.Project           ( requestDefs )
+import           Types.Models.RequestDef        ( LastError(..)
+                                                , RequestDefContext(..)
+                                                , lastError
+                                                )
 import           Types.Models.Screen
 import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.Events.Environments
@@ -125,13 +130,17 @@ handleEventInState _ _ = ireturn ()
 
 handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()
 handleCustomEvent Save = saveState
-handleCustomEvent (ResponseError (RequestDefContext _ rid) e) = do
-  _ <- logMessage ("Error: " <> T.pack e)
+handleCustomEvent (ResponseError (RequestDefContext pid rid) e) = do
+  _   <- logMessage ("Error: " <> T.pack e)
+  now <- liftIO getCurrentTime
+  _   <-
+    imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError ?~ LastError now
   _ <- imodify $ activeRequests . at rid .~ Nothing
   saveState
 
-handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) = do
+handleCustomEvent (ResponseSuccess (RequestDefContext pid rid) response) = do
   _ <- logMessage "Received response"
+  _ <- imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError .~ Nothing
   _ <- imodify $ responses . at rid . non S.empty %~ (response <|)
   _ <- imodify $ activeRequests . at rid .~ Nothing
   _ <- saveState
