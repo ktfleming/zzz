@@ -58,3 +58,16 @@ templatedVariableAttr = attrName "templatedVariable"
 
 statusBarAttr :: AttrName
 statusBarAttr = attrName "statusBar"
+
+-- For status codes
+statusCode200Attr :: AttrName
+statusCode200Attr = attrName "statusCode200"
+
+statusCode300Attr :: AttrName
+statusCode300Attr = attrName "statusCode300"
+
+statusCode400Attr :: AttrName
+statusCode400Attr = attrName "statusCode400"
+
+statusCode500Attr :: AttrName
+statusCode500Attr = attrName "statusCode500"

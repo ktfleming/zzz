@@ -7,6 +7,7 @@
 
 module Types.Models.RequestDef where
 
+import           Brick                          ( txt )
 import           Control.Lens                   ( coerced
                                                 , (^.)
                                                 )
@@ -61,11 +62,8 @@ data RequestDefListItem = RequestDefListItem RequestDefContext RequestDefName
 makeFields ''RequestDef
 makeFields ''RequestDefFormState
 
-instance Displayable RequestDef where
-  display r = r ^. name . coerced
-
 instance Displayable RequestDefListItem where
-  display (RequestDefListItem _ n) = coerce n
+  display (RequestDefListItem _ n) = txt $ coerce n
 
 instance ToJSON RequestDef where
   toJSON r = object

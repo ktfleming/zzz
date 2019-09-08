@@ -51,6 +51,7 @@ import           Prelude                 hiding ( Monad(..)
                                                 )
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
+import           Types.Classes.Displayable      ( display )
 import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
 import           Types.Models.KeyValue          ( KeyValue
@@ -67,9 +68,7 @@ import           UI.List                        ( ZZZList
                                                 , renderGenericList
                                                 )
 import           UI.Responses.Details           ( responseDetails )
-import           UI.Text                        ( explanationWithAttr
-                                                , methodWidget
-                                                )
+import           UI.Text                        ( explanationWithAttr )
 import           UI.Url                         ( colorizedUrl )
 
 makeResponseList :: Seq Response -> ZZZList Response
@@ -93,7 +92,7 @@ topWidget :: AppState 'RequestDefDetailsTag -> RequestDefContext -> Bool -> Widg
 topWidget s c@(RequestDefContext _ rid) focused =
   let r                = model s c
       hasActiveRequest = Map.member rid (s ^. activeRequests)
-      titleWidget      = txt "Request: " <+> methodWidget (r ^. method) <+> padLeft
+      titleWidget      = txt "Request: " <+> display (r ^. method) <+> padLeft
         (Pad 1)
         (colorizedUrl (currentVariables s) (r ^. url))
       keyValues :: Seq KeyValue = (^. keyValueIso) <$> S.filter isEnabled (r ^. headers)

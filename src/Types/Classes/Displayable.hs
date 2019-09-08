@@ -1,6 +1,7 @@
 module Types.Classes.Displayable where
 
-import qualified Data.Text                     as T
+import           Brick                          ( Widget )
+import           Types.Brick.Name               ( Name )
 
 class Displayable a where
-  display :: a -> T.Text
+  display :: a -> Widget Name

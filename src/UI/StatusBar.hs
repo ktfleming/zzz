@@ -21,14 +21,17 @@ import           Types.AppState                 ( AppState
                                                 , screen
                                                 )
 import           Types.Brick.Name               ( Name )
-import           Types.Classes.Displayable      ( display )
 import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
 import           Types.Models.Environment       ( EnvironmentContext(..)
                                                 , EnvironmentName(..)
                                                 )
-import           Types.Models.Project           ( ProjectContext(..) )
-import           Types.Models.RequestDef        ( RequestDefContext(..) )
+import           Types.Models.Project           ( ProjectContext(..)
+                                                , ProjectName(..)
+                                                )
+import           Types.Models.RequestDef        ( RequestDefContext(..)
+                                                , RequestDefName(..)
+                                                )
 import           Types.Models.Screen
 import           UI.Attr                        ( statusBarAttr )
 
@@ -38,16 +41,16 @@ statusBar s =
   in  (withAttr statusBarAttr . vLimit 1) $ txt (title s) <+> fill ' ' <+> txt envName
 
 projectBaseTitle :: AppState a -> ProjectContext -> T.Text
-projectBaseTitle s c = display (model s c)
+projectBaseTitle s c = model s c ^. name . coerced
 
 requestDefBaseTitle :: AppState a -> RequestDefContext -> T.Text
 requestDefBaseTitle s c@(RequestDefContext pid _) =
   let p = model s (ProjectContext pid)
       r = model s c
-  in  display p <> " > " <> display r
+  in  p ^. name . coerced <> " > " <> r ^. name . coerced
 
 environmentBaseTitle :: AppState a -> EnvironmentContext -> T.Text
-environmentBaseTitle s c = display (model s c)
+environmentBaseTitle s c = model s c ^. name . coerced
 
 title :: AppState a -> T.Text
 title s = case s ^. screen of

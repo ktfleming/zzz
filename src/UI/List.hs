@@ -22,5 +22,5 @@ renderGenericList :: Displayable x => Bool -> ZZZList x -> Widget Name
 renderGenericList = renderList f
  where
   f selected item =
-    let mainLine = padRight Max $ txt $ display item
+    let mainLine = padRight Max $ display item
     in  (if selected then txt "❯ " <+> mainLine else padLeft (Pad 2) mainLine)

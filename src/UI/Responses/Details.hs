@@ -25,6 +25,7 @@ import           Data.Text                     as T
 import           Data.Time.ISO8601              ( formatISO8601 )
 import           Numeric                        ( showFFloat )
 import           Types.Brick.Name               ( Name(..) )
+import           Types.Classes.Displayable      ( display )
 import           Types.Classes.Fields
 import           Types.Models.KeyValue          ( KeyValue
                                                 , keyValueIso
@@ -35,9 +36,7 @@ import           Types.Models.Url
 import           UI.Attr
 import           UI.Forms.KeyValueList          ( readOnlyKeyValues )
 import           UI.Json                        ( readOnlyJson )
-import           UI.Text                        ( explanationWithAttr
-                                                , methodWidget
-                                                )
+import           UI.Text                        ( explanationWithAttr )
 
 centerSection :: T.Text -> Widget Name
 centerSection t = hCenterWith (Just '-') (txt (" " <> t <> " "))
@@ -52,9 +51,10 @@ responseBodyViewport r =
       elapsedWidget             = str $ showFFloat (Just 0) elapsedMillis " ms"
   in  viewport ResponseBodyViewport Vertical $ vBox $ fst <$> Prelude.filter
         snd
-        [ (txt "Request:  " <+> methodWidget (r ^. method) <+> txt (" " <> u), True)
+        [ (txt "Request:  " <+> display (r ^. method) <+> txt (" " <> u), True)
         , (str $ "Received: " <> formatISO8601 (r ^. dateTime), True)
-        , (padBottom (Pad 1) $ txt "Elapsed:  " <+> elapsedWidget, True)
+        , (txt "Elapsed:  " <+> elapsedWidget, True)
+        , (padBottom (Pad 1) $ txt "Status:   " <+> display (r ^. statusCode), True)
         , (centerSection "Headers"           , not (S.null keyValues))
         , (readOnlyKeyValues keyValues       , not (S.null keyValues))
         , (centerSection "Request Body"      , not (T.null sentBody))

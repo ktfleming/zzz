@@ -2,6 +2,7 @@
 
 module Types.Search where
 
+import           Brick                          ( txt )
 import           Data.Coerce                    ( coerce )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
@@ -19,8 +20,7 @@ data SearchResult =
   | RequestDefResult ProjectName RequestDefName RequestDefContext
 
 instance Displayable SearchResult where
-  display (ProjectResult projectName _          ) = coerce projectName
-  display (RequestDefResult projectName rdName _) = coerce projectName <> " > " <> coerce rdName
+  display = txt . searchResultToText
 
 -- Check if all of the provided needles appear, in that order, in the haystack
 matchAll :: [T.Text] -> T.Text -> Bool
@@ -42,5 +42,9 @@ matchOne needle haystack =
 matchSearchText :: T.Text -> T.Text -> Bool
 matchSearchText = matchAll . T.words
 
+searchResultToText :: SearchResult -> T.Text
+searchResultToText (ProjectResult n _       ) = coerce n
+searchResultToText (RequestDefResult pn rn _) = coerce pn <> " > " <> coerce rn
+
 filterResults :: T.Text -> Seq SearchResult -> Seq SearchResult
-filterResults t = S.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . display)
+filterResults t = S.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . searchResultToText)

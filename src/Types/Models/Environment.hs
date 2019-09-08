@@ -8,6 +8,7 @@
 
 module Types.Models.Environment where
 
+import           Brick                          ( txt )
 import           Control.Lens                   ( coerced
                                                 , from
                                                 , iso
@@ -70,14 +71,11 @@ instance FromJSON Environment where
   parseJSON = withObject "Environment" $ \o -> Environment <$> (o .: "name") <*> (o .: "variables")
 
 instance Displayable EnvironmentListItem where
-  display NoEnvironment       = "(No environment)"
-  display (AnEnvironment _ n) = coerce n
+  display NoEnvironment       = txt "(No environment)"
+  display (AnEnvironment _ n) = txt $ coerce n
 
 instance ToJSON Variable where
   toJSON = toJSON . view keyValueIso
 
 instance FromJSON Variable where
   parseJSON = fmap (view (from keyValueIso)) . parseJSON
-
-instance Displayable Environment where
-  display e = e ^. name . coerced

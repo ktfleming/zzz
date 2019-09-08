@@ -7,6 +7,7 @@
 
 module Types.Models.Project where
 
+import           Brick                          ( txt )
 import           Control.Lens                   ( coerced
                                                 , (^.)
                                                 )
@@ -53,8 +54,5 @@ instance FromJSON Project where
   parseJSON =
     withObject "Project" $ \o -> Project <$> (o .: "name") <*> (o .: "request_definitions")
 
-instance Displayable Project where
-  display p = p ^. name . coerced
-
 instance Displayable ProjectListItem where
-  display (ProjectListItem _ n) = coerce n
+  display (ProjectListItem _ n) = txt $ coerce n

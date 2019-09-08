@@ -74,4 +74,8 @@ myMap = attrMap
   , (searchPlaceholderAttr   , fg V.magenta)
   , (templatedVariableAttr   , fg V.blue)
   , (statusBarAttr           , V.blue `on` V.white)
+  , (statusCode200Attr       , fg V.green)
+  , (statusCode300Attr       , fg V.yellow)
+  , (statusCode400Attr       , fg V.red)
+  , (statusCode500Attr       , fg V.red)
   ]

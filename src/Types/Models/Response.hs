@@ -7,6 +7,13 @@
 
 module Types.Models.Response where
 
+import           Brick                          ( Padding(Pad)
+                                                , padLeft
+                                                , str
+                                                , txt
+                                                , withAttr
+                                                , (<+>)
+                                                )
 import           Control.Lens                   ( coerced
                                                 , (^.)
                                                 )
@@ -26,6 +33,7 @@ import           Data.Time                      ( NominalDiffTime
                                                 , UTCTime
                                                 )
 import           Data.Time.ISO8601              ( formatISO8601 )
+import           Numeric                        ( showInt )
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
                                                 )
@@ -34,6 +42,7 @@ import           Types.Methods                  ( Method )
 import           Types.Models.Header            ( Header )
 import           Types.Models.RequestDef        ( RequestBody(..) )
 import           Types.Models.Url               ( Url(..) )
+import           UI.Attr
 
 -- TODO: should this be ByteString?
 newtype ResponseBody = ResponseBody T.Text deriving (Eq, Show, FromJSON, ToJSON)
@@ -76,5 +85,17 @@ instance FromJSON Response where
       <*> (o .: "headers")
       <*> (o .: "elapsed_time")
 
+-- Displays a status code in color
+instance Displayable StatusCode where
+  display (StatusCode code) | code >= 200 && code < 300 = withAttr statusCode200Attr w
+                            | code >= 300 && code < 400 = withAttr statusCode300Attr w
+                            | code >= 400 && code < 500 = withAttr statusCode400Attr w
+                            | code >= 500 && code < 600 = withAttr statusCode500Attr w
+                            | otherwise                 = w
+    where w = str $ showInt code ""
+
 instance Displayable Response where
-  display r = T.pack $ formatISO8601 (r ^. dateTime)
+  display r =
+    let sc   = display (r ^. statusCode)
+        time = txt $ T.pack $ formatISO8601 (r ^. dateTime)
+    in  sc <+> padLeft (Pad 1) time

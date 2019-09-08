@@ -3,6 +3,9 @@
 
 module Types.Methods where
 
+import           Brick                          ( txt
+                                                , withAttr
+                                                )
 import           Data.Aeson                     ( FromJSON
                                                 , ToJSON
                                                 )
@@ -15,6 +18,7 @@ import           Types.Brick.Name
 import           Types.Classes.Displayable      ( Displayable
                                                 , display
                                                 )
+import           UI.Attr                        ( methodAttr )
 
 data Method = Get | Post | Put | Patch deriving (Show, Generic, Eq, Ord)
 
@@ -32,9 +36,11 @@ allMethodsRadio =
   , (Patch, PatchRadioField, "PATCH")
   ]
 
-instance Displayable Method where
-  display Get   = "GET"
-  display Post  = "POST"
-  display Put   = "PUT"
-  display Patch = "PATCH"
+methodToText :: Method -> T.Text
+methodToText Get   = "GET"
+methodToText Post  = "POST"
+methodToText Put   = "PUT"
+methodToText Patch = "PATCH"
 
+instance Displayable Method where
+  display = withAttr methodAttr . txt . methodToText
