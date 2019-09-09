@@ -1,4 +1,6 @@
 {-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DeriveAnyClass             #-}
+{-# LANGUAGE DeriveGeneric              #-}
 {-# LANGUAGE FlexibleInstances          #-}
 {-# LANGUAGE FunctionalDependencies     #-}
 {-# LANGUAGE GADTs                      #-}
@@ -14,7 +16,6 @@ module Types.AppState where
 
 import           Control.Concurrent.Async       ( Async )
 import           Control.Lens                   ( Lens
-                                                , at
                                                 , coerced
                                                 , lens
                                                 , view
@@ -24,7 +25,9 @@ import           Control.Lens                   ( Lens
                                                 )
 import           Control.Lens.TH
 import           Data.Aeson                     ( FromJSON
+                                                , FromJSONKey
                                                 , ToJSON
+                                                , ToJSONKey
                                                 , object
                                                 , parseJSON
                                                 , toJSON
@@ -33,16 +36,18 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.:?)
                                                 , (.=)
                                                 )
+import           Data.Hashable                  ( Hashable )
 import           Data.HashMap.Strict            ( HashMap )
 import qualified Data.HashMap.Strict           as Map
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
+import           GHC.Generics
 import           Types.Classes.Fields
 import           Types.Modal
 import           Types.Models.Environment
-import           Types.Models.Id                ( EnvironmentId
+import           Types.Models.Id                ( EnvironmentId(..)
                                                 , ProjectId
                                                 , RequestDefId
                                                 )
@@ -56,7 +61,8 @@ newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show)
 
 -- Just a regular type alias instead of a newtype because I had some trouble getting
 -- the lens for this field in `AppState` to work. Could revisit in the future.
-type Responses = HashMap RequestDefId (Seq Response)
+data EnvironmentKey = IdKey EnvironmentId | NoEnvironmentKey deriving (Eq, Generic)
+type Responses = HashMap RequestDefId (HashMap EnvironmentKey (Seq Response))
 
 data AppState (a :: ScreenTag) = AppState {
                             appStateScreen :: Screen a
@@ -65,7 +71,7 @@ data AppState (a :: ScreenTag) = AppState {
                          , _appStateEnvironmentContext :: Maybe EnvironmentContext -- the currently selected environment
                          , _appStateModal :: Maybe Modal
                          , _appStateMessages :: Seq Message
-                         , _appStateResponses :: HashMap RequestDefId (Seq Response)
+                         , _appStateResponses :: Responses
                          , _appStateHelpPanelVisible :: HelpPanelVisible
                          , _appStateActiveRequests :: HashMap RequestDefId (Async ())
                          , _appStateStashedScreen :: Maybe AnyScreen
@@ -118,10 +124,10 @@ lookupRequestDef :: AppState a -> RequestDefContext -> RequestDef
 lookupRequestDef s (RequestDefContext pid rid) =
   let p = lookupProject s (ProjectContext pid) in (Map.!) (p ^. requestDefs) rid
 
-lookupResponses :: AppState a -> RequestDefContext -> Seq Response
-lookupResponses s (RequestDefContext _ rid) =
-  let m :: HashMap RequestDefId (Seq Response) = s ^. responses . coerced
-  in  fromMaybe S.empty (m ^. at rid)
+lookupResponses :: AppState a -> RequestDefContext -> EnvironmentKey -> Seq Response
+lookupResponses s (RequestDefContext _ rid) eid = fromMaybe S.empty $ do
+  envMap <- Map.lookup rid (s ^. responses)
+  Map.lookup eid envMap
 
 lookupEnvironment :: AppState a -> EnvironmentContext -> Environment
 lookupEnvironment s (EnvironmentContext eid) = (Map.!) (s ^. environments) eid
@@ -129,5 +135,15 @@ lookupEnvironment s (EnvironmentContext eid) = (Map.!) (s ^. environments) eid
 currentEnvironment :: AppState a -> Maybe Environment
 currentEnvironment s = lookupEnvironment s <$> s ^. environmentContext
 
+-- For looking up responses
+currentEnvironmentKey :: AppState a -> EnvironmentKey
+currentEnvironmentKey s = maybe NoEnvironmentKey IdKey (s ^. environmentContext . coerced)
+
 currentVariables :: AppState a -> Seq Variable
 currentVariables s = maybe S.empty (view variables) (currentEnvironment s)
+
+instance FromJSON EnvironmentKey
+instance FromJSONKey EnvironmentKey
+instance ToJSON EnvironmentKey
+instance ToJSONKey EnvironmentKey
+instance Hashable EnvironmentKey

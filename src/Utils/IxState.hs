@@ -56,7 +56,10 @@ wrapScreen s = iget >>>= \scr -> iput $ s & screen .~ scr
 
 -- Sends the 'save' event to Brick's event loop, inside the IxStateT stack
 save :: MonadIO m => BChan CustomEvent -> IxStateT m i i ()
-save chan = (ilift . liftIO) (writeBChan chan Save)
+save = sendEvent Save
+
+sendEvent :: MonadIO m => CustomEvent -> BChan CustomEvent -> IxStateT m i i ()
+sendEvent ev chan = (ilift . liftIO) (writeBChan chan ev)
 
 stashScreen :: Monad m => IxStateT m (AppState a) (AppState a) ()
 stashScreen = do

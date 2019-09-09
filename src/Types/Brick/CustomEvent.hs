@@ -8,3 +8,4 @@ data CustomEvent =
     Save
   | ResponseSuccess RequestDefContext Response
   | ResponseError RequestDefContext String
+  | RefreshResponseList -- TODO: delete

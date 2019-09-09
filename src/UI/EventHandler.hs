@@ -32,6 +32,7 @@ import           Control.Monad.IO.Class         ( MonadIO
                                                 )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( writeFile )
+import qualified Data.HashMap.Strict           as Map
 import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
 import qualified Data.Text                     as T
@@ -139,14 +140,21 @@ handleCustomEvent (ResponseError (RequestDefContext pid rid) e) = do
   saveState
 
 handleCustomEvent (ResponseSuccess (RequestDefContext pid rid) response) = do
+  s <- iget
+  let ekey = currentEnvironmentKey s
   _ <- logMessage "Received response"
   _ <- imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError .~ Nothing
-  _ <- imodify $ responses . at rid . non S.empty %~ (response <|)
+  _ <- imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
   _ <- imodify $ activeRequests . at rid .~ Nothing
   _ <- saveState
-  s <- iget
   case s ^. screen of
     RequestDefDetailsScreen{} -> refreshResponseList -- Only need to refresh the list if they're looking at it
+    _                         -> ireturn ()
+
+handleCustomEvent RefreshResponseList = do
+  s <- iget
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> refreshResponseList
     _                         -> ireturn ()
 
 saveState :: MonadIO m => IxStateT m (AppState a) (AppState a) ()

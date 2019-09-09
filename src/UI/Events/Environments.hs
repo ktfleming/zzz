@@ -9,17 +9,20 @@ import           Brick.BChan                    ( BChan )
 import           Brick.Types                    ( EventM )
 import           Brick.Widgets.List             ( listSelectedElement )
 import           Control.Lens
-import           Control.Monad.Indexed          ( (>>>=) )
+import           Control.Monad.Indexed          ( ireturn
+                                                , (>>>=)
+                                                )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
+                                                , iput
                                                 )
 import           Graphics.Vty.Input.Events
 import           Prelude                 hiding ( Monad(..)
                                                 , pure
                                                 )
 import           Types.AppState
-import           Types.Brick.CustomEvent        ( CustomEvent )
+import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Brick.Name               ( Name )
 import           Types.Modal
 import           Types.Models.Environment       ( EnvironmentListItem(..) )
@@ -34,7 +37,7 @@ import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.Events.BrickUpdates         ( updateBrickForm
                                                 , updateBrickList
                                                 )
-import           UI.Projects.List               ( showProjectListScreen )
+import           UI.RequestDefs.Details         ( refreshResponseList )
 import           Utils.IxState                  ( extractScreen
                                                 , save
                                                 , submerge
@@ -62,15 +65,20 @@ handleEventEnvironmentList
 handleEventEnvironmentList key mods chan = iget >>>= \s ->
   let EnvironmentListScreen list = s ^. screen
       selectedEnv                = snd <$> listSelectedElement list
+
+      refreshIfNecessary :: IxStateT (EventM Name) AnyAppState AnyAppState ()
+      refreshIfNecessary = iget >>>= \(AnyAppState s') -> case s' ^. screen of
+        RequestDefDetailsScreen{} -> iput s' >>> refreshResponseList >>> submerge
+        _                         -> ireturn ()
   in  case (key, mods) of
         (KEnter, []) -> case selectedEnv of
           Just (AnEnvironment c _) ->
-            imodify (environmentContext ?~ c) >>> save chan >>> unstashScreen
+            imodify (environmentContext ?~ c) >>> save chan >>> unstashScreen >>> refreshIfNecessary
           Just NoEnvironment ->
             imodify (environmentContext .~ Nothing)
               >>> save chan
-              >>> showProjectListScreen
-              >>> submerge
+              >>> unstashScreen
+              >>> refreshIfNecessary
           Nothing -> submerge
         (KChar 'd', []) -> case selectedEnv of
           Just (AnEnvironment c _) -> imodify (modal ?~ DeleteEnvironmentModal c) >>> submerge

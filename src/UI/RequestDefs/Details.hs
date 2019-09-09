@@ -79,14 +79,16 @@ showRequestDefDetails
 showRequestDefDetails c = do
   s <- iget
   let ring = focusRing [RequestDetails, ResponseList, ResponseBodyDetails]
-  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c)) ring
+      ekey = currentEnvironmentKey s
+  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring
 
 refreshResponseList
   :: Monad m => IxStateT m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
 refreshResponseList = do
   s <- iget
   let RequestDefDetailsScreen c _ _ = s ^. screen
-  imodify $ screen . listLens .~ makeResponseList (lookupResponses s c)
+      ekey                          = currentEnvironmentKey s
+  imodify $ screen . listLens .~ makeResponseList (lookupResponses s c ekey)
 
 topWidget :: AppState 'RequestDefDetailsTag -> RequestDefContext -> Bool -> Widget Name
 topWidget s c@(RequestDefContext _ rid) focused =
