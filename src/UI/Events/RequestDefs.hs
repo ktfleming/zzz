@@ -14,6 +14,7 @@ import           Brick.Focus                    ( FocusRing
                                                 , focusNext
                                                 , focusPrev
                                                 )
+import           Brick.Widgets.List             ( listSelected )
 import           Control.Lens
 import           Control.Monad.Indexed          ( ireturn
                                                 , (>>>=)
@@ -35,6 +36,7 @@ import           Types.Brick.Name
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectContext(..) )
 import           Types.Models.RequestDef        ( RequestDefContext(..) )
+import           Types.Models.Response          ( ResponseIndex(..) )
 import           Types.Models.Screen
 import           UI.Events.BrickUpdates         ( updateBrickForm
                                                 , updateBrickList
@@ -84,20 +86,25 @@ handleEventRequestDetails
   -> BChan CustomEvent
   -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
 handleEventRequestDetails key mods chan = iget >>>= \s ->
-  let RequestDefDetailsScreen c@(RequestDefContext _ rid) _ ring = s ^. screen
+  let RequestDefDetailsScreen c@(RequestDefContext _ rid) list ring = s ^. screen
       focused       = focusGetCurrent ring
       activeRequest = Map.lookup rid (s ^. activeRequests)
       ringLens :: Lens' (Screen 'RequestDefDetailsTag) (FocusRing Name)
       ringLens = lens
         (\(RequestDefDetailsScreen _ _ target) -> target)
         (\(RequestDefDetailsScreen x y _) toSet -> RequestDefDetailsScreen x y toSet)
+      selectedResponse = ResponseIndex <$> listSelected list
   in  case (key, mods) of
         (KLeft, []) ->
           let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
         (KChar 'x', []) -> maybe (ireturn ()) (cancelRequest c) activeRequest >>> submerge
         (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
-        (KChar 'd', []) -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
-        (KEnter   , []) -> if focused == Just RequestDetails && isNothing activeRequest
+        (KChar 'd', []) -> case (focused, selectedResponse) of
+          (Just ResponseList, Just i) -> imodify (modal ?~ DeleteResponseModal c i) >>> submerge
+          (Just ResponseBodyDetails, Just i) ->
+            imodify (modal ?~ DeleteResponseModal c i) >>> submerge
+          _ -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
+        (KEnter, []) -> if focused == Just RequestDetails && isNothing activeRequest
           then sendRequest c chan >>> submerge
           else ireturn () >>> submerge
         (KChar '\t', []) -> imodify (screen . ringLens .~ focusNext ring) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm?

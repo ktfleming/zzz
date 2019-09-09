@@ -48,6 +48,9 @@ import           UI.Attr
 newtype ResponseBody = ResponseBody T.Text deriving (Eq, Show, FromJSON, ToJSON)
 newtype StatusCode = StatusCode Int deriving (Eq, Show, FromJSON, ToJSON)
 
+-- Used for deleting a response by index
+newtype ResponseIndex = ResponseIndex Int deriving (Show)
+
 data Response = Response {
     responseBody :: ResponseBody
   , responseStatusCode :: StatusCode
