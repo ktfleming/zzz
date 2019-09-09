@@ -184,10 +184,11 @@ doHttpRequest (AnyReq u opts) r =
       allOpts    = opts <> headerOpts
       reqBody    = Req.ReqBodyBs $ cs (r ^. body . coerced :: T.Text)
   in  Req.runReq httpConfig $ case r ^. method of
-        Get   -> Req.req Req.GET u Req.NoReqBody Req.bsResponse allOpts
-        Post  -> Req.req Req.POST u reqBody Req.bsResponse allOpts
-        Patch -> Req.req Req.PATCH u reqBody Req.bsResponse allOpts
-        _     -> error "TODO"
+        Get    -> Req.req Req.GET u Req.NoReqBody Req.bsResponse allOpts
+        Post   -> Req.req Req.POST u reqBody Req.bsResponse allOpts
+        Patch  -> Req.req Req.PATCH u reqBody Req.bsResponse allOpts
+        Put    -> Req.req Req.PUT u reqBody Req.bsResponse allOpts
+        Delete -> Req.req Req.DELETE u Req.NoReqBody Req.bsResponse allOpts
 
 cancelRequest
   :: MonadIO m => RequestDefContext -> Async () -> IxStateT m (AppState a) (AppState a) ()

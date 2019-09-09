@@ -25,6 +25,7 @@ data Name =
           | PostRadioField
           | PutRadioField
           | PatchRadioField
+          | DeleteRadioField
           | HeadersField
           | RequestBodyField
 

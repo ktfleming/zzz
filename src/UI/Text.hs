@@ -7,7 +7,6 @@ import           Brick                          ( AttrName
                                                 , Widget
                                                 , padBottom
                                                 , padTop
-                                                
                                                 , txt
                                                 , withAttr
                                                 , (<+>)

@@ -20,7 +20,7 @@ import           Types.Classes.Displayable      ( Displayable
                                                 )
 import           UI.Attr                        ( methodAttr )
 
-data Method = Get | Post | Put | Patch deriving (Show, Generic, Eq, Ord)
+data Method = Get | Post | Put | Patch | Delete deriving (Show, Generic, Eq, Ord)
 
 instance ToJSON Method
 instance FromJSON Method
@@ -30,17 +30,19 @@ allMethods = fromList [Get, Post, Put, Patch]
 
 allMethodsRadio :: [(Method, Name, T.Text)]
 allMethodsRadio =
-  [ (Get  , GetRadioField  , "GET")
-  , (Post , PostRadioField , "POST")
-  , (Put  , PutRadioField  , "PUT")
-  , (Patch, PatchRadioField, "PATCH")
+  [ (Get   , GetRadioField   , "GET")
+  , (Post  , PostRadioField  , "POST")
+  , (Put   , PutRadioField   , "PUT")
+  , (Patch , PatchRadioField , "PATCH")
+  , (Delete, DeleteRadioField, "DELETE")
   ]
 
 methodToText :: Method -> T.Text
-methodToText Get   = "GET"
-methodToText Post  = "POST"
-methodToText Put   = "PUT"
-methodToText Patch = "PATCH"
+methodToText Get    = "GET"
+methodToText Post   = "POST"
+methodToText Put    = "PUT"
+methodToText Patch  = "PATCH"
+methodToText Delete = "DELETE"
 
 instance Displayable Method where
   display = withAttr methodAttr . txt . methodToText
