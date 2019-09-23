@@ -6,6 +6,7 @@ module UI.Events.RequestDefs where
 
 import           Brick                          ( EventM
                                                 , vScrollBy
+                                                , vScrollToBeginning
                                                 , viewportScroll
                                                 )
 import           Brick.BChan                    ( BChan )
@@ -94,6 +95,11 @@ handleEventRequestDetails key mods chan = iget >>>= \s ->
         (\(RequestDefDetailsScreen _ _ target) -> target)
         (\(RequestDefDetailsScreen x y _) toSet -> RequestDefDetailsScreen x y toSet)
       selectedResponse = ResponseIndex <$> listSelected list
+
+      modifyFocus f =
+          imodify (screen . ringLens %~ f)
+            >>> ilift (vScrollToBeginning (viewportScroll ResponseBodyViewport))
+            >>> submerge
   in  case (key, mods) of
         (KLeft, []) ->
           let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
@@ -107,8 +113,8 @@ handleEventRequestDetails key mods chan = iget >>>= \s ->
         (KEnter, []) -> if focused == Just RequestDetails && isNothing activeRequest
           then sendRequest c chan >>> submerge
           else submerge
-        (KChar '\t', []) -> imodify (screen . ringLens .~ focusNext ring) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm?
-        (KBackTab  , []) -> imodify (screen . ringLens .~ focusPrev ring) >>> submerge
+        (KChar '\t', []) -> modifyFocus focusNext
+        (KBackTab  , []) -> modifyFocus focusPrev
         _                -> case focused of
           Just ResponseList -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
           Just ResponseBodyDetails ->
