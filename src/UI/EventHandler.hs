@@ -14,6 +14,8 @@ import           Brick                          ( BrickEvent(..)
                                                 , Next
                                                 , continue
                                                 , halt
+                                                , vScrollToEnd
+                                                , viewportScroll
                                                 )
 import           Brick.BChan                    ( BChan )
 import           Control.Lens
@@ -58,13 +60,14 @@ import           Types.Models.RequestDef        ( LastError(..)
 import           Types.Models.Screen
 import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.Events.Environments
+import           UI.Events.Messages             ( handleEventMessages )
 import           UI.Events.Projects
 import           UI.Events.RequestDefs
 import           UI.Modal                       ( dismissModal
                                                 , handleConfirm
                                                 )
 import           UI.RequestDefs.Details         ( refreshResponseList )
-import           UI.Search                      ( handleSearchEvent
+import           UI.Search                      ( handleEventSearch
                                                 , showSearchScreen
                                                 )
 import           Utils.IxState                  ( save
@@ -99,7 +102,11 @@ handleEventInState (AppEvent customEvent) _ =
 handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   iput s >>> case s ^. screen of
     MessagesScreen -> unstashScreen
-    _              -> stashScreen >>> imodify (screen .~ MessagesScreen) >>> submerge
+    _ ->
+      stashScreen
+        >>> imodify (screen .~ MessagesScreen)
+        >>> ilift (vScrollToEnd (viewportScroll MessagesViewport))
+        >>> submerge
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
 handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ =
@@ -124,9 +131,9 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       EnvironmentListScreen{}   -> handleEventEnvironmentList key mods chan |$| s
       EnvironmentEditScreen{}   -> handleEventEnvironmentEdit key mods chan |$| s
       EnvironmentAddScreen{}    -> handleEventEnvironmentAdd key mods chan |$| s
-      SearchScreen{}            -> handleSearchEvent key mods |$| s
+      SearchScreen{}            -> handleEventSearch key mods |$| s
+      MessagesScreen            -> handleEventMessages key mods |$| s
       HelpScreen                -> ireturn ()
-      MessagesScreen            -> ireturn ()
 handleEventInState _ _ = ireturn ()
 
 handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()

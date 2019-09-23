@@ -5,6 +5,10 @@ module Types.Classes.Fields where
 
 import           Control.Lens
 
+-- These are written out by hand so that makeFields from lens will use these typeclasses
+-- instead of generating ones in other files via TemplateHaskell; this makes it easier to
+-- avoid import/dependency problems.
+
 class HasName s a | s -> a where
   name :: Lens' s a
 
@@ -25,3 +29,9 @@ class HasValue s a | s -> a where
 
 class HasVariables s a | s -> a where
   variables :: Lens' s a
+
+class HasDateTime s a | s -> a where
+  dateTime :: Lens' s a
+
+class HasText s a | s -> a where
+  text :: Lens' s a

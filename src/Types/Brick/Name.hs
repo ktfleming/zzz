@@ -40,4 +40,7 @@ data Name =
           | SearchField
           | SearchResultsList
 
+          -- Messages screen
+          | MessagesViewport
+
           deriving (Eq, Ord, Show)

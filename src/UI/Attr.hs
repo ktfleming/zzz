@@ -75,3 +75,7 @@ statusCode400Attr = attrName "statusCode400"
 
 statusCode500Attr :: AttrName
 statusCode500Attr = attrName "statusCode500"
+
+-- Messages
+timestampAttr :: AttrName
+timestampAttr = attrName "timestamp"

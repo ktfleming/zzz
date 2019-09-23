@@ -5,7 +5,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Search
-  ( handleSearchEvent
+  ( handleEventSearch
   , searchWidget
   , showSearchScreen
   )
@@ -123,9 +123,9 @@ searchSelect (RequestDefResult _ _ c) = showRequestDefDetails c >>> submerge
 -- Up and Down arrows move the selection
 -- ENTER selects
 -- All other keys are forwarded to the editor
-handleSearchEvent
+handleEventSearch
   :: Key -> [Modifier] -> IxStateT (EventM Name) (AppState 'SearchTag) AnyAppState ()
-handleSearchEvent key mods = do
+handleEventSearch key mods = do
   s <- iget
   let SearchScreen edt resultList allResults = s ^. screen
       forwardToList k = extractScreen >>> updateBrickList k >>> wrapScreen s >>> submerge

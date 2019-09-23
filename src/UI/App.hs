@@ -79,4 +79,5 @@ myMap = attrMap
   , (statusCode300Attr       , fg V.yellow)
   , (statusCode400Attr       , fg V.red)
   , (statusCode500Attr       , fg V.red)
+  , (timestampAttr           , fg V.green)
   ]

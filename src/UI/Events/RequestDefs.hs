@@ -106,7 +106,7 @@ handleEventRequestDetails key mods chan = iget >>>= \s ->
           _ -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
         (KEnter, []) -> if focused == Just RequestDetails && isNothing activeRequest
           then sendRequest c chan >>> submerge
-          else ireturn () >>> submerge
+          else submerge
         (KChar '\t', []) -> imodify (screen . ringLens .~ focusNext ring) >>> submerge -- TODO: HasFocusRing typeclass w/ modify method, similar to HasBrickForm?
         (KBackTab  , []) -> imodify (screen . ringLens .~ focusPrev ring) >>> submerge
         _                -> case focused of
@@ -116,5 +116,5 @@ handleEventRequestDetails key mods chan = iget >>>= \s ->
             in  case key of
                   KUp   -> ilift (vScrollBy vp (-5)) >>> submerge
                   KDown -> ilift (vScrollBy vp 5) >>> submerge
-                  _     -> ireturn () >>> submerge
-          _ -> ireturn () >>> submerge
+                  _     -> submerge
+          _ -> submerge

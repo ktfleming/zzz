@@ -7,9 +7,7 @@ import           Brick.BChan                    ( BChan )
 import           Brick.Types                    ( EventM )
 import           Brick.Widgets.List             ( listSelectedElement )
 import           Control.Lens
-import           Control.Monad.Indexed          ( ireturn
-                                                , (>>>=)
-                                                )
+import           Control.Monad.Indexed          ( (>>>=) )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
@@ -83,7 +81,7 @@ handleEventProjectDetails key mods _ = iget >>>= \s ->
         (KRight, []) -> case listSelectedElement list of
           Just (_, RequestDefListItem reqContext _) ->
             showRequestDefDetails reqContext >>> submerge
-          Nothing -> ireturn () >>> submerge
+          Nothing -> submerge
         (KChar 'e', []) -> showEditProjectScreen c >>> submerge
         (KChar 'a', []) -> showAddRequestDefScreen c >>> submerge
         (KChar 'd', []) -> imodify (modal ?~ DeleteProjectModal c) >>> submerge
@@ -100,6 +98,6 @@ handleEventProjectList key mods _ = iget >>>= \s ->
   in  case (key, mods) of
         (KRight, []) -> case listSelectedElement list of
           Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
-          Nothing                             -> ireturn () >>> submerge
+          Nothing                             -> submerge
         (KChar 'a', []) -> showProjectAddScreen >>> submerge
         _               -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge

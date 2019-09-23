@@ -43,6 +43,7 @@ import           Data.Maybe                     ( fromMaybe )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
+import           Data.Time                      ( UTCTime )
 import           GHC.Generics
 import           Types.Classes.Fields
 import           Types.Modal
@@ -56,7 +57,10 @@ import           Types.Models.RequestDef
 import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
 
-newtype Message = Message T.Text deriving (Show)
+data Message = Message { messageDateTime :: UTCTime, messageText :: T.Text }
+
+makeFields ''Message
+
 newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show)
 
 -- Just a regular type alias instead of a newtype because I had some trouble getting
@@ -93,7 +97,7 @@ emptyAppState = AppState { appStateScreen              = HelpScreen
                          , _appStateEnvironments       = Map.empty
                          , _appStateEnvironmentContext = Nothing
                          , _appStateModal              = Nothing
-                         , _appStateMessages           = S.singleton (Message "Started")
+                         , _appStateMessages           = S.empty
                          , _appStateResponses          = Map.empty
                          , _appStateHelpPanelVisible   = HelpPanelVisible False
                          , _appStateActiveRequests     = Map.empty
