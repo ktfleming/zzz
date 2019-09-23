@@ -56,8 +56,12 @@ searchPlaceholderAttr = attrName "searchPlaceholder"
 templatedVariableAttr :: AttrName
 templatedVariableAttr = attrName "templatedVariable"
 
+-- Status bar (on top)
 statusBarAttr :: AttrName
 statusBarAttr = attrName "statusBar"
+
+environmentNameAttr :: AttrName
+environmentNameAttr = statusBarAttr <> attrName "environmentName"
 
 -- For status codes
 statusCode200Attr :: AttrName

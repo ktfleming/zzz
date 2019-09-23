@@ -33,12 +33,16 @@ import           Types.Models.RequestDef        ( RequestDefContext(..)
                                                 , RequestDefName(..)
                                                 )
 import           Types.Models.Screen
-import           UI.Attr                        ( statusBarAttr )
+import           UI.Attr                        ( environmentNameAttr
+                                                , statusBarAttr
+                                                )
 
 statusBar :: AppState s -> Widget Name
 statusBar s =
   let envName :: T.Text = maybe "No environment" (^. name . coerced) (currentEnvironment s)
-  in  (withAttr statusBarAttr . vLimit 1) $ txt (title s) <+> fill ' ' <+> txt envName
+  in  (withAttr statusBarAttr . vLimit 1) $ txt (title s) <+> fill ' ' <+> withAttr
+        environmentNameAttr
+        (txt envName)
 
 projectBaseTitle :: AppState a -> ProjectContext -> T.Text
 projectBaseTitle s c = model s c ^. name . coerced
