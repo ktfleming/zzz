@@ -41,7 +41,7 @@ import           Types.Models.RequestDef        ( RequestDefFormState
                                                 )
 import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
-import           Types.Search                   ( SearchResult )
+import           Types.Search                   ( SearchListItem )
 import           UI.Form                        ( ZZZForm )
 import           UI.List                        ( ZZZList )
 
@@ -107,7 +107,7 @@ instance HasBrickList (Screen 'EnvironmentListTag) where
   listLens = lens (\(EnvironmentListScreen l) -> l) (\_ l -> EnvironmentListScreen l)
 
 instance HasBrickList (Screen 'SearchTag) where
-  type ListItem (Screen 'SearchTag) = SearchResult
+  type ListItem (Screen 'SearchTag) = SearchListItem
   listLens = lens (\(SearchScreen _ l _) -> l) (\(SearchScreen e _ rs) l -> SearchScreen e l rs)
 
 updateBrickList :: HasBrickList (Screen a) => Key -> IxStateT (EventM Name) (Screen a) (Screen a) ()

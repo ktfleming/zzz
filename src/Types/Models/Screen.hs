@@ -6,14 +6,13 @@ module Types.Models.Screen where
 
 import           Brick.Focus                    ( FocusRing )
 import           Brick.Widgets.Edit             ( Editor )
-import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.Brick.Name               ( Name )
 import           Types.Models.Environment
 import           Types.Models.Project
 import           Types.Models.RequestDef
 import           Types.Models.Response
-import           Types.Search                   ( SearchResult )
+import           Types.Search                   ( SearchListItem, PartitionedResults )
 import           UI.Form                        ( ZZZForm )
 import           UI.List                        ( ZZZList )
 
@@ -48,7 +47,7 @@ data Screen (a :: ScreenTag) where
   EnvironmentEditScreen   ::EnvironmentContext           -> ZZZForm EnvironmentFormState ->                   Screen 'EnvironmentEditTag
   EnvironmentAddScreen    ::ZZZForm EnvironmentFormState -> Screen 'EnvironmentAddTag
 
-  SearchScreen            ::Editor T.Text Name -> ZZZList SearchResult -> Seq SearchResult -> Screen 'SearchTag
+  SearchScreen            ::Editor T.Text Name -> ZZZList SearchListItem -> PartitionedResults -> Screen 'SearchTag
   HelpScreen              ::Screen 'HelpTag
   MessagesScreen          ::Screen 'MessagesTag
 

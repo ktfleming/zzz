@@ -33,7 +33,7 @@ import           Types.Models.Id                ( ProjectId
                                                 )
 import           Types.Models.RequestDef
 
-newtype ProjectName = ProjectName T.Text deriving (FromJSON, ToJSON, Show)
+newtype ProjectName = ProjectName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 
 data Project = Project { projectName :: ProjectName
                        , projectRequestDefs :: HashMap RequestDefId RequestDef} deriving (Show)

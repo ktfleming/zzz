@@ -72,6 +72,7 @@ myMap = attrMap
   , (explanationAttr         , fg V.cyan)
   , (importantExplanationAttr, V.white `on` V.blue)
   , (searchPlaceholderAttr   , fg V.magenta)
+  , (searchSectionAttr       , fg V.green)
   , (templatedVariableAttr   , fg V.blue)
   , (statusBarAttr           , V.blue `on` V.white)
   , (environmentNameAttr     , fg V.magenta)

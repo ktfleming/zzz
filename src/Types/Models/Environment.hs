@@ -38,7 +38,7 @@ import           Types.Models.KeyValue          ( KeyValue(..)
                                                 , keyValueIso
                                                 )
 
-newtype EnvironmentName = EnvironmentName T.Text deriving (FromJSON, ToJSON)
+newtype EnvironmentName = EnvironmentName T.Text deriving (FromJSON, ToJSON, Eq, Ord)
 newtype VariableName = VariableName T.Text deriving (FromJSON, ToJSON, Show, Eq)
 newtype VariableValue = VariableValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
 

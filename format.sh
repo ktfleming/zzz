@@ -1,8 +1,3 @@
 #!/bin/sh
 
-# Sort imports
-stylish-haskell -i src/**/*.hs
-
-# Format everything else
-brittany --write-mode=inplace src/**/*.hs
-
+stylish-haskell -i app/Main.hs && brittany --write-mode=inplace app/Main.hs && stylish-haskell -i src/**/*.hs && brittany --write-mode=inplace src/**/*.hs

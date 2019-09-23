@@ -25,7 +25,7 @@ import           Types.AppState
 import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Brick.Name               ( Name )
 import           Types.Modal
-import           Types.Models.Environment       ( EnvironmentListItem(..) )
+import           Types.Models.Environment       ( EnvironmentListItem(..), EnvironmentContext )
 import           Types.Models.Screen
 import           UI.Environments.Add            ( finishAddingEnvironment
                                                 , showEnvironmentAddScreen
@@ -57,6 +57,16 @@ handleEventEnvironmentAdd key mods chan = iget >>>= \s -> case (key, mods) of
   (KEsc, []) -> showEnvironmentListScreen >>> submerge
   _          -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
 
+selectEnvironment :: Maybe EnvironmentContext -> BChan CustomEvent -> IxStateT (EventM Name) (AppState a) AnyAppState ()
+selectEnvironment c chan = imodify (environmentContext .~ c) >>> save chan >>> unstashScreen >>> refreshIfNecessary
+
+-- Selecting a new environment necessitates a refresh of the screen if the current screen happens to be the
+-- request def details screen
+refreshIfNecessary :: IxStateT (EventM Name) AnyAppState AnyAppState ()
+refreshIfNecessary = iget >>>= \(AnyAppState s') -> case s' ^. screen of
+  RequestDefDetailsScreen{} -> iput s' >>> refreshResponseList >>> submerge
+  _                         -> ireturn ()
+
 handleEventEnvironmentList
   :: Key
   -> [Modifier]
@@ -65,20 +75,10 @@ handleEventEnvironmentList
 handleEventEnvironmentList key mods chan = iget >>>= \s ->
   let EnvironmentListScreen list = s ^. screen
       selectedEnv                = snd <$> listSelectedElement list
-
-      refreshIfNecessary :: IxStateT (EventM Name) AnyAppState AnyAppState ()
-      refreshIfNecessary = iget >>>= \(AnyAppState s') -> case s' ^. screen of
-        RequestDefDetailsScreen{} -> iput s' >>> refreshResponseList >>> submerge
-        _                         -> ireturn ()
   in  case (key, mods) of
         (KEnter, []) -> case selectedEnv of
-          Just (AnEnvironment c _) ->
-            imodify (environmentContext ?~ c) >>> save chan >>> unstashScreen >>> refreshIfNecessary
-          Just NoEnvironment ->
-            imodify (environmentContext .~ Nothing)
-              >>> save chan
-              >>> unstashScreen
-              >>> refreshIfNecessary
+          Just (AnEnvironment c _) -> selectEnvironment (Just c) chan
+          Just NoEnvironment -> selectEnvironment Nothing chan
           Nothing -> submerge
         (KChar 'd', []) -> case selectedEnv of
           Just (AnEnvironment c _) -> imodify (modal ?~ DeleteEnvironmentModal c) >>> submerge

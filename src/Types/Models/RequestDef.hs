@@ -34,7 +34,7 @@ import           Types.Models.Id                ( ProjectId
                                                 )
 import           Types.Models.Url               ( Url(..) )
 
-newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show)
+newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
 newtype LastError = LastError UTCTime deriving (Show)
 

@@ -109,11 +109,13 @@ handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = iget >>>= \(AnyApp
         >>> submerge
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
   let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
+
+-- Have to stash the screen before giving the user the chance to select an Environment (either via the
+-- global search or the environment list screen) since that necessitates a screen unstash.
 handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ =
-  iget >>>= \(AnyAppState s) -> iput s >>> showSearchScreen >>> submerge
+  iget >>>= \(AnyAppState s) -> iput s >>> stashScreen >>> showSearchScreen >>> submerge
 handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ =
   iget >>>= \(AnyAppState s) -> iput s >>> stashScreen >>> showEnvironmentListScreen >>> submerge
-
 
 handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s) ->
   case (s ^. modal, key) of
@@ -131,7 +133,7 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s)
       EnvironmentListScreen{}   -> handleEventEnvironmentList key mods chan |$| s
       EnvironmentEditScreen{}   -> handleEventEnvironmentEdit key mods chan |$| s
       EnvironmentAddScreen{}    -> handleEventEnvironmentAdd key mods chan |$| s
-      SearchScreen{}            -> handleEventSearch key mods |$| s
+      SearchScreen{}            -> handleEventSearch key mods chan |$| s
       MessagesScreen            -> handleEventMessages key mods |$| s
       HelpScreen                -> ireturn ()
 handleEventInState _ _ = ireturn ()

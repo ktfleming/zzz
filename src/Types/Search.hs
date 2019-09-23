@@ -2,25 +2,39 @@
 
 module Types.Search where
 
-import           Brick                          ( txt )
+import           Brick                          (
+
+                                                 txt
+                                                , withAttr
+                                                )
+import           Control.Lens
 import           Data.Coerce                    ( coerce )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable
+import           Types.Models.Environment       ( EnvironmentContext
+                                                , EnvironmentName(..)
+                                                )
 import           Types.Models.Project           ( ProjectContext
                                                 , ProjectName(..)
                                                 )
 import           Types.Models.RequestDef        ( RequestDefContext
                                                 , RequestDefName(..)
                                                 )
+import           UI.Attr                        ( searchSectionAttr )
 
 data SearchResult =
     ProjectResult ProjectName ProjectContext
   | RequestDefResult ProjectName RequestDefName RequestDefContext
+  | EnvironmentResult EnvironmentName EnvironmentContext
 
-instance Displayable SearchResult where
-  display = txt . searchResultToText
+data SearchListItem = SelectableResult SearchResult | SearchSection T.Text | SearchBlankLine
+
+instance Displayable SearchListItem where
+  display (SelectableResult result) = txt $ searchResultToText result
+  display (SearchSection    t     ) = withAttr searchSectionAttr $ txt t
+  display SearchBlankLine           = txt " "
 
 -- Check if all of the provided needles appear, in that order, in the haystack
 matchAll :: [T.Text] -> T.Text -> Bool
@@ -45,6 +59,14 @@ matchSearchText = matchAll . T.words
 searchResultToText :: SearchResult -> T.Text
 searchResultToText (ProjectResult n _       ) = coerce n
 searchResultToText (RequestDefResult pn rn _) = coerce pn <> " > " <> coerce rn
+searchResultToText (EnvironmentResult en _  ) = coerce en
 
-filterResults :: T.Text -> Seq SearchResult -> Seq SearchResult
-filterResults t = S.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . searchResultToText)
+type PartitionedResults = (Seq SearchResult, Seq SearchResult, Seq SearchResult) -- (Environments, Projects, RequestDefinitions)
+
+-- Filters on just one piece of the partitioned results (only environments, or only projects, etc)
+filterResults' :: T.Text -> Seq SearchResult -> Seq SearchResult
+filterResults' t = S.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . searchResultToText)
+
+-- Filters on the entire tuple of of partitioned results, retaining the partitioning
+filterResults :: T.Text -> PartitionedResults -> PartitionedResults
+filterResults t = over each (filterResults' t)

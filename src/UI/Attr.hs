@@ -52,6 +52,9 @@ importantExplanationAttr = explanationAttr <> attrName "important"
 searchPlaceholderAttr :: AttrName
 searchPlaceholderAttr = attrName "searchPlaceholder"
 
+searchSectionAttr :: AttrName
+searchSectionAttr = attrName "searchSection"
+
 -- For variables that get substituted into a template
 templatedVariableAttr :: AttrName
 templatedVariableAttr = attrName "templatedVariable"
