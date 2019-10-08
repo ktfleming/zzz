@@ -19,9 +19,7 @@ import           Brick                          ( BrickEvent(..)
                                                 )
 import           Brick.BChan                    ( BChan )
 import           Control.Lens
-import           Control.Monad.Indexed          ( ireturn
-                                                , (>>>=)
-                                                )
+import           Control.Monad.Indexed          ( ireturn )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
@@ -110,27 +108,46 @@ handleEventInState
   -> BChan CustomEvent
   -> IxStateT (EventM Name) AnyAppState AnyAppState ()
 
-handleEventInState (AppEvent customEvent) _ =
-  iget >>>= \(AnyAppState s) -> iput s >>> handleCustomEvent customEvent >>> submerge
-handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
-  iput s >>> case s ^. screen of
+handleEventInState (AppEvent customEvent) _ = do
+  (AnyAppState s) <- iget
+  iput s
+  handleCustomEvent customEvent
+  submerge
+
+handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = do
+  (AnyAppState s) <- iget
+  iput s
+  case s ^. screen of
     MessagesScreen -> unstashScreen
-    _ ->
+    _              -> do
       stashScreen
-        >>> imodify (screen .~ MessagesScreen)
-        >>> ilift (vScrollToEnd (viewportScroll MessagesViewport))
-        >>> submerge
-handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = iget >>>= \(AnyAppState s) ->
-  let updated = s & helpPanelVisible . coerced %~ not in iput $ AnyAppState updated
+      imodify (screen .~ MessagesScreen)
+      ilift (vScrollToEnd (viewportScroll MessagesViewport))
+      submerge
+
+handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = do
+  (AnyAppState s) <- iget
+  let updated = s & helpPanelVisible . coerced %~ not
+  iput $ AnyAppState updated
 
 -- Have to stash the screen before giving the user the chance to select an Environment (either via the
 -- global search or the environment list screen) since that necessitates a screen unstash.
-handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ =
-  iget >>>= \(AnyAppState s) -> iput s >>> stashScreen >>> showSearchScreen >>> submerge
-handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ =
-  iget >>>= \(AnyAppState s) -> iput s >>> stashScreen >>> showEnvironmentListScreen >>> submerge
+handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ = do
+  (AnyAppState s) <- iget
+  iput s
+  stashScreen
+  showSearchScreen
+  submerge
 
-handleEventInState (VtyEvent (EvKey key mods)) chan = iget >>>= \(AnyAppState s) ->
+handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = do
+  (AnyAppState s) <- iget
+  iput s
+  stashScreen
+  showEnvironmentListScreen
+  submerge
+
+handleEventInState (VtyEvent (EvKey key mods)) chan = do
+  (AnyAppState s) <- iget
   case (s ^. modal, key) of
     (Just _ , KChar 'n') -> dismissModal
     (Just m , KChar 'y') -> handleConfirm m >>> save chan >>> dismissModal
@@ -154,21 +171,20 @@ handleEventInState _ _ = ireturn ()
 handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()
 handleCustomEvent Save = saveState
 handleCustomEvent (ResponseError (RequestDefContext pid rid) e) = do
-  _   <- logMessage ("Error: " <> T.pack e)
+  logMessage ("Error: " <> T.pack e)
   now <- liftIO getCurrentTime
-  _   <-
-    imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError ?~ LastError now
-  _ <- imodify $ activeRequests . at rid .~ Nothing
+  imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError ?~ LastError now
+  imodify $ activeRequests . at rid .~ Nothing
   saveState
 
 handleCustomEvent (ResponseSuccess (RequestDefContext pid rid) response) = do
   s <- iget
   let ekey = currentEnvironmentKey s
-  _ <- logMessage "Received response"
-  _ <- imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError .~ Nothing
-  _ <- imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
-  _ <- imodify $ activeRequests . at rid .~ Nothing
-  _ <- saveState
+  logMessage "Received response"
+  imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError .~ Nothing
+  imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
+  imodify $ activeRequests . at rid .~ Nothing
+  saveState
   case s ^. screen of
     RequestDefDetailsScreen{} -> refreshResponseList -- Only need to refresh the list if they're looking at it
     _                         -> ireturn ()
@@ -182,6 +198,6 @@ handleCustomEvent RefreshResponseList = do
 saveState :: MonadIO m => IxStateT m (AppState a) (AppState a) ()
 saveState = do
   s <- iget
-  _ <- logMessage "Saving..."
-  _ <- (ilift . liftIO) $ writeFile mainSettingsFile (encodePretty s)
+  logMessage "Saving..."
+  (ilift . liftIO) $ writeFile mainSettingsFile (encodePretty s)
   (ilift . liftIO) $ writeFile responseHistoryFile (encodePretty (s ^. responses))

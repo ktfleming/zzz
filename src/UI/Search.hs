@@ -34,9 +34,7 @@ import           Brick.Widgets.List             ( GenericList
                                                 , listSelectedElement
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed          ( ireturn
-                                                , (>>>=)
-                                                )
+import           Control.Monad.Indexed          ( ireturn )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
@@ -53,7 +51,7 @@ import           Graphics.Vty.Input.Events      ( Event(..)
                                                 , Modifier
                                                 )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Safe                           ( headMay )
@@ -87,15 +85,12 @@ import           UI.List                        ( ZZZList
 import           UI.Projects.Details            ( showProjectDetails )
 import           UI.RequestDefs.Details         ( showRequestDefDetails )
 import           Utils.Containers               ( mapToSeq )
+import           Utils.IfThenElse               ( ifThenElse )
 import           Utils.IxState                  ( extractScreen
                                                 , submerge
                                                 , wrapScreen
                                                 , (>>>)
                                                 )
-
-ifThenElse :: Bool -> a -> a -> a
-ifThenElse b x y | b         = x
-                 | otherwise = y
 
 makeResultList :: PartitionedResults -> ZZZList SearchListItem
 makeResultList (envs, ps, rds) =
@@ -147,12 +142,13 @@ allSearchResults s =
     (envResults, projectResults, rdResults)
 
 showSearchScreen :: Monad m => IxStateT m (AppState a) (AppState 'SearchTag) ()
-showSearchScreen = iget >>>= \s ->
+showSearchScreen = do
+  s <- iget
   let edt     = editorText SearchField (Just 1) ""
       -- Note: the sequence of SearchResults (as opposed to the list) is fixed and will not
       -- be narrowed down. It's used for filtering (see note in `handleSearchEvent` for more).
       results = allSearchResults s
-  in  imodify $ screen .~ SearchScreen edt (listMoveDown (makeResultList results)) results
+  imodify $ screen .~ SearchScreen edt (listMoveDown (makeResultList results)) results
 
 searchSelect
   :: SearchResult
@@ -170,7 +166,8 @@ data Direction = Up | Down -- needed to know which direction to skip past sectio
 -- always be a section header, so we also want to prevent moving up past the second item.
 scrollPastSection
   :: Direction -> IxStateT (EventM Name) (Screen 'SearchTag) (Screen 'SearchTag) ()
-scrollPastSection direction = iget >>>= \scr ->
+scrollPastSection direction = do
+  scr <- iget
   let (SearchScreen _ resultList _) = scr
 
       listMoveFunction
@@ -182,11 +179,11 @@ scrollPastSection direction = iget >>>= \scr ->
       otherDirection Down = Up
 
       skipPast = imodify $ listLens %~ listMoveFunction direction
-  in  case listSelectedElement resultList of
-        Just (0, _) -> imodify $ listLens %~ listMoveFunction (otherDirection direction) -- tried to select the first item; have to undo the move
-        Just (_, SearchSection _) -> skipPast -- other section headers (besides the first) will be skipped over
-        Just (_, SearchBlankLine) -> skipPast
-        _                         -> ireturn ()
+  case listSelectedElement resultList of
+    Just (0, _              ) -> imodify $ listLens %~ listMoveFunction (otherDirection direction) -- tried to select the first item; have to undo the move
+    Just (_, SearchSection _) -> skipPast -- other section headers (besides the first) will be skipped over
+    Just (_, SearchBlankLine) -> skipPast
+    _                         -> ireturn ()
 
 -- Up and Down arrows move the selection
 -- ENTER selects

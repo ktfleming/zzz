@@ -1,19 +1,20 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE RebindableSyntax    #-}
 
 module UI.Events.Projects where
 import           Brick.BChan                    ( BChan )
 import           Brick.Types                    ( EventM )
 import           Brick.Widgets.List             ( listSelectedElement )
 import           Control.Lens
-import           Control.Monad.Indexed          ( (>>>=) )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , imodify
                                                 )
 import           Graphics.Vty.Input.Events
-import           Prelude                 hiding ( Monad(..)
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
@@ -52,52 +53,80 @@ handleEventProjectAdd
   -> [Modifier]
   -> BChan CustomEvent
   -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
-handleEventProjectAdd key mods chan = iget >>>= \s -> case (key, mods) of
-  (KChar 's', [MCtrl]) -> finishAddingProject >>> save chan >>> showProjectListScreen >>> submerge
-  (KEsc     , []     ) -> showProjectListScreen >>> submerge
-  _                    -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
+handleEventProjectAdd key mods chan = do
+  s <- iget
+  case (key, mods) of
+    (KChar 's', [MCtrl]) -> do
+      finishAddingProject
+      save chan
+      showProjectListScreen
+      submerge
+    (KEsc, []) -> showProjectListScreen >>> submerge
+    _ -> do
+      extractScreen
+      updateBrickForm key
+      wrapScreen s
+      submerge
 
 handleEventProjectEdit
   :: Key
   -> [Modifier]
   -> BChan CustomEvent
   -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
-handleEventProjectEdit key mods chan = iget >>>= \s ->
+handleEventProjectEdit key mods chan = do
+  s <- iget
   let ProjectEditScreen c _ = s ^. screen
-  in  case (key, mods) of
-        (KChar 's', [MCtrl]) ->
-          finishEditingProject >>> save chan >>> showProjectDetails c >>> submerge
-        (KEsc, []) -> showProjectDetails c >>> submerge
-        _          -> extractScreen >>> updateBrickForm key >>> wrapScreen s >>> submerge
+  case (key, mods) of
+    (KChar 's', [MCtrl]) -> do
+      finishEditingProject
+      save chan
+      showProjectDetails c
+      submerge
+    (KEsc, []) -> showProjectDetails c >>> submerge
+    _  -> do
+      extractScreen
+      updateBrickForm key
+      wrapScreen s
+      submerge
 
 handleEventProjectDetails
   :: Key
   -> [Modifier]
   -> BChan CustomEvent -- TODO: unnecessary
   -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) AnyAppState ()
-handleEventProjectDetails key mods _ = iget >>>= \s ->
+handleEventProjectDetails key mods _ = do
+  s <- iget
   let ProjectDetailsScreen c list = s ^. screen
-  in  case (key, mods) of
-        (KRight, []) -> case listSelectedElement list of
-          Just (_, RequestDefListItem reqContext _) ->
-            showRequestDefDetails reqContext >>> submerge
-          Nothing -> submerge
-        (KChar 'e', []) -> showEditProjectScreen c >>> submerge
-        (KChar 'a', []) -> showAddRequestDefScreen c >>> submerge
-        (KChar 'd', []) -> imodify (modal ?~ DeleteProjectModal c) >>> submerge
-        (KLeft    , []) -> showProjectListScreen >>> submerge
-        _               -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
+  case (key, mods) of
+    (KRight, []) -> case listSelectedElement list of
+      Just (_, RequestDefListItem reqContext _) ->
+        showRequestDefDetails reqContext >>> submerge
+      Nothing -> submerge
+    (KChar 'e', []) -> showEditProjectScreen c >>> submerge
+    (KChar 'a', []) -> showAddRequestDefScreen c >>> submerge
+    (KChar 'd', []) -> imodify (modal ?~ DeleteProjectModal c) >>> submerge
+    (KLeft    , []) -> showProjectListScreen >>> submerge
+    _ -> do
+      extractScreen
+      updateBrickList key
+      wrapScreen s
+      submerge
 
 handleEventProjectList
   :: Key
   -> [Modifier]
   -> BChan CustomEvent
   -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
-handleEventProjectList key mods _ = iget >>>= \s ->
+handleEventProjectList key mods _ = do
+  s <- iget
   let ProjectListScreen list = s ^. screen
-  in  case (key, mods) of
-        (KRight, []) -> case listSelectedElement list of
-          Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
-          Nothing                             -> submerge
-        (KChar 'a', []) -> showProjectAddScreen >>> submerge
-        _               -> extractScreen >>> updateBrickList key >>> wrapScreen s >>> submerge
+  case (key, mods) of
+    (KRight, []) -> case listSelectedElement list of
+      Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
+      Nothing -> submerge
+    (KChar 'a', []) -> showProjectAddScreen >>> submerge
+    _ -> do
+      extractScreen
+      updateBrickList key
+      wrapScreen s
+      submerge

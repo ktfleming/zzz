@@ -21,7 +21,7 @@ import           Brick.Widgets.Center           ( center
 import           Control.Lens
 import qualified Data.Text                     as T
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState                 ( AnyAppState(..)
@@ -42,7 +42,6 @@ import           UI.RequestDefs.Delete          ( deleteRequestDef
                                                 , deleteRequestDefWarning
                                                 )
 
-import           Control.Monad.Indexed          ( (>>>=) )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , iput
@@ -73,21 +72,36 @@ renderModal s m = case m of
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
 handleConfirm :: Monad m => Modal -> IxStateT m AnyAppState AnyAppState ()
-handleConfirm m = iget >>>= \(AnyAppState s) -> case m of
-  DeleteProjectModal c -> iput s >>> deleteProject c >>> showProjectListScreen >>> submerge
-  DeleteRequestDefModal c@(RequestDefContext pid _) ->
-    iput s >>> deleteRequestDef c >>> showProjectDetails (ProjectContext pid) >>> submerge
-  DeleteEnvironmentModal c ->
-    iput s >>> deleteEnvironment c >>> showEnvironmentListScreen >>> submerge
-  DeleteResponseModal c i -> do
-    iput s
-    deleteResponse c i
-    case s ^. screen of
-      -- Note: this `RequestDefDetailsScreen` branch should always be the case, but for
-      -- now it's necessary since this function runs in AnyAppState while `refreshResponseList`
-      -- runs in a tagged AppState.
-      RequestDefDetailsScreen{} -> refreshResponseList >>> submerge
-      _                         -> submerge
+handleConfirm m = do
+  (AnyAppState s) <- iget
+  case m of
+    DeleteProjectModal c -> do
+      iput s
+      deleteProject c
+      showProjectListScreen
+      submerge
+    DeleteRequestDefModal c@(RequestDefContext pid _) -> do
+      iput s
+      deleteRequestDef c
+      showProjectDetails (ProjectContext pid)
+      submerge
+    DeleteEnvironmentModal c -> do
+      iput s
+      deleteEnvironment c
+      showEnvironmentListScreen
+      submerge
+    DeleteResponseModal c i -> do
+      iput s
+      deleteResponse c i
+      case s ^. screen of
+        -- Note: this `RequestDefDetailsScreen` branch should always be the case, but for
+        -- now it's necessary since this function runs in AnyAppState while `refreshResponseList`
+        -- runs in a tagged AppState.
+        RequestDefDetailsScreen{} -> refreshResponseList >>> submerge
+        _                         -> submerge
 
 dismissModal :: Monad m => IxStateT m AnyAppState AnyAppState ()
-dismissModal = iget >>>= \(AnyAppState s) -> iput (s & modal .~ Nothing) >>> submerge
+dismissModal = do
+  (AnyAppState s) <- iget
+  iput $ s & modal .~ Nothing
+  submerge

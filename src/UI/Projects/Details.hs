@@ -7,7 +7,6 @@ module UI.Projects.Details where
 
 import           Brick.Widgets.List             ( list )
 import           Control.Lens
-import           Control.Monad.Indexed          ( (>>>=) )
 import           Control.Monad.Indexed.State    ( IxStateT
                                                 , iget
                                                 , iput
@@ -16,7 +15,7 @@ import qualified Data.HashMap.Strict           as Map
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
@@ -34,7 +33,8 @@ import           Types.Models.Screen
 
 showProjectDetails
   :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectDetailsTag) ()
-showProjectDetails c = iget >>>= \s ->
+showProjectDetails c = do
+  s <- iget
   let p         = model s c
       listItems = foldr f S.empty (Map.toList (p ^. requestDefs))
          where
@@ -42,4 +42,4 @@ showProjectDetails c = iget >>>= \s ->
           f (rid, r) items = let rc = requestDefContext c rid in items |> requestDefListItem rc r
       reqList = list RequestDefList listItems 1
       newState :: AppState 'ProjectDetailsTag = s & screen .~ ProjectDetailsScreen c reqList
-  in  iput newState
+  iput newState
