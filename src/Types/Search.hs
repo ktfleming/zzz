@@ -2,9 +2,7 @@
 
 module Types.Search where
 
-import           Brick                          (
-
-                                                 txt
+import           Brick                          ( txt
                                                 , withAttr
                                                 )
 import           Control.Lens

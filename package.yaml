@@ -47,6 +47,7 @@ dependencies:
 - megaparsec
 - either
 - async
+- friendly-time
 
 library:
   source-dirs:

@@ -79,6 +79,7 @@ data AppState (a :: ScreenTag) = AppState {
                          , _appStateHelpPanelVisible :: HelpPanelVisible
                          , _appStateActiveRequests :: HashMap RequestDefId (Async ())
                          , _appStateStashedScreen :: Maybe AnyScreen
+                         , _appStateCurrentTime :: Maybe UTCTime
                          }
 
 makeFields ''AppState
@@ -102,6 +103,7 @@ emptyAppState = AppState { appStateScreen              = HelpScreen
                          , _appStateHelpPanelVisible   = HelpPanelVisible False
                          , _appStateActiveRequests     = Map.empty
                          , _appStateStashedScreen      = Nothing
+                         , _appStateCurrentTime        = Nothing
                          }
 
 data AnyAppState where

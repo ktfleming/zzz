@@ -131,13 +131,16 @@ requestDefDetailsWidget s =
         Just (_, r) -> responseDetails r bodyFocused
         Nothing     -> txtWrap "No response selected."
 
+      listWithTime :: ZZZList ResponseWithCurrentTime
+      listWithTime = ResponseWithCurrentTime (s^.currentTime) <$> zzzList
+
       allWidgets = fst <$> filter
         snd
         [ (padLeft (Pad 2) (topWidget s c requestFocused), True)
         , (hBorder, hasResponses || isJust maybeError)
         , maybe (emptyWidget, False) ((, True) . padBottom (Pad 1) . errorDisplay) maybeError
         , (padLeft (Pad 2) $ txtWrap "Response history:", hasResponses)
-        , (vLimit 10 (renderGenericList historyListFocused zzzList), hasResponses)
+        , (vLimit 10 (renderGenericList historyListFocused listWithTime), hasResponses)
         , (hBorder   , not requestFocused)
         , (bodyWidget, not requestFocused)
         ]

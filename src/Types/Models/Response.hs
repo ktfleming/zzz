@@ -43,6 +43,7 @@ import           Types.Models.Header            ( Header )
 import           Types.Models.RequestDef        ( RequestBody(..) )
 import           Types.Models.Url               ( Url(..) )
 import           UI.Attr
+import Data.Time.Format.Human (humanReadableTime')
 
 -- TODO: should this be ByteString?
 newtype ResponseBody = ResponseBody T.Text deriving (Eq, Show, FromJSON, ToJSON)
@@ -97,8 +98,17 @@ instance Displayable StatusCode where
                             | otherwise                 = w
     where w = str $ showInt code ""
 
-instance Displayable Response where
-  display r =
+-- When displaying the response history list, we also need to have the current time
+-- in order to calculate the relative time ("X days ago", etc). This is retrieved from
+-- the AppState, and is a Maybe because it's also a Maybe in AppState (since it's initialized
+-- as Nothing when the app is started, see `emptyAppState`).
+data ResponseWithCurrentTime = ResponseWithCurrentTime (Maybe UTCTime) Response
+
+instance Displayable ResponseWithCurrentTime where
+  display (ResponseWithCurrentTime maybeTime r) =
     let sc   = display (r ^. statusCode)
-        time = txt $ T.pack $ formatISO8601 (r ^. dateTime)
-    in  sc <+> padLeft (Pad 1) time
+        relativeTime = case maybeTime of
+          Just t -> " (" <> humanReadableTime' t (r ^. dateTime) <> ")"
+          Nothing -> ""
+        timestamp = txt $ T.pack $ formatISO8601 (r ^. dateTime) <> relativeTime
+    in  sc <+> padLeft (Pad 1) timestamp

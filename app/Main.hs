@@ -11,6 +11,7 @@ import           Control.Monad.Trans.Except
 import           Data.Aeson                     ( eitherDecode )
 import           Data.ByteString.Lazy           ( readFile )
 import qualified Data.HashMap.Strict           as Map
+import           Data.Time                      ( getCurrentTime )
 import           Graphics.Vty                   ( defaultConfig
                                                 , mkVty
                                                 )
@@ -37,11 +38,18 @@ main = do
     responseFileExists <- liftIO $ doesFileExist responseHistoryFile
     s <- if mainFileExists then getAppStateFromFile else liftIO $ return emptyAppState
     rs <- if responseFileExists then getResponsesFromFile else liftIO $ return Map.empty
+    time <- liftIO getCurrentTime
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to
     -- ProjectListScreen here, and insert the Responses read from a separate file
     let updatedState =
-          s & screen .~ ProjectListScreen (makeProjectList (s ^. projects)) & responses .~ rs
+          s
+            &  screen
+            .~ ProjectListScreen (makeProjectList (s ^. projects))
+            &  responses
+            .~ rs
+            &  currentTime
+            ?~ time
     eventChannel <- liftIO $ newBChan 5
     let buildVty = mkVty defaultConfig
     initialVty <- liftIO buildVty

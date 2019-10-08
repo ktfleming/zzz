@@ -42,7 +42,7 @@ import           Data.Time                      ( getCurrentTime )
 import           Graphics.Vty.Input.Events
 import           Language.Haskell.DoNotation
 import           Messages.Messages              ( logMessage )
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 , writeFile
                                                 )
@@ -86,10 +86,23 @@ handleEvent
   -> AnyAppState
   -> BrickEvent Name CustomEvent
   -> EventM Name (Next AnyAppState)
-handleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s -- Ctrl-C always exits immediately
 
--- Otherwise, delegate the handling to our own function
-handleEvent chan s ev = (runIxStateT $ handleEventInState ev chan) s >>= (continue . snd)
+-- Ctrl-C always exits immediately
+handleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
+
+-- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
+-- with every event.
+handleEvent chan s ev =
+  (runIxStateT $ handleEventInState ev chan >>> updateCurrentTime) s >>= (continue . snd)
+
+-- Every event should also update the currentTime inside the AppState
+updateCurrentTime :: MonadIO m => IxStateT m AnyAppState AnyAppState ()
+updateCurrentTime = do
+  (AnyAppState s) <- iget
+  iput s
+  time <- (ilift . liftIO) getCurrentTime
+  imodify $ currentTime ?~ time
+  submerge
 
 -- This function does the actual event handling, inside the IxStateT monad
 handleEventInState
