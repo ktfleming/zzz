@@ -34,8 +34,8 @@ import           UI.Environments.Edit           ( finishEditingEnvironment
                                                 , showEnvironmentEditScreen
                                                 )
 import           UI.Environments.List           ( showEnvironmentListScreen )
-import           UI.Events.BrickUpdates         ( updateBrickForm
-                                                , updateBrickList
+import           Types.Models.Screen.Optics         ( updateBrickForm
+                                                , updateBrickList, lastError
                                                 )
 import           UI.RequestDefs.Details         ( refreshResponseList )
 import           Utils.IxState                  ( extractScreen
@@ -44,6 +44,7 @@ import           Utils.IxState                  ( extractScreen
                                                 , unstashScreen
                                                 , wrapScreen, (>>>)
                                                 )
+import Utils.IfThenElse (ifThenElse)
 
 handleEventEnvironmentAdd
   :: Key
@@ -65,12 +66,18 @@ handleEventEnvironmentAdd key mods chan = do
       wrapScreen s
       submerge
 
+-- Sets the provided environment (or no environment, in the case of Nothing) as the active one.
+-- This necessitates a reset of the currently displayed error, if the active screen happens to be
+-- the RequestDef details screen, and the environment is actually changing.
 selectEnvironment :: Maybe EnvironmentContext -> BChan CustomEvent -> IxStateT (EventM Name) (AppState a) AnyAppState ()
 selectEnvironment c chan = do
+  s <- iget
+  let currentEnv = s^.environmentContext
+      isChanging = currentEnv /= c
   imodify (environmentContext .~ c)
   save chan
   unstashScreen
-  refreshIfNecessary
+  if isChanging then refreshIfNecessary else ireturn ()
 
 -- Selecting a new environment necessitates a refresh of the screen if the current screen happens to be the
 -- request def details screen
@@ -81,6 +88,7 @@ refreshIfNecessary = do
     RequestDefDetailsScreen{} -> do
       iput s'
       refreshResponseList
+      imodify $ screen . lastError .~ Nothing
       submerge
     _ -> ireturn ()
 

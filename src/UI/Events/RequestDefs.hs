@@ -42,7 +42,7 @@ import           Types.Models.Project           ( ProjectContext(..) )
 import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Response          ( ResponseIndex(..) )
 import           Types.Models.Screen
-import           UI.Events.BrickUpdates         ( updateBrickForm
+import           Types.Models.Screen.Optics         ( updateBrickForm
                                                 , updateBrickList
                                                 )
 import           UI.Projects.Details            ( showProjectDetails )
@@ -108,13 +108,13 @@ handleEventRequestDetails
   -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
 handleEventRequestDetails key mods chan = do
   s <- iget
-  let RequestDefDetailsScreen c@(RequestDefContext _ rid) list ring = s ^. screen
+  let RequestDefDetailsScreen c@(RequestDefContext _ rid) list ring _ = s ^. screen
       focused       = focusGetCurrent ring
       activeRequest = Map.lookup rid (s ^. activeRequests)
       ringLens :: Lens' (Screen 'RequestDefDetailsTag) (FocusRing Name)
       ringLens = lens
-        (\(RequestDefDetailsScreen _ _ target) -> target)
-        (\(RequestDefDetailsScreen x y _) toSet -> RequestDefDetailsScreen x y toSet)
+        (\(RequestDefDetailsScreen _ _ target _) -> target)
+        (\(RequestDefDetailsScreen x y _ z) toSet -> RequestDefDetailsScreen x y toSet z)
       selectedResponse = ResponseIndex <$> listSelected list
 
       modifyFocus f = do

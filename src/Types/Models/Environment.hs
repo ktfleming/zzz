@@ -37,9 +37,10 @@ import           Types.Models.KeyValue          ( KeyValue(..)
                                                 , KeyValueIso
                                                 , keyValueIso
                                                 )
+import Data.Hashable (Hashable)
 
 newtype EnvironmentName = EnvironmentName T.Text deriving (FromJSON, ToJSON, Eq, Ord)
-newtype VariableName = VariableName T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype VariableName = VariableName T.Text deriving (FromJSON, ToJSON, Show, Eq, Hashable)
 newtype VariableValue = VariableValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
 
 data Variable = Variable { variableName :: VariableName, variableValue :: VariableValue } deriving (Show, Eq)
@@ -49,7 +50,7 @@ data Environment = Environment { environmentName :: EnvironmentName
                                , environmentVariables :: Seq Variable
                                }
 
-newtype EnvironmentContext = EnvironmentContext EnvironmentId deriving (FromJSON, ToJSON, Show)
+newtype EnvironmentContext = EnvironmentContext EnvironmentId deriving (FromJSON, ToJSON, Show, Eq)
 data EnvironmentListItem = NoEnvironment | AnEnvironment EnvironmentContext EnvironmentName
 
 data EnvironmentFormState = EnvironmentFormState { environmentFormStateName :: EnvironmentName

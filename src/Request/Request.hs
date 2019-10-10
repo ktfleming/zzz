@@ -39,6 +39,8 @@ import           Control.Concurrent.Async       ( Async
                                                 )
 import           Data.Coerce                    ( coerce )
 import           Data.Foldable                  ( toList )
+import           Data.HashSet                   ( HashSet )
+import qualified Data.HashSet                  as HashSet
 import           Data.String.Conversions        ( cs )
 import           Data.Time                      ( diffUTCTime
                                                 , getCurrentTime
@@ -58,14 +60,16 @@ import           Types.Classes.HasId            ( model )
 import           Types.Methods                  ( Method(..) )
 import           Types.Models.Environment       ( Environment
                                                 , Variable
+                                                , VariableName(..)
                                                 )
 import           Types.Models.Header
 import           Types.Models.KeyValue          ( isEnabled )
-import           Types.Models.Project           ( requestDefs )
 import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
+import           Types.Models.Screen.Optics     ( lastError )
 import           Types.Models.Url               ( Url(..) )
+import           Utils.IfThenElse               ( ifThenElse )
 import           Utils.Text                     ( substitute )
 
 
@@ -95,28 +99,19 @@ sendRequest
        (AppState 'RequestDefDetailsTag)
        (AppState 'RequestDefDetailsTag)
        ()
-sendRequest c@(RequestDefContext pid rid) chan = do
+sendRequest c chan = do
   result <- runExceptT $ sendRequest' c chan
   case result of
-    Left msg -> do
-      now <- liftIO getCurrentTime
-      imodify
-        $  projects
-        .  at pid
-        .  _Just
-        .  requestDefs
-        .  at rid
-        .  _Just
-        .  lastError
-        ?~ LastError now
-      logMessage (T.pack msg)
+    Left requestError -> do
+      imodify $ screen . lastError ?~ requestError
+      (logMessage . errorDescription) requestError
     Right _ -> return ()
 
 -- Seems like the sendRequest' function needs some help with type annotations, so this alias will make it
 -- not so verbose.
 type Step a
   = ExceptT
-      String
+      RequestError
       (IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag))
       a
 
@@ -133,12 +128,14 @@ sendRequest' c@(RequestDefContext _ rid) chan = do
       e :: Maybe Environment = model s <$> s ^. environmentContext
       vars :: [Variable]     = maybe [] (toList . view variables) e
       u :: Url               = coerce $ substitute vars (r ^. url . coerced)
+  now <- liftIO getCurrentTime :: Step UTCTime
   lift $ logMessage $ "Preparing to send request to URL " <> coerce u :: Step ()
+  _            <- tryRight (validateVariables s r) :: Step ()
   validatedUrl <-
-    failWith "Error parsing URL" ((Req.parseUrl . encodeUtf8 . coerce) u) :: Step EitherReq
-  startTime   <- liftIO getCurrentTime :: Step UTCTime
+    failWith (RequestFailed now "Error parsing URL") ((Req.parseUrl . encodeUtf8 . coerce) u) :: Step
+      EitherReq
   asyncResult <-
-    (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan startTime :: Step
+    (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan now :: Step
       (Async ())
   lift $ imodify $ activeRequests . at rid ?~ asyncResult :: Step ()
 
@@ -200,3 +197,13 @@ cancelRequest (RequestDefContext _ rid) target = do
 -- since we want to keep those as normal Responses
 httpConfig :: Req.HttpConfig
 httpConfig = Req.defaultHttpConfig { Req.httpConfigCheckResponse = \_ _ _ -> Nothing }
+
+-- Make sure that all variables in the RequestDef's URL, headers, and body are all defined in the
+-- current environment; if not, update the RequestDef's most recent error.
+validateVariables :: AppState 'RequestDefDetailsTag -> RequestDef -> Either RequestError ()
+validateVariables s r =
+  let varsInEnvironment :: HashSet VariableName = (HashSet.fromList . toList)
+        $ maybe S.empty (\e -> view name <$> e ^. variables) (currentEnvironment s)
+      unmatchedVariables :: [VariableName] =
+          filter (not . flip HashSet.member varsInEnvironment) (allVariables r)
+  in  if null unmatchedVariables then Right () else Left (UnmatchedVariables unmatchedVariables)

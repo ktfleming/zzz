@@ -33,10 +33,23 @@ import           Types.Models.Id                ( ProjectId
                                                 , RequestDefId
                                                 )
 import           Types.Models.Url               ( Url(..) )
+import Types.Models.Environment (VariableName(..))
+import Parsing.TemplatedUrlParser (TemplatedUrlPart(..), TemplatedUrl(..), parseTemplatedUrl)
+import Data.Maybe (catMaybes)
+import Text.Megaparsec (runParser)
+import Data.Time.ISO8601 (formatISO8601)
 
 newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
-newtype LastError = LastError UTCTime deriving (Show)
+
+data RequestError =
+    RequestFailed UTCTime T.Text       -- tried to sent request, but failed (could not parse URL, etc)
+  | UnmatchedVariables [VariableName]  -- URL/headers/body contains {{variables}} that aren't defined in the current environment
+  deriving (Show)
+
+errorDescription :: RequestError -> T.Text
+errorDescription (RequestFailed errorTime msg) = "The request sent at " <> (T.pack . formatISO8601) errorTime <> " failed: " <> msg
+errorDescription (UnmatchedVariables vars) = "The following variables are not defined in the current environment: " <> (T.intercalate ", " (coerce vars))
 
 data RequestDef = RequestDef {
     requestDefName :: RequestDefName
@@ -44,7 +57,6 @@ data RequestDef = RequestDef {
   , requestDefMethod :: Method
   , requestDefBody :: RequestBody
   , requestDefHeaders :: Seq Header
-  , requestDefLastError :: Maybe LastError
   } deriving (Show)
 
 data RequestDefFormState = RequestDefFormState {
@@ -61,6 +73,22 @@ data RequestDefListItem = RequestDefListItem RequestDefContext RequestDefName
 
 makeFields ''RequestDef
 makeFields ''RequestDefFormState
+
+-- Extract all of the template variables used within a RequestDef, including in the URL,
+-- headers, body, etc.
+allVariables :: RequestDef -> [VariableName]
+allVariables r =
+  let transformPart :: TemplatedUrlPart -> Maybe VariableName
+      transformPart (TemplateVariable n) = Just (VariableName n)
+      transformPart (TextPart _) = Nothing
+
+      -- This plus `transformPart` is like Scala's `collect`, i.e. keep the VariableNames and
+      -- discard the other parts
+      getVariables :: TemplatedUrl -> [VariableName]
+      getVariables (TemplatedUrl ps) = catMaybes $ transformPart <$> ps
+
+      urlVariables = either (const []) getVariables (runParser parseTemplatedUrl "Templated URL" (r^.url.coerced))
+  in urlVariables
 
 instance Displayable RequestDefListItem where
   display (RequestDefListItem _ n) = txt $ coerce n
@@ -82,4 +110,3 @@ instance FromJSON RequestDef where
       <*> (o .: "method")
       <*> (o .: "body")
       <*> (o .: "headers")
-      <*> pure Nothing  -- LastError is not persisted to disk

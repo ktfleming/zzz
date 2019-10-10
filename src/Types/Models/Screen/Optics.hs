@@ -5,10 +5,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies        #-}
 
-module UI.Events.BrickUpdates
+module Types.Models.Screen.Optics
   ( updateBrickForm
   , updateBrickList
   , listLens
+  , lastError
   )
 where
 
@@ -37,7 +38,7 @@ import           Types.Models.Project           ( ProjectFormState
                                                 , ProjectListItem
                                                 )
 import           Types.Models.RequestDef        ( RequestDefFormState
-                                                , RequestDefListItem
+                                                , RequestDefListItem, RequestError
                                                 )
 import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
@@ -99,8 +100,8 @@ instance HasBrickList (Screen 'ProjectDetailsTag) where
 
 instance HasBrickList (Screen 'RequestDefDetailsTag) where
   type ListItem (Screen 'RequestDefDetailsTag) = Response
-  listLens = lens (\(RequestDefDetailsScreen _ l _) -> l)
-                  (\(RequestDefDetailsScreen c _ ring) l -> RequestDefDetailsScreen c l ring)
+  listLens = lens (\(RequestDefDetailsScreen _ l _ _) -> l)
+                  (\(RequestDefDetailsScreen c _ ring e) l -> RequestDefDetailsScreen c l ring e)
 
 instance HasBrickList (Screen 'EnvironmentListTag) where
   type ListItem (Screen 'EnvironmentListTag) = EnvironmentListItem
@@ -116,3 +117,8 @@ updateBrickList key = do
   let list = scr ^. listLens
   updatedList <- ilift $ handleListEvent (EvKey key []) list
   imodify $ listLens .~ updatedList
+
+-- lens to update the error inside of the RequestDefDetailsScreen
+lastError :: Lens' (Screen 'RequestDefDetailsTag) (Maybe RequestError)
+lastError = lens (\(RequestDefDetailsScreen _ _ _ e) -> e)
+                     (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)

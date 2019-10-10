@@ -24,7 +24,7 @@ import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectListItem(..) )
 import           Types.Models.RequestDef        ( RequestDefListItem(..) )
 import           Types.Models.Screen
-import           UI.Events.BrickUpdates         ( updateBrickForm
+import           Types.Models.Screen.Optics         ( updateBrickForm
                                                 , updateBrickList
                                                 )
 import           UI.Projects.Add                ( finishAddingProject

@@ -50,12 +50,11 @@ import           Types.Brick.Name               ( Name(..) )
 import           Types.Constants                ( mainSettingsFile
                                                 , responseHistoryFile
                                                 )
-import           Types.Models.Project           ( requestDefs )
-import           Types.Models.RequestDef        ( LastError(..)
-                                                , RequestDefContext(..)
-                                                , lastError
+import           Types.Models.RequestDef        ( RequestDefContext(..)
+                                                , RequestError(..)
                                                 )
 import           Types.Models.Screen
+import           Types.Models.Screen.Optics     ( lastError )
 import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.Events.Environments
 import           UI.Events.Messages             ( handleEventMessages )
@@ -170,23 +169,29 @@ handleEventInState _ _ = ireturn ()
 
 handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()
 handleCustomEvent Save = saveState
-handleCustomEvent (ResponseError (RequestDefContext pid rid) e) = do
-  logMessage ("Error: " <> T.pack e)
+
+-- Note: this is for errors that happen on the background thread that handles sending the
+-- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
+-- will short-circuit the ExceptT in `sendRequest'` and will not need to use a custom event.
+handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) = do
+  s <- iget
+  logMessage ("Error: " <> (T.pack msg))
   now <- liftIO getCurrentTime
-  imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError ?~ LastError now
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> imodify $ screen . lastError ?~ RequestFailed now (T.pack msg)
+    _                         -> ireturn ()
   imodify $ activeRequests . at rid .~ Nothing
   saveState
 
-handleCustomEvent (ResponseSuccess (RequestDefContext pid rid) response) = do
+handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) = do
   s <- iget
   let ekey = currentEnvironmentKey s
   logMessage "Received response"
-  imodify $ projects . at pid . _Just . requestDefs . at rid . _Just . lastError .~ Nothing
   imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
   imodify $ activeRequests . at rid .~ Nothing
   saveState
   case s ^. screen of
-    RequestDefDetailsScreen{} -> refreshResponseList -- Only need to refresh the list if they're looking at it
+    RequestDefDetailsScreen{} -> (imodify $ screen . lastError .~ Nothing) >>> refreshResponseList -- Only need to refresh the list if they're looking at it
     _                         -> ireturn ()
 
 handleCustomEvent RefreshResponseList = do

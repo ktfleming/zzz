@@ -58,16 +58,16 @@ environmentBaseTitle s c = model s c ^. name . coerced
 
 title :: AppState a -> T.Text
 title s = case s ^. screen of
-  ProjectAddScreen  _           -> "New Project"
-  ProjectListScreen _           -> "All Projects"
-  ProjectDetailsScreen c _      -> projectBaseTitle s c
-  ProjectEditScreen    c _      -> projectBaseTitle s c <> " (Editing)"
-  RequestDefAddScreen  _ _      -> "New Request Definition"
-  RequestDefDetailsScreen c _ _ -> requestDefBaseTitle s c
-  RequestDefEditScreen c _      -> requestDefBaseTitle s c <> " (Editing)"
-  EnvironmentListScreen{}       -> "Environments"
-  EnvironmentEditScreen c _     -> environmentBaseTitle s c <> " (Editing)"
-  EnvironmentAddScreen{}        -> "New Environment"
-  HelpScreen                    -> "Help"
-  SearchScreen{}                -> "Search"
-  MessagesScreen                -> "Messages"
+  ProjectAddScreen  _             -> "New Project"
+  ProjectListScreen _             -> "All Projects"
+  ProjectDetailsScreen c _        -> projectBaseTitle s c
+  ProjectEditScreen    c _        -> projectBaseTitle s c <> " (Editing)"
+  RequestDefAddScreen  _ _        -> "New Request Definition"
+  RequestDefDetailsScreen c _ _ _ -> requestDefBaseTitle s c
+  RequestDefEditScreen c _        -> requestDefBaseTitle s c <> " (Editing)"
+  EnvironmentListScreen{}         -> "Environments"
+  EnvironmentEditScreen c _       -> environmentBaseTitle s c <> " (Editing)"
+  EnvironmentAddScreen{}          -> "New Environment"
+  HelpScreen                      -> "Help"
+  SearchScreen{}                  -> "Search"
+  MessagesScreen                  -> "Messages"

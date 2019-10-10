@@ -36,16 +36,18 @@ data ScreenTag =
 
 -- Represents what main "view" of the app the user is looking at, and also holds the local state for that view
 data Screen (a :: ScreenTag) where
-  ProjectAddScreen        ::ZZZForm ProjectFormState     ->                                                   Screen 'ProjectAddTag
-  ProjectEditScreen       ::ProjectContext               -> ZZZForm ProjectFormState     ->                   Screen 'ProjectEditTag
-  ProjectListScreen       ::ZZZList ProjectListItem      ->                                                   Screen 'ProjectListTag
-  ProjectDetailsScreen    ::ProjectContext               -> ZZZList RequestDefListItem   ->                   Screen 'ProjectDetailsTag
-  RequestDefDetailsScreen ::RequestDefContext            -> ZZZList Response             -> FocusRing Name -> Screen 'RequestDefDetailsTag
-  RequestDefEditScreen    ::RequestDefContext            -> ZZZForm RequestDefFormState  ->                   Screen 'RequestDefEditTag
-  RequestDefAddScreen     ::ProjectContext               -> ZZZForm RequestDefFormState  ->                   Screen 'RequestDefAddTag
-  EnvironmentListScreen   ::ZZZList EnvironmentListItem  ->                                                   Screen 'EnvironmentListTag
-  EnvironmentEditScreen   ::EnvironmentContext           -> ZZZForm EnvironmentFormState ->                   Screen 'EnvironmentEditTag
-  EnvironmentAddScreen    ::ZZZForm EnvironmentFormState -> Screen 'EnvironmentAddTag
+  ProjectAddScreen        ::ZZZForm ProjectFormState     ->                                 Screen 'ProjectAddTag
+  ProjectEditScreen       ::ProjectContext               -> ZZZForm ProjectFormState ->     Screen 'ProjectEditTag
+  ProjectListScreen       ::ZZZList ProjectListItem      ->                                 Screen 'ProjectListTag
+  ProjectDetailsScreen    ::ProjectContext               -> ZZZList RequestDefListItem  ->  Screen 'ProjectDetailsTag
+  RequestDefEditScreen    ::RequestDefContext            -> ZZZForm RequestDefFormState ->  Screen 'RequestDefEditTag
+  RequestDefAddScreen     ::ProjectContext               -> ZZZForm RequestDefFormState ->  Screen 'RequestDefAddTag
+  EnvironmentListScreen   ::ZZZList EnvironmentListItem  ->                                 Screen 'EnvironmentListTag
+  EnvironmentEditScreen   ::EnvironmentContext           -> ZZZForm EnvironmentFormState -> Screen 'EnvironmentEditTag
+  EnvironmentAddScreen    ::ZZZForm EnvironmentFormState ->                                 Screen 'EnvironmentAddTag
+
+  -- This one is getting long enough that it's making the formatting a bit difficult, so let's keep it down here
+  RequestDefDetailsScreen ::RequestDefContext -> ZZZList Response -> FocusRing Name -> Maybe RequestError -> Screen 'RequestDefDetailsTag
 
   SearchScreen            ::Editor T.Text Name -> ZZZList SearchListItem -> PartitionedResults -> Screen 'SearchTag
   HelpScreen              ::Screen 'HelpTag
@@ -57,4 +59,3 @@ instance Show (Screen a) where
 -- This is used in AppState's `stashedScreen`, using a GADT to hide the phantom type
 data AnyScreen where
   AnyScreen ::Screen a -> AnyScreen
-

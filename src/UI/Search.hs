@@ -68,15 +68,15 @@ import           Types.Models.Project           ( Project
                                                 )
 import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Screen
+import           Types.Models.Screen.Optics     ( listLens
+                                                , updateBrickList
+                                                )
 import           Types.Search                   ( PartitionedResults
                                                 , SearchListItem(..)
                                                 , SearchResult(..)
                                                 , filterResults
                                                 )
 import           UI.Attr                        ( searchPlaceholderAttr )
-import           UI.Events.BrickUpdates         ( listLens
-                                                , updateBrickList
-                                                )
 import           UI.Events.Environments         ( selectEnvironment )
 import           UI.Form                        ( renderText )
 import           UI.List                        ( ZZZList

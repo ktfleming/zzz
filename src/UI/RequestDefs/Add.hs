@@ -56,7 +56,6 @@ finishAddingRequestDef = do
                        , requestDefMethod    = formState form ^. method
                        , requestDefBody      = formState form ^. body
                        , requestDefHeaders   = formState form ^. headers
-                       , requestDefLastError = Nothing
                        }
   imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 

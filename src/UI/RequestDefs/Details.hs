@@ -43,8 +43,6 @@ import           Data.Maybe                     ( isJust )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
-import qualified Data.Text                     as T
-import           Data.Time.ISO8601              ( formatISO8601 )
 import           Language.Haskell.DoNotation
 import           Prelude                 hiding ( Monad(..)
                                                 , pure
@@ -62,7 +60,7 @@ import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
 import           UI.Attr
-import           UI.Events.BrickUpdates         ( listLens )
+import           Types.Models.Screen.Optics         ( listLens )
 import           UI.Forms.KeyValueList          ( readOnlyKeyValues )
 import           UI.List                        ( ZZZList
                                                 , renderGenericList
@@ -80,16 +78,19 @@ showRequestDefDetails c = do
   s <- iget
   let ring = focusRing [RequestDetails, ResponseList, ResponseBodyDetails]
       ekey = currentEnvironmentKey s
-  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring
+  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing
 
 refreshResponseList
   :: Monad m => IxStateT m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
 refreshResponseList = do
   s <- iget
-  let RequestDefDetailsScreen c _ _ = s ^. screen
+  let RequestDefDetailsScreen c _ _ _ = s ^. screen -- TODO: lens (or just getter) for the context inside a screen?
       ekey                          = currentEnvironmentKey s
   imodify $ screen . listLens .~ makeResponseList (lookupResponses s c ekey)
 
+
+-- Displays the basic RequestDef info (URL, method, etc) as well as a warning
+-- if a variable used somewhere is not defined in the current environment
 topWidget :: AppState 'RequestDefDetailsTag -> RequestDefContext -> Bool -> Widget Name
 topWidget s c@(RequestDefContext _ rid) focused =
   let r                = model s c
@@ -108,19 +109,12 @@ topWidget s c@(RequestDefContext _ rid) focused =
         (False, False) -> []
   in  vBox $ explanation <> [titleWidget, headersWidget]
 
-errorDisplay :: LastError -> Widget Name
-errorDisplay (LastError errorTime) =
-  withAttr errorAttr
-    $  hCenter
-    $  txtWrap
-    $  "The request sent at "
-    <> (T.pack . formatISO8601) errorTime
-    <> " failed. See the message log (CTRL+o) for more details."
+errorWidget :: RequestError -> Widget Name
+errorWidget = withAttr errorAttr . hCenter . txtWrap . errorDescription
 
 requestDefDetailsWidget :: AppState 'RequestDefDetailsTag -> Widget Name
 requestDefDetailsWidget s =
-  let (RequestDefDetailsScreen c zzzList ring) = s ^. screen
-      maybeError         = model s c ^. lastError
+  let (RequestDefDetailsScreen c zzzList ring maybeError) = s ^. screen
       focused            = focusGetCurrent ring
       requestFocused     = focused == Just RequestDetails
       historyListFocused = focused == Just ResponseList
@@ -138,7 +132,7 @@ requestDefDetailsWidget s =
         snd
         [ (padLeft (Pad 2) (topWidget s c requestFocused), True)
         , (hBorder, hasResponses || isJust maybeError)
-        , maybe (emptyWidget, False) ((, True) . padBottom (Pad 1) . errorDisplay) maybeError
+        , maybe (emptyWidget, False) ((, True) . padBottom (Pad 1) . errorWidget) maybeError
         , (padLeft (Pad 2) $ txtWrap "Response history:", hasResponses)
         , (vLimit 10 (renderGenericList historyListFocused listWithTime), hasResponses)
         , (hBorder   , not requestFocused)
