@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax  #-}
@@ -15,18 +16,14 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.IO.Class         ( MonadIO
-                                                , liftIO
-                                                )
 import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
-import           Data.UUID.V4                   ( nextRandom )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
@@ -45,17 +42,19 @@ import           UI.Form                        ( ZZZForm
                                                 )
 import           UI.Forms.KeyValueList          ( makeKeyValueForm )
 
+
 finishAddingRequestDef
-  :: MonadIO m => IxStateT m (AppState 'RequestDefAddTag) (AppState 'RequestDefAddTag) ()
-finishAddingRequestDef = do
+  :: IxMonadState m
+  => RequestDefId
+  -> m (AppState 'RequestDefAddTag) (AppState 'RequestDefAddTag) ()
+finishAddingRequestDef rid = do
   s <- iget
   let RequestDefAddScreen (ProjectContext pid) form = s ^. screen
-  rid <- liftIO $ RequestDefId <$> nextRandom
-  let req = RequestDef { requestDefName      = formState form ^. name
-                       , requestDefUrl       = formState form ^. url
-                       , requestDefMethod    = formState form ^. method
-                       , requestDefBody      = formState form ^. body
-                       , requestDefHeaders   = formState form ^. headers
+  let req = RequestDef { requestDefName    = formState form ^. name
+                       , requestDefUrl     = formState form ^. url
+                       , requestDefMethod  = formState form ^. method
+                       , requestDefBody    = formState form ^. body
+                       , requestDefHeaders = formState form ^. headers
                        }
   imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 
@@ -73,5 +72,5 @@ makeAddRequestDefForm = setFormConcat spacedConcat $ newForm
                       }
 
 showAddRequestDefScreen
-  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'RequestDefAddTag) ()
+  :: IxMonadState m => ProjectContext -> m (AppState a) (AppState 'RequestDefAddTag) ()
 showAddRequestDefScreen c = imodify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm

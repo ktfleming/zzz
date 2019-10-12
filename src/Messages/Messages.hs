@@ -1,24 +1,27 @@
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RebindableSyntax #-}
 
 module Messages.Messages where
 
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , imodify
                                                 )
-import           Control.Monad.IO.Class         ( MonadIO
-                                                , liftIO
-                                                )
+import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Data.Time.Clock                ( getCurrentTime )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
+import           Types.Classes.Fields
+import           Types.Monads                   ( IxMonadIO
+                                                , iliftIO
+                                                )
 
-logMessage :: MonadIO m => T.Text -> IxStateT m (AppState a) (AppState a) ()
+logMessage :: (IxMonadState m, HasMessages a (Seq Message), IxMonadIO m) => T.Text -> m a a ()
 logMessage msg = do
-  time <- liftIO getCurrentTime
+  time <- iliftIO getCurrentTime
   let fullMessage = Message { messageDateTime = time, messageText = msg }
   imodify $ messages %~ (|> fullMessage)

@@ -7,27 +7,26 @@ module UI.Events.Messages
 where
 
 
-import           Brick                          ( EventM
-                                                , vScrollBy
+import           Brick                          ( vScrollBy
                                                 , viewportScroll
                                                 )
-import           Control.Monad.Indexed.State    ( IxStateT )
-import           Control.Monad.Indexed.Trans    ( ilift )
+import           Control.Monad.Indexed.State    ( IxMonadState )
 import           Graphics.Vty.Input.Events
 import           Types.AppState                 ( AnyAppState
                                                 , AppState
                                                 )
 import           Types.Brick.Name               ( Name(MessagesViewport) )
 import           Types.Models.Screen
-import           Utils.IxState                  ( submerge
-                                                , (>>>)
-                                                )
+import           Types.Monads
 
 handleEventMessages
-  :: Key -> [Modifier] -> IxStateT (EventM Name) (AppState 'MessagesTag) AnyAppState ()
+  :: (IxMonadState m, IxMonadEvent m)
+  => Key
+  -> [Modifier]
+  -> m (AppState 'MessagesTag) AnyAppState ()
 handleEventMessages key _ =
   let vp = viewportScroll MessagesViewport
   in  case key of
-        KUp   -> ilift (vScrollBy vp (-5)) >>> submerge
-        KDown -> ilift (vScrollBy vp 5) >>> submerge
+        KUp   -> iliftEvent (vScrollBy vp (-5)) >>> submerge
+        KDown -> iliftEvent (vScrollBy vp 5) >>> submerge
         _     -> submerge

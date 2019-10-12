@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax  #-}
@@ -20,7 +21,7 @@ import           Brick.Forms                    ( FormFieldState
                                                 )
 import           Control.Lens
 import           Control.Monad                  ( (>=>) )
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
@@ -30,7 +31,7 @@ import           Data.Sequence                  ( Seq )
 import           Data.String                    ( fromString )
 import qualified Data.Text                     as T
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Safe                           ( headMay )
@@ -55,7 +56,7 @@ import           UI.Forms.RequestBody           ( requestBodyForm )
 import           UI.Url                         ( colorizedUrl )
 
 finishEditingRequestDef
-  :: Monad m => IxStateT m (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
+  :: IxMonadState m => m (AppState 'RequestDefEditTag) (AppState 'RequestDefEditTag) ()
 finishEditingRequestDef = do
   s <- iget
   let RequestDefEditScreen c@(RequestDefContext pid rid) form = s ^. screen
@@ -114,6 +115,6 @@ makeEditRequestDefForm s c =
         editState
 
 showEditRequestDefScreen
-  :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefEditTag) ()
+  :: IxMonadState m => RequestDefContext -> m (AppState a) (AppState 'RequestDefEditTag) ()
 showEditRequestDefScreen c =
   imodify $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)

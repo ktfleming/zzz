@@ -35,3 +35,12 @@ class HasDateTime s a | s -> a where
 
 class HasText s a | s -> a where
   text :: Lens' s a
+
+class HasMessages s a | s -> a where
+  messages :: Lens' s a
+
+class HasCurrentTime s a | s -> a where
+  currentTime :: Lens' s a
+
+class HasModal s a | s -> a where
+  modal :: Lens' s a

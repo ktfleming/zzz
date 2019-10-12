@@ -12,8 +12,7 @@ module UI.Search
   )
 where
 
-import           Brick                          ( EventM
-                                                , Size(Fixed)
+import           Brick                          ( Size(Fixed)
                                                 , Widget(..)
                                                 , txt
                                                 , withAttr
@@ -34,12 +33,10 @@ import           Brick.Widgets.List             ( GenericList
                                                 , listSelectedElement
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed          ( ireturn )
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import           Data.HashMap.Strict            ( HashMap )
 import           Data.Maybe                     ( fromMaybe )
 import           Data.Sequence                  ( Seq )
@@ -71,6 +68,7 @@ import           Types.Models.Screen
 import           Types.Models.Screen.Optics     ( listLens
                                                 , updateBrickList
                                                 )
+import           Types.Monads
 import           Types.Search                   ( PartitionedResults
                                                 , SearchListItem(..)
                                                 , SearchResult(..)
@@ -86,11 +84,6 @@ import           UI.Projects.Details            ( showProjectDetails )
 import           UI.RequestDefs.Details         ( showRequestDefDetails )
 import           Utils.Containers               ( mapToSeq )
 import           Utils.IfThenElse               ( ifThenElse )
-import           Utils.IxState                  ( extractScreen
-                                                , submerge
-                                                , wrapScreen
-                                                , (>>>)
-                                                )
 
 makeResultList :: PartitionedResults -> ZZZList SearchListItem
 makeResultList (envs, ps, rds) =
@@ -141,7 +134,7 @@ allSearchResults s =
   in
     (envResults, projectResults, rdResults)
 
-showSearchScreen :: Monad m => IxStateT m (AppState a) (AppState 'SearchTag) ()
+showSearchScreen :: IxMonadState m => m (AppState a) (AppState 'SearchTag) ()
 showSearchScreen = do
   s <- iget
   let edt     = editorText SearchField (Just 1) ""
@@ -151,9 +144,10 @@ showSearchScreen = do
   imodify $ screen .~ SearchScreen edt (listMoveDown (makeResultList results)) results
 
 searchSelect
-  :: SearchResult
+  :: (IxMonadState m, IxMonadIO m)
+  => SearchResult
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'SearchTag) AnyAppState ()
+  -> m (AppState 'SearchTag) AnyAppState ()
 searchSelect (ProjectResult _ c     ) _    = showProjectDetails c >>> submerge
 searchSelect (RequestDefResult _ _ c) _    = showRequestDefDetails c >>> submerge
 searchSelect (EnvironmentResult _ c ) chan = selectEnvironment (Just c) chan
@@ -164,8 +158,7 @@ data Direction = Up | Down -- needed to know which direction to skip past sectio
 -- then automatically scroll past it to the following item, since section headers can't be actioned
 -- and thus there's no reason to allow them to be selected. Note that the first item in the list will
 -- always be a section header, so we also want to prevent moving up past the second item.
-scrollPastSection
-  :: Direction -> IxStateT (EventM Name) (Screen 'SearchTag) (Screen 'SearchTag) ()
+scrollPastSection :: IxMonadState m => Direction -> m (Screen 'SearchTag) (Screen 'SearchTag) ()
 scrollPastSection direction = do
   scr <- iget
   let (SearchScreen _ resultList _) = scr
@@ -183,16 +176,17 @@ scrollPastSection direction = do
     Just (0, _              ) -> imodify $ listLens %~ listMoveFunction (otherDirection direction) -- tried to select the first item; have to undo the move
     Just (_, SearchSection _) -> skipPast -- other section headers (besides the first) will be skipped over
     Just (_, SearchBlankLine) -> skipPast
-    _                         -> ireturn ()
+    _                         -> return ()
 
 -- Up and Down arrows move the selection
 -- ENTER selects
 -- All other keys are forwarded to the editor
 handleEventSearch
-  :: Key
+  :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'SearchTag) AnyAppState ()
+  -> m (AppState 'SearchTag) AnyAppState ()
 handleEventSearch key mods chan = do
   s <- iget
   let SearchScreen edt resultList allResults = s ^. screen
@@ -209,7 +203,7 @@ handleEventSearch key mods chan = do
       Just (_, SelectableResult selected) -> searchSelect selected chan
       _ -> submerge
     _ -> do
-      updatedEditor <- ilift $ handleEditorEvent (EvKey key mods) edt
+      updatedEditor <- iliftEvent $ handleEditorEvent (EvKey key mods) edt
       let editContents   = getEditContents updatedEditor
           searchString   = fromMaybe "" (headMay editContents)
 

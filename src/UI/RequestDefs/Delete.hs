@@ -1,9 +1,10 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.RequestDefs.Delete where
 
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , imodify
                                                 )
 import qualified Data.Text                     as T
@@ -12,7 +13,7 @@ import           Types.Classes.Fields
 import           Types.Models.Project           ( requestDefs )
 import           Types.Models.RequestDef
 
-deleteRequestDef :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState a) ()
+deleteRequestDef :: IxMonadState m => RequestDefContext -> m (AppState a) (AppState a) ()
 deleteRequestDef (RequestDefContext pid rid) =
   imodify $ projects . at pid . _Just . requestDefs . at rid .~ Nothing
 

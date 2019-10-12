@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax  #-}
@@ -19,13 +20,13 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
 import           Data.String                    ( fromString )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
@@ -39,7 +40,7 @@ import           UI.Form                        ( ZZZForm
                                                 )
 
 finishEditingProject
-  :: Monad m => IxStateT m (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
+  :: IxMonadState m => m (AppState 'ProjectEditTag) (AppState 'ProjectEditTag) ()
 finishEditingProject = do
   s <- iget
   let ProjectEditScreen c@(ProjectContext pid) form = s ^. screen
@@ -61,6 +62,6 @@ makeEditProjectForm s c =
         editState
 
 showEditProjectScreen
-  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectEditTag) ()
+  :: IxMonadState m => ProjectContext -> m (AppState a) (AppState 'ProjectEditTag) ()
 showEditProjectScreen c =
   imodify $ \s -> s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)

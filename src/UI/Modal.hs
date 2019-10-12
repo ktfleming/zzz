@@ -1,3 +1,5 @@
+{-# LANGUAGE DataKinds        #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs            #-}
 {-# LANGUAGE RebindableSyntax #-}
 
@@ -20,13 +22,8 @@ import           Brick.Widgets.Center           ( center
                                                 )
 import           Control.Lens
 import qualified Data.Text                     as T
-import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(return, (>>), (>>=))
-                                                , pure
-                                                )
 import           Types.AppState                 ( AnyAppState(..)
                                                 , AppState
-                                                , modal
                                                 , screen
                                                 )
 import           Types.Brick.Name               ( Name )
@@ -42,11 +39,18 @@ import           UI.RequestDefs.Delete          ( deleteRequestDef
                                                 , deleteRequestDefWarning
                                                 )
 
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
+                                                , imodify
                                                 , iput
                                                 )
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
+                                                , pure
+                                                )
+import           Types.Classes.Fields
 import           Types.Models.Screen            ( Screen(..) )
+import           Types.Monads
 import           UI.Environments.Delete         ( deleteEnvironment
                                                 , deleteEnvironmentWarning
                                                 )
@@ -54,9 +58,6 @@ import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.RequestDefs.Details         ( refreshResponseList )
 import           UI.Responses.Delete            ( deleteResponse
                                                 , deleteResponseWarning
-                                                )
-import           Utils.IxState                  ( submerge
-                                                , (>>>)
                                                 )
 
 renderModalText :: T.Text -> Widget Name
@@ -71,7 +72,7 @@ renderModal s m = case m of
   DeleteResponseModal _ _  -> renderModalText deleteResponseWarning
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
-handleConfirm :: Monad m => Modal -> IxStateT m AnyAppState AnyAppState ()
+handleConfirm :: IxMonadState m => Modal -> m AnyAppState AnyAppState ()
 handleConfirm m = do
   (AnyAppState s) <- iget
   case m of
@@ -97,11 +98,10 @@ handleConfirm m = do
         -- Note: this `RequestDefDetailsScreen` branch should always be the case, but for
         -- now it's necessary since this function runs in AnyAppState while `refreshResponseList`
         -- runs in a tagged AppState.
-        RequestDefDetailsScreen{} -> refreshResponseList >>> submerge
-        _                         -> submerge
+        RequestDefDetailsScreen{} -> do
+          refreshResponseList
+          submerge
+        _ -> submerge
 
-dismissModal :: Monad m => IxStateT m AnyAppState AnyAppState ()
-dismissModal = do
-  (AnyAppState s) <- iget
-  iput $ s & modal .~ Nothing
-  submerge
+dismissModal :: (IxMonadState m, HasModal a (Maybe Modal)) => m a a ()
+dismissModal = imodify $ modal .~ Nothing

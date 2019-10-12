@@ -1,10 +1,13 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE LambdaCase          #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RankNTypes          #-}
-{-# LANGUAGE RebindableSyntax    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE FlexibleContexts           #-}
+{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE LambdaCase                 #-}
+{-# LANGUAGE OverloadedStrings          #-}
+{-# LANGUAGE RankNTypes                 #-}
+{-# LANGUAGE RebindableSyntax           #-}
+{-# LANGUAGE ScopedTypeVariables        #-}
+{-# LANGUAGE StandaloneDeriving         #-}
 
 module Request.Request
   ( sendRequest
@@ -12,15 +15,11 @@ module Request.Request
   )
 where
 
-import           Brick                          ( EventM )
 import           Control.Error
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
-                                                )
-import           Control.Monad.IO.Class         ( MonadIO
-                                                , liftIO
                                                 )
 import           Control.Monad.Trans.Class      ( lift )
 import qualified Data.Sequence                 as S
@@ -54,7 +53,6 @@ import           Prelude                 hiding ( Monad(..)
                                                 )
 import           Types.AppState
 import           Types.Brick.CustomEvent        ( CustomEvent(..) )
-import           Types.Brick.Name               ( Name )
 import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
 import           Types.Methods                  ( Method(..) )
@@ -69,6 +67,9 @@ import           Types.Models.Response
 import           Types.Models.Screen
 import           Types.Models.Screen.Optics     ( lastError )
 import           Types.Models.Url               ( Url(..) )
+import           Types.Monads                   ( IxMonadIO
+                                                , iliftIO
+                                                )
 import           Utils.IfThenElse               ( ifThenElse )
 import           Utils.Text                     ( substitute )
 
@@ -87,57 +88,40 @@ eitherReqToAnyReq :: EitherReq -> AnyReq
 eitherReqToAnyReq (Left  (u, opts)) = AnyReq u opts
 eitherReqToAnyReq (Right (u, opts)) = AnyReq u opts
 
--- This is the function called from the event handler; it uses the same monad stack that all
--- the event handlers use/require. But our main function that sends the request has an extra
--- ExceptT layer that the event handlers don't have, so we have to handle the error (if present)
--- by logging it, and then removing the ExceptT layer.
-sendRequest
-  :: RequestDefContext
-  -> BChan CustomEvent
-  -> IxStateT
-       (EventM Name)
-       (AppState 'RequestDefDetailsTag)
-       (AppState 'RequestDefDetailsTag)
-       ()
-sendRequest c chan = do
-  result <- runExceptT $ sendRequest' c chan
-  case result of
-    Left requestError -> do
-      imodify $ screen . lastError ?~ requestError
-      (logMessage . errorDescription) requestError
-    Right _ -> return ()
-
--- Seems like the sendRequest' function needs some help with type annotations, so this alias will make it
--- not so verbose.
-type Step a
-  = ExceptT
-      RequestError
-      (IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag))
-      a
-
 -- Parse the URL (possibly failing, in which case we log an error and give up), then do the actual
 -- HTTP request on a background thread with `async`. This way we don't block Brick's event loop. The
 -- result of the request will be sent back into the event loop via a BChan so that the global AppState
 -- can be updated appropriately.
 -- Since it's possible that the URL cannot be parsed (in case of manually editing the JSON file, etc),
 -- this function adds an ExceptT to the top of the monad stack to deal with that case.
-sendRequest' :: RequestDefContext -> BChan CustomEvent -> Step ()
-sendRequest' c@(RequestDefContext _ rid) chan = do
-  s <- lift iget :: Step (AppState 'RequestDefDetailsTag)
+sendRequest
+  :: (IxMonadState m, IxMonadIO m)
+  => RequestDefContext
+  -> BChan CustomEvent
+  -> m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
+sendRequest c@(RequestDefContext _ rid) chan = do
+  s <- iget
   let r :: RequestDef        = model s c
       e :: Maybe Environment = model s <$> s ^. environmentContext
       vars :: [Variable]     = maybe [] (toList . view variables) e
       u :: Url               = coerce $ substitute vars (r ^. url . coerced)
-  now <- liftIO getCurrentTime :: Step UTCTime
-  lift $ logMessage $ "Preparing to send request to URL " <> coerce u :: Step ()
-  _            <- tryRight (validateVariables s r) :: Step ()
-  validatedUrl <-
-    failWith (RequestFailed now "Error parsing URL") ((Req.parseUrl . encodeUtf8 . coerce) u) :: Step
-      EitherReq
-  asyncResult <-
-    (liftIO . async) $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan now :: Step
-      (Async ())
-  lift $ imodify $ activeRequests . at rid ?~ asyncResult :: Step ()
+      errorHandler er = do
+        imodify $ screen . lastError ?~ er
+        (logMessage . errorDescription) er
+
+  now <- iliftIO getCurrentTime
+  logMessage $ "Preparing to send request to URL " <> coerce u
+
+  -- Doing this kind of error handling instead of trying to use ExceptT / MonadError at least for now,
+  -- since the two validations are independent so it's only one level of indentation. Could
+  -- revisit this at some point.
+  case (validateVariables s r, (Req.parseUrl . encodeUtf8 . coerce) u) of
+    (Left er, _                ) -> errorHandler er
+    (_      , Nothing          ) -> errorHandler $ RequestFailed now "Error parsing URL"
+    (Right _, Just validatedUrl) -> do
+      asyncResult <- (iliftIO . async)
+        $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan now
+      imodify $ activeRequests . at rid ?~ asyncResult
 
 -- Tries sending the request and constructing the Response model, then sends a custom
 -- event into Brick's BChan depending on whether it was a success or failure.
@@ -188,10 +172,13 @@ doHttpRequest (AnyReq u opts) r =
         Delete -> Req.req Req.DELETE u Req.NoReqBody Req.bsResponse allOpts
 
 cancelRequest
-  :: MonadIO m => RequestDefContext -> Async () -> IxStateT m (AppState a) (AppState a) ()
+  :: (IxMonadState m, IxMonadIO m)
+  => RequestDefContext
+  -> Async ()
+  -> m (AppState a) (AppState a) ()
 cancelRequest (RequestDefContext _ rid) target = do
   imodify $ activeRequests . at rid .~ Nothing
-  liftIO $ cancel target
+  iliftIO $ cancel target
 
 -- `Req`'s default config, but without throwing an exception on non-2xx status codes,
 -- since we want to keep those as normal Responses

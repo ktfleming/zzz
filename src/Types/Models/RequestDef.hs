@@ -22,22 +22,25 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.=)
                                                 )
 import           Data.Coerce                    ( coerce )
+import           Data.Maybe                     ( catMaybes )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Data.Time                      ( UTCTime )
+import           Data.Time.ISO8601              ( formatISO8601 )
+import           Parsing.TemplatedUrlParser     ( TemplatedUrl(..)
+                                                , TemplatedUrlPart(..)
+                                                , parseTemplatedUrl
+                                                )
+import           Text.Megaparsec                ( runParser )
 import           Types.Classes.Displayable
 import           Types.Classes.Fields
 import           Types.Methods                  ( Method )
+import           Types.Models.Environment       ( VariableName(..) )
 import           Types.Models.Header
 import           Types.Models.Id                ( ProjectId
                                                 , RequestDefId
                                                 )
 import           Types.Models.Url               ( Url(..) )
-import Types.Models.Environment (VariableName(..))
-import Parsing.TemplatedUrlParser (TemplatedUrlPart(..), TemplatedUrl(..), parseTemplatedUrl)
-import Data.Maybe (catMaybes)
-import Text.Megaparsec (runParser)
-import Data.Time.ISO8601 (formatISO8601)
 
 newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
@@ -48,8 +51,11 @@ data RequestError =
   deriving (Show)
 
 errorDescription :: RequestError -> T.Text
-errorDescription (RequestFailed errorTime msg) = "The request sent at " <> (T.pack . formatISO8601) errorTime <> " failed: " <> msg
-errorDescription (UnmatchedVariables vars) = "The following variables are not defined in the current environment: " <> (T.intercalate ", " (coerce vars))
+errorDescription (RequestFailed errorTime msg) =
+  "The request sent at " <> (T.pack . formatISO8601) errorTime <> " failed: " <> msg
+errorDescription (UnmatchedVariables vars) =
+  "The following variables are not defined in the current environment: "
+    <> (T.intercalate ", " (coerce vars))
 
 data RequestDef = RequestDef {
     requestDefName :: RequestDefName
@@ -78,17 +84,21 @@ makeFields ''RequestDefFormState
 -- headers, body, etc.
 allVariables :: RequestDef -> [VariableName]
 allVariables r =
-  let transformPart :: TemplatedUrlPart -> Maybe VariableName
-      transformPart (TemplateVariable n) = Just (VariableName n)
-      transformPart (TextPart _) = Nothing
+  let
+    transformPart :: TemplatedUrlPart -> Maybe VariableName
+    transformPart (TemplateVariable n) = Just (VariableName n)
+    transformPart (TextPart         _) = Nothing
 
-      -- This plus `transformPart` is like Scala's `collect`, i.e. keep the VariableNames and
-      -- discard the other parts
-      getVariables :: TemplatedUrl -> [VariableName]
-      getVariables (TemplatedUrl ps) = catMaybes $ transformPart <$> ps
+    -- This plus `transformPart` is like Scala's `collect`, i.e. keep the VariableNames and
+    -- discard the other parts
+    getVariables :: TemplatedUrl -> [VariableName]
+    getVariables (TemplatedUrl ps) = catMaybes $ transformPart <$> ps
 
-      urlVariables = either (const []) getVariables (runParser parseTemplatedUrl "Templated URL" (r^.url.coerced))
-  in urlVariables
+    urlVariables = either (const [])
+                          getVariables
+                          (runParser parseTemplatedUrl "Templated URL" (r ^. url . coerced))
+  in
+    urlVariables
 
 instance Displayable RequestDefListItem where
   display (RequestDefListItem _ n) = txt $ coerce n

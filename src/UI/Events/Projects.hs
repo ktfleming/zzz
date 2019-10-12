@@ -1,14 +1,13 @@
 {-# LANGUAGE DataKinds           #-}
 {-# LANGUAGE GADTs               #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RebindableSyntax    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Events.Projects where
 import           Brick.BChan                    ( BChan )
-import           Brick.Types                    ( EventM )
 import           Brick.Widgets.List             ( listSelectedElement )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
@@ -18,15 +17,16 @@ import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
-import           Types.Brick.CustomEvent        ( CustomEvent )
-import           Types.Brick.Name               ( Name )
+import           Types.Brick.CustomEvent        ( CustomEvent(Save) )
+import           Types.Classes.Fields
 import           Types.Modal                    ( Modal(..) )
 import           Types.Models.Project           ( ProjectListItem(..) )
 import           Types.Models.RequestDef        ( RequestDefListItem(..) )
 import           Types.Models.Screen
-import           Types.Models.Screen.Optics         ( updateBrickForm
+import           Types.Models.Screen.Optics     ( updateBrickForm
                                                 , updateBrickList
                                                 )
+import           Types.Monads
 import           UI.Projects.Add                ( finishAddingProject
                                                 , showProjectAddScreen
                                                 )
@@ -37,95 +37,92 @@ import           UI.Projects.Edit               ( finishEditingProject
 import           UI.Projects.List               ( showProjectListScreen )
 import           UI.RequestDefs.Add             ( showAddRequestDefScreen )
 import           UI.RequestDefs.Details         ( showRequestDefDetails )
-import           Utils.IxState                  ( extractScreen
-                                                , save
-                                                , submerge
-                                                , wrapScreen
-                                                , (>>>)
-                                                )
 
 -- Since each branch of the case expression can lead to a different phantom type
 -- parameterizing the state, we can only say that the ultimate output type will be
 -- `AnyAppState` (as expected by `handleEventInState`, which calls all of these functions),
 -- and we have to apply `submerge` on every branch to ensure the output type is `AnyAppState`.
 handleEventProjectAdd
-  :: Key
+  :: (IxMonadState m, IxMonadIO m, IxMonadEvent m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'ProjectAddTag) AnyAppState ()
+  -> m (AppState 'ProjectAddTag) AnyAppState ()
 handleEventProjectAdd key mods chan = do
   s <- iget
   case (key, mods) of
     (KChar 's', [MCtrl]) -> do
       finishAddingProject
-      save chan
+      sendEvent Save chan
       showProjectListScreen
       submerge
     (KEsc, []) -> showProjectListScreen >>> submerge
-    _ -> do
+    _          -> do
       extractScreen
       updateBrickForm key
       wrapScreen s
       submerge
 
 handleEventProjectEdit
-  :: Key
+  :: (IxMonadState m, IxMonadIO m, IxMonadEvent m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'ProjectEditTag) AnyAppState ()
+  -> m (AppState 'ProjectEditTag) AnyAppState ()
 handleEventProjectEdit key mods chan = do
   s <- iget
   let ProjectEditScreen c _ = s ^. screen
   case (key, mods) of
     (KChar 's', [MCtrl]) -> do
       finishEditingProject
-      save chan
+      sendEvent Save chan
       showProjectDetails c
       submerge
     (KEsc, []) -> showProjectDetails c >>> submerge
-    _  -> do
+    _          -> do
       extractScreen
       updateBrickForm key
       wrapScreen s
       submerge
 
 handleEventProjectDetails
-  :: Key
+  :: (IxMonadState m, IxMonadEvent m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent -- TODO: unnecessary
-  -> IxStateT (EventM Name) (AppState 'ProjectDetailsTag) AnyAppState ()
+  -> m (AppState 'ProjectDetailsTag) AnyAppState ()
 handleEventProjectDetails key mods _ = do
   s <- iget
   let ProjectDetailsScreen c list = s ^. screen
   case (key, mods) of
     (KRight, []) -> case listSelectedElement list of
-      Just (_, RequestDefListItem reqContext _) ->
-        showRequestDefDetails reqContext >>> submerge
+      Just (_, RequestDefListItem reqContext _) -> showRequestDefDetails reqContext >>> submerge
       Nothing -> submerge
     (KChar 'e', []) -> showEditProjectScreen c >>> submerge
     (KChar 'a', []) -> showAddRequestDefScreen c >>> submerge
     (KChar 'd', []) -> imodify (modal ?~ DeleteProjectModal c) >>> submerge
     (KLeft    , []) -> showProjectListScreen >>> submerge
-    _ -> do
+    _               -> do
       extractScreen
       updateBrickList key
       wrapScreen s
       submerge
 
 handleEventProjectList
-  :: Key
+  :: (IxMonadState m, IxMonadEvent m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'ProjectListTag) AnyAppState ()
+  -> m (AppState 'ProjectListTag) AnyAppState ()
 handleEventProjectList key mods _ = do
   s <- iget
   let ProjectListScreen list = s ^. screen
   case (key, mods) of
     (KRight, []) -> case listSelectedElement list of
       Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
-      Nothing -> submerge
+      Nothing                             -> submerge
     (KChar 'a', []) -> showProjectAddScreen >>> submerge
-    _ -> do
+    _               -> do
       extractScreen
       updateBrickList key
       wrapScreen s

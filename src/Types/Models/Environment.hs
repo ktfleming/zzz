@@ -26,6 +26,7 @@ import           Data.Aeson                     ( FromJSON
                                                 , (.=)
                                                 )
 import           Data.Coerce                    ( coerce )
+import           Data.Hashable                  ( Hashable )
 import           Data.Sequence                  ( Seq )
 import qualified Data.Text                     as T
 import           Types.Classes.Displayable      ( Displayable
@@ -37,7 +38,6 @@ import           Types.Models.KeyValue          ( KeyValue(..)
                                                 , KeyValueIso
                                                 , keyValueIso
                                                 )
-import Data.Hashable (Hashable)
 
 newtype EnvironmentName = EnvironmentName T.Text deriving (FromJSON, ToJSON, Eq, Ord)
 newtype VariableName = VariableName T.Text deriving (FromJSON, ToJSON, Show, Eq, Hashable)

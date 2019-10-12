@@ -6,7 +6,7 @@ module UI.Projects.List where
 
 import           Brick.Widgets.List             ( list )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , imodify
                                                 )
 import           Data.HashMap.Strict            ( HashMap )
@@ -29,6 +29,6 @@ makeProjectList pm =
         tuples
   in  list ProjectList listItems 1
 
-showProjectListScreen :: Monad m => IxStateT m (AppState a) (AppState 'ProjectListTag) ()
+showProjectListScreen :: IxMonadState m => m (AppState a) (AppState 'ProjectListTag) ()
 showProjectListScreen =
   imodify $ \s -> s & screen .~ ProjectListScreen (makeProjectList (s ^. projects))

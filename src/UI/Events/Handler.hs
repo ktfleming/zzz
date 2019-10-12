@@ -1,34 +1,26 @@
-{-# LANGUAGE DataKinds           #-}
-{-# LANGUAGE GADTs               #-}
-{-# LANGUAGE OverloadedStrings   #-}
-{-# LANGUAGE RebindableSyntax    #-}
-{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
+{-# LANGUAGE GADTs             #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE RebindableSyntax  #-}
 
-module UI.EventHandler
-  ( handleEvent
+module UI.Events.Handler
+  ( updateCurrentTime
+  , handleEventInState
   )
 where
 
 import           Brick                          ( BrickEvent(..)
-                                                , EventM
-                                                , Next
-                                                , continue
-                                                , halt
                                                 , vScrollToEnd
                                                 , viewportScroll
                                                 )
 import           Brick.BChan                    ( BChan )
 import           Control.Lens
 import           Control.Monad.Indexed          ( ireturn )
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 , iput
-                                                , runIxStateT
-                                                )
-import           Control.Monad.Indexed.Trans    ( ilift )
-import           Control.Monad.IO.Class         ( MonadIO
-                                                , liftIO
                                                 )
 import           Data.Aeson.Encode.Pretty       ( encodePretty )
 import           Data.ByteString.Lazy           ( writeFile )
@@ -47,6 +39,7 @@ import           Prelude                 hiding ( Monad(return, (>>), (>>=))
 import           Types.AppState
 import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Brick.Name               ( Name(..) )
+import           Types.Classes.Fields
 import           Types.Constants                ( mainSettingsFile
                                                 , responseHistoryFile
                                                 )
@@ -55,6 +48,7 @@ import           Types.Models.RequestDef        ( RequestDefContext(..)
                                                 )
 import           Types.Models.Screen
 import           Types.Models.Screen.Optics     ( lastError )
+import           Types.Monads
 import           UI.Environments.List           ( showEnvironmentListScreen )
 import           UI.Events.Environments
 import           UI.Events.Messages             ( handleEventMessages )
@@ -67,45 +61,60 @@ import           UI.RequestDefs.Details         ( refreshResponseList )
 import           UI.Search                      ( handleEventSearch
                                                 , showSearchScreen
                                                 )
-import           Utils.IxState                  ( save
-                                                , stashScreen
-                                                , submerge
-                                                , unstashScreen
-                                                , (>>>)
-                                                , (|$|)
-                                                )
-
--- This is the function that's provided to Brick's `App` and must have this exact signature
--- (note AnyAppState instead of AppState, since the input and output state must have the same type,
--- we can't use AppState which is parameterized by a ScreenTag)
-handleEvent
-  :: BChan CustomEvent
-  -> AnyAppState
-  -> BrickEvent Name CustomEvent
-  -> EventM Name (Next AnyAppState)
-
--- Ctrl-C always exits immediately
-handleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
-
--- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
--- with every event.
-handleEvent chan s ev =
-  (runIxStateT $ handleEventInState ev chan >>> updateCurrentTime) s >>= (continue . snd)
 
 -- Every event should also update the currentTime inside the AppState
-updateCurrentTime :: MonadIO m => IxStateT m AnyAppState AnyAppState ()
+updateCurrentTime :: (IxMonadState m, IxMonadIO m) => m AnyAppState AnyAppState ()
 updateCurrentTime = do
-  (AnyAppState s) <- iget
-  iput s
-  time <- (ilift . liftIO) getCurrentTime
+  time <- iliftIO getCurrentTime
   imodify $ currentTime ?~ time
-  submerge
 
--- This function does the actual event handling, inside the IxStateT monad
+handleCustomEvent :: (IxMonadState m, IxMonadIO m) => CustomEvent -> m (AppState a) (AppState a) ()
+handleCustomEvent Save = saveState
+
+-- Note: this is for errors that happen on the background thread that handles sending the
+-- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
+-- will short-circuit the ExceptT in `sendRequest'` and will not need to use a custom event.
+handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) = do
+  s <- iget
+  logMessage ("Error: " <> (T.pack msg))
+  now <- iliftIO getCurrentTime
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> imodify $ screen . lastError ?~ RequestFailed now (T.pack msg)
+    _                         -> return ()
+  imodify $ activeRequests . at rid .~ Nothing
+  saveState
+
+handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) = do
+  s <- iget
+  let ekey = currentEnvironmentKey s
+  logMessage "Received response"
+  imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
+  imodify $ activeRequests . at rid .~ Nothing
+  saveState
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> (imodify $ screen . lastError .~ Nothing) >> refreshResponseList -- Only need to refresh the list if they're looking at it
+    _                         -> return ()
+
+handleCustomEvent RefreshResponseList = do
+  s <- iget
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> refreshResponseList
+    _                         -> return ()
+
+saveState :: (IxMonadState m, IxMonadIO m) => m (AppState a) (AppState a) ()
+saveState = do
+  s <- iget
+  logMessage "Saving..."
+  iliftIO $ writeFile mainSettingsFile (encodePretty s)
+  iliftIO $ writeFile responseHistoryFile (encodePretty (s ^. responses))
+
+
+-- This function does the actual event handling, inside the AppM monad
 handleEventInState
-  :: BrickEvent Name CustomEvent
+  :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
+  => BrickEvent Name CustomEvent
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) AnyAppState AnyAppState ()
+  -> m AnyAppState AnyAppState ()
 
 handleEventInState (AppEvent customEvent) _ = do
   (AnyAppState s) <- iget
@@ -121,7 +130,7 @@ handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = do
     _              -> do
       stashScreen
       imodify (screen .~ MessagesScreen)
-      ilift (vScrollToEnd (viewportScroll MessagesViewport))
+      iliftEvent (vScrollToEnd (viewportScroll MessagesViewport))
       submerge
 
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = do
@@ -148,10 +157,13 @@ handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = do
 handleEventInState (VtyEvent (EvKey key mods)) chan = do
   (AnyAppState s) <- iget
   case (s ^. modal, key) of
-    (Just _ , KChar 'n') -> dismissModal
-    (Just m , KChar 'y') -> handleConfirm m >>> save chan >>> dismissModal
-    (Just _ , _        ) -> ireturn ()
-    (Nothing, _        ) -> case s ^. screen of
+    (Just _, KChar 'n') -> dismissModal
+    (Just m, KChar 'y') -> do
+      handleConfirm m
+      sendEvent Save chan
+      dismissModal
+    (Just _ , _) -> ireturn ()
+    (Nothing, _) -> case s ^. screen of
       ProjectAddScreen{}        -> handleEventProjectAdd key mods chan |$| s
       ProjectEditScreen{}       -> handleEventProjectEdit key mods chan |$| s
       ProjectListScreen{}       -> handleEventProjectList key mods chan |$| s
@@ -166,43 +178,3 @@ handleEventInState (VtyEvent (EvKey key mods)) chan = do
       MessagesScreen            -> handleEventMessages key mods |$| s
       HelpScreen                -> ireturn ()
 handleEventInState _ _ = ireturn ()
-
-handleCustomEvent :: CustomEvent -> IxStateT (EventM Name) (AppState a) (AppState a) ()
-handleCustomEvent Save = saveState
-
--- Note: this is for errors that happen on the background thread that handles sending the
--- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
--- will short-circuit the ExceptT in `sendRequest'` and will not need to use a custom event.
-handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) = do
-  s <- iget
-  logMessage ("Error: " <> (T.pack msg))
-  now <- liftIO getCurrentTime
-  case s ^. screen of
-    RequestDefDetailsScreen{} -> imodify $ screen . lastError ?~ RequestFailed now (T.pack msg)
-    _                         -> ireturn ()
-  imodify $ activeRequests . at rid .~ Nothing
-  saveState
-
-handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) = do
-  s <- iget
-  let ekey = currentEnvironmentKey s
-  logMessage "Received response"
-  imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
-  imodify $ activeRequests . at rid .~ Nothing
-  saveState
-  case s ^. screen of
-    RequestDefDetailsScreen{} -> (imodify $ screen . lastError .~ Nothing) >>> refreshResponseList -- Only need to refresh the list if they're looking at it
-    _                         -> ireturn ()
-
-handleCustomEvent RefreshResponseList = do
-  s <- iget
-  case s ^. screen of
-    RequestDefDetailsScreen{} -> refreshResponseList
-    _                         -> ireturn ()
-
-saveState :: MonadIO m => IxStateT m (AppState a) (AppState a) ()
-saveState = do
-  s <- iget
-  logMessage "Saving..."
-  (ilift . liftIO) $ writeFile mainSettingsFile (encodePretty s)
-  (ilift . liftIO) $ writeFile responseHistoryFile (encodePretty (s ^. responses))

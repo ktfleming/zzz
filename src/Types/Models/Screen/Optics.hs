@@ -15,22 +15,19 @@ where
 
 import           Brick                          ( BrickEvent(..) )
 import           Brick.Forms                    ( handleFormEvent )
-import           Brick.Types                    ( EventM )
 import           Brick.Widgets.List             ( handleListEvent )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import           Graphics.Vty.Input.Events      ( Event(..)
                                                 , Key
                                                 )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
-import           Types.Brick.Name               ( Name )
 import           Types.Models.Environment       ( EnvironmentFormState
                                                 , EnvironmentListItem
                                                 )
@@ -38,14 +35,17 @@ import           Types.Models.Project           ( ProjectFormState
                                                 , ProjectListItem
                                                 )
 import           Types.Models.RequestDef        ( RequestDefFormState
-                                                , RequestDefListItem, RequestError
+                                                , RequestDefListItem
+                                                , RequestError
                                                 )
 import           Types.Models.Response          ( Response )
 import           Types.Models.Screen
+import           Types.Monads                   ( IxMonadEvent
+                                                , iliftEvent
+                                                )
 import           Types.Search                   ( SearchListItem )
 import           UI.Form                        ( ZZZForm )
 import           UI.List                        ( ZZZList )
-
 class HasBrickForm a where
   type family FormState a
   formLens :: Lens' a (ZZZForm (FormState a))
@@ -78,11 +78,12 @@ instance HasBrickForm (Screen 'EnvironmentAddTag) where
   type FormState (Screen 'EnvironmentAddTag) = EnvironmentFormState
   formLens = lens (\(EnvironmentAddScreen form) -> form) (\_ f -> EnvironmentAddScreen f)
 
-updateBrickForm :: HasBrickForm (Screen a) => Key -> IxStateT (EventM Name) (Screen a) (Screen a) ()
+updateBrickForm
+  :: (IxMonadState m, IxMonadEvent m, HasBrickForm (Screen a)) => Key -> m (Screen a) (Screen a) ()
 updateBrickForm key = do
   scr <- iget
   let form = scr ^. formLens
-  updatedForm <- ilift $ handleFormEvent (VtyEvent (EvKey key [])) form
+  updatedForm <- iliftEvent $ handleFormEvent (VtyEvent (EvKey key [])) form
   imodify $ formLens .~ updatedForm
 
 class HasBrickList a where
@@ -111,14 +112,15 @@ instance HasBrickList (Screen 'SearchTag) where
   type ListItem (Screen 'SearchTag) = SearchListItem
   listLens = lens (\(SearchScreen _ l _) -> l) (\(SearchScreen e _ rs) l -> SearchScreen e l rs)
 
-updateBrickList :: HasBrickList (Screen a) => Key -> IxStateT (EventM Name) (Screen a) (Screen a) ()
+updateBrickList
+  :: (IxMonadState m, IxMonadEvent m, HasBrickList (Screen a)) => Key -> m (Screen a) (Screen a) ()
 updateBrickList key = do
   scr <- iget
   let list = scr ^. listLens
-  updatedList <- ilift $ handleListEvent (EvKey key []) list
+  updatedList <- iliftEvent $ (handleListEvent (EvKey key []) list)
   imodify $ listLens .~ updatedList
 
 -- lens to update the error inside of the RequestDefDetailsScreen
 lastError :: Lens' (Screen 'RequestDefDetailsTag) (Maybe RequestError)
 lastError = lens (\(RequestDefDetailsScreen _ _ _ e) -> e)
-                     (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)
+                 (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)

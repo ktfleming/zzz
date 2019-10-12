@@ -1,8 +1,9 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.Environments.Delete where
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , imodify
                                                 )
 import qualified Data.Text                     as T
@@ -11,7 +12,7 @@ import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
 import           Types.Models.Environment
 
-deleteEnvironment :: Monad m => EnvironmentContext -> IxStateT m (AppState a) (AppState a) ()
+deleteEnvironment :: IxMonadState m => EnvironmentContext -> m (AppState a) (AppState a) ()
 deleteEnvironment (EnvironmentContext eid) = imodify $ environments . at eid .~ Nothing
 
 deleteEnvironmentWarning :: AppState a -> EnvironmentContext -> T.Text

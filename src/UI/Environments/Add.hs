@@ -1,7 +1,9 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RankNTypes          #-}
+{-# LANGUAGE RebindableSyntax    #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Environments.Add
@@ -21,15 +23,16 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.IO.Class         ( MonadIO
-                                                , liftIO
-                                                )
 import qualified Data.Sequence                 as S
-import           Data.UUID.V4                   ( nextRandom )
+import           Data.String                    ( fromString )
+import           Language.Haskell.DoNotation
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
+                                                , pure
+                                                )
 import           Types.AppState
 import           Types.Brick.Name
 import           Types.Classes.Fields
@@ -45,11 +48,12 @@ import           UI.Form                        ( ZZZForm
 import           UI.Forms.KeyValueList          ( makeKeyValueForm )
 
 finishAddingEnvironment
-  :: MonadIO m => IxStateT m (AppState 'EnvironmentAddTag) (AppState 'EnvironmentAddTag) ()
-finishAddingEnvironment = do
+  :: IxMonadState m
+  => EnvironmentId
+  -> m (AppState 'EnvironmentAddTag) (AppState 'EnvironmentAddTag) ()
+finishAddingEnvironment eid = do
   s <- iget
   let EnvironmentAddScreen form = s ^. screen
-  eid <- liftIO $ EnvironmentId <$> nextRandom
   let e = Environment { environmentName      = formState form ^. name
                       , environmentVariables = formState form ^. variables
                       }
@@ -65,5 +69,5 @@ makeEnvironmentAddForm = setFormConcat spacedConcat $ newForm
                        , environmentFormStateVariables = S.empty
                        }
 
-showEnvironmentAddScreen :: Monad m => IxStateT m (AppState a) (AppState 'EnvironmentAddTag) ()
+showEnvironmentAddScreen :: IxMonadState m => m (AppState a) (AppState 'EnvironmentAddTag) ()
 showEnvironmentAddScreen = imodify $ screen .~ EnvironmentAddScreen makeEnvironmentAddForm

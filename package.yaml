@@ -29,6 +29,7 @@ dependencies:
 - aeson-pretty
 - bytestring
 - directory
+- mtl
 - transformers
 - uuid
 - containers
@@ -56,6 +57,7 @@ library:
     - Messages.Messages
     - Parsing.TemplatedUrlParser
     - Types.AppState
+    - Types.Classes.Fields
     - Types.Constants
     - Types.Models.Environment
     - Types.Models.Screen

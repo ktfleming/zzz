@@ -2,9 +2,13 @@ module UI.App where
 
 import           Brick                          ( App(..)
                                                 , AttrMap
+                                                , BrickEvent(VtyEvent)
                                                 , EventM
+                                                , Next
                                                 , Widget
                                                 , attrMap
+                                                , continue
+                                                , halt
                                                 , padBottom
                                                 , showFirstCursor
                                                 , (<=>)
@@ -21,13 +25,21 @@ import           Brick.Widgets.Border           ( hBorder )
 import           Brick.Widgets.Edit             ( editFocusedAttr )
 import           Brick.Widgets.List             ( listSelectedFocusedAttr )
 import           Control.Lens
+import           Control.Monad.Indexed.State    ( runIxStateT )
 import           Data.Maybe                     ( maybeToList )
 import qualified Graphics.Vty                  as V
+import           Graphics.Vty.Input.Events
 import           Types.AppState
 import           Types.Brick.CustomEvent
 import           Types.Brick.Name
+import           Types.Classes.Fields
+import           Types.Monads                   ( runAppM
+                                                , (>>>)
+                                                )
 import           UI.Attr
-import           UI.EventHandler                ( handleEvent )
+import           UI.Events.Handler              ( handleEventInState
+                                                , updateCurrentTime
+                                                )
 import           UI.HelpPanel                   ( helpPanel )
 import           UI.MainWidget                  ( mainWidget )
 import           UI.Modal                       ( renderModal )
@@ -51,6 +63,24 @@ drawUI wrapper@(AnyAppState s) =
   in  modalWidget ++ [everything]
 startEvent :: AnyAppState -> EventM Name AnyAppState
 startEvent = return
+
+-- This is the function that's provided to Brick's `App` and must have this exact signature
+-- (note AnyAppState instead of AppState; since the input and output state must have the same type,
+-- we can't use AppState which is parameterized by a ScreenTag)
+handleEvent
+  :: BChan CustomEvent
+  -> AnyAppState
+  -> BrickEvent Name CustomEvent
+  -> EventM Name (Next AnyAppState)
+
+-- Ctrl-C always exits immediately
+handleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
+
+-- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
+-- with every event.
+handleEvent chan s ev =
+  ((runIxStateT . runAppM) $ handleEventInState ev chan >>> updateCurrentTime) s
+    >>= (continue . snd)
 
 myMap :: AttrMap
 myMap = attrMap

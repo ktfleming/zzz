@@ -32,6 +32,7 @@ import qualified Data.Text                     as T
 import           Data.Time                      ( NominalDiffTime
                                                 , UTCTime
                                                 )
+import           Data.Time.Format.Human         ( humanReadableTime' )
 import           Data.Time.ISO8601              ( formatISO8601 )
 import           Numeric                        ( showInt )
 import           Types.Classes.Displayable      ( Displayable
@@ -43,7 +44,6 @@ import           Types.Models.Header            ( Header )
 import           Types.Models.RequestDef        ( RequestBody(..) )
 import           Types.Models.Url               ( Url(..) )
 import           UI.Attr
-import Data.Time.Format.Human (humanReadableTime')
 
 -- TODO: should this be ByteString?
 newtype ResponseBody = ResponseBody T.Text deriving (Eq, Show, FromJSON, ToJSON)
@@ -106,9 +106,9 @@ data ResponseWithCurrentTime = ResponseWithCurrentTime (Maybe UTCTime) Response
 
 instance Displayable ResponseWithCurrentTime where
   display (ResponseWithCurrentTime maybeTime r) =
-    let sc   = display (r ^. statusCode)
+    let sc           = display (r ^. statusCode)
         relativeTime = case maybeTime of
-          Just t -> " (" <> humanReadableTime' t (r ^. dateTime) <> ")"
+          Just t  -> " (" <> humanReadableTime' t (r ^. dateTime) <> ")"
           Nothing -> ""
         timestamp = txt $ T.pack $ formatISO8601 (r ^. dateTime) <> relativeTime
     in  sc <+> padLeft (Pad 1) timestamp

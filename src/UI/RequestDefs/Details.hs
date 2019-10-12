@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
 {-# LANGUAGE OverloadedStrings   #-}
 {-# LANGUAGE RebindableSyntax    #-}
@@ -34,7 +35,8 @@ import           Brick.Widgets.List             ( list
                                                 , listSelectedElement
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed          ( (>>>=) )
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
@@ -44,7 +46,7 @@ import           Data.Sequence                  ( Seq )
 import qualified Data.Sequence                 as S
 import           Data.String                    ( fromString )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
@@ -59,8 +61,8 @@ import           Types.Models.KeyValue          ( KeyValue
 import           Types.Models.RequestDef
 import           Types.Models.Response
 import           Types.Models.Screen
+import           Types.Models.Screen.Optics     ( listLens )
 import           UI.Attr
-import           Types.Models.Screen.Optics         ( listLens )
 import           UI.Forms.KeyValueList          ( readOnlyKeyValues )
 import           UI.List                        ( ZZZList
                                                 , renderGenericList
@@ -73,19 +75,20 @@ makeResponseList :: Seq Response -> ZZZList Response
 makeResponseList rs = list ResponseList rs 1
 
 showRequestDefDetails
-  :: Monad m => RequestDefContext -> IxStateT m (AppState a) (AppState 'RequestDefDetailsTag) ()
-showRequestDefDetails c = do
-  s <- iget
+  :: IxMonadState m => RequestDefContext -> m (AppState a) (AppState 'RequestDefDetailsTag) ()
+showRequestDefDetails c = iget >>>= \s ->
   let ring = focusRing [RequestDetails, ResponseList, ResponseBodyDetails]
       ekey = currentEnvironmentKey s
-  imodify $ screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing
+  in  imodify
+        $  screen
+        .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing
 
 refreshResponseList
-  :: Monad m => IxStateT m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
+  :: IxMonadState m => m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
 refreshResponseList = do
   s <- iget
   let RequestDefDetailsScreen c _ _ _ = s ^. screen -- TODO: lens (or just getter) for the context inside a screen?
-      ekey                          = currentEnvironmentKey s
+      ekey                            = currentEnvironmentKey s
   imodify $ screen . listLens .~ makeResponseList (lookupResponses s c ekey)
 
 
@@ -126,9 +129,9 @@ requestDefDetailsWidget s =
         Nothing     -> txtWrap "No response selected."
 
       listWithTime :: ZZZList ResponseWithCurrentTime
-      listWithTime = ResponseWithCurrentTime (s^.currentTime) <$> zzzList
+      listWithTime = ResponseWithCurrentTime (s ^. currentTime) <$> zzzList
 
-      allWidgets = fst <$> filter
+      allWidgets   = fst <$> filter
         snd
         [ (padLeft (Pad 2) (topWidget s c requestFocused), True)
         , (hBorder, hasResponses || isJust maybeError)

@@ -7,7 +7,7 @@ module UI.Projects.Details where
 
 import           Brick.Widgets.List             ( list )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , iput
                                                 )
@@ -32,14 +32,14 @@ import           Types.Models.RequestDef        ( RequestDef
 import           Types.Models.Screen
 
 showProjectDetails
-  :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState 'ProjectDetailsTag) ()
+  :: IxMonadState m => ProjectContext -> m (AppState a) (AppState 'ProjectDetailsTag) ()
 showProjectDetails c = do
   s <- iget
   let p         = model s c
       listItems = foldr f S.empty (Map.toList (p ^. requestDefs))
-         where
-          f :: (RequestDefId, RequestDef) -> Seq RequestDefListItem -> Seq RequestDefListItem
-          f (rid, r) items = let rc = requestDefContext c rid in items |> requestDefListItem rc r
+       where
+        f :: (RequestDefId, RequestDef) -> Seq RequestDefListItem -> Seq RequestDefListItem
+        f (rid, r) items = let rc = requestDefContext c rid in items |> requestDefListItem rc r
       reqList = list RequestDefList listItems 1
       newState :: AppState 'ProjectDetailsTag = s & screen .~ ProjectDetailsScreen c reqList
   iput newState

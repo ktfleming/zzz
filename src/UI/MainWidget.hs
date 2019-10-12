@@ -21,6 +21,7 @@ import qualified Data.Text                     as T
 import           Types.AppState
 import           Types.Brick.Name               ( Name(..) )
 import           Types.Classes.Displayable      ( Displayable )
+import           Types.Classes.Fields
 import           Types.Models.Screen
 import           UI.List                        ( ZZZList
                                                 , renderGenericList

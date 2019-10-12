@@ -12,7 +12,9 @@ import           Types.Models.Environment
 import           Types.Models.Project
 import           Types.Models.RequestDef
 import           Types.Models.Response
-import           Types.Search                   ( SearchListItem, PartitionedResults )
+import           Types.Search                   ( PartitionedResults
+                                                , SearchListItem
+                                                )
 import           UI.Form                        ( ZZZForm )
 import           UI.List                        ( ZZZList )
 

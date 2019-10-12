@@ -1,9 +1,10 @@
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.Projects.Delete where
 
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , imodify
                                                 )
 import qualified Data.Text                     as T
@@ -12,7 +13,7 @@ import           Types.Classes.Fields
 import           Types.Classes.HasId            ( model )
 import           Types.Models.Project
 
-deleteProject :: Monad m => ProjectContext -> IxStateT m (AppState a) (AppState a) ()
+deleteProject :: IxMonadState m => ProjectContext -> m (AppState a) (AppState a) ()
 deleteProject (ProjectContext pid) = imodify $ projects . at pid .~ Nothing
 
 deleteProjectWarning :: AppState a -> ProjectContext -> T.Text

@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds         #-}
+{-# LANGUAGE FlexibleContexts  #-}
 {-# LANGUAGE GADTs             #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE RebindableSyntax  #-}
@@ -20,13 +21,13 @@ import           Brick.Forms                    ( editTextField
                                                 , (@@=)
                                                 )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
 import           Data.String                    ( fromString )
 import           Language.Haskell.DoNotation
-import           Prelude                 hiding ( Monad(..)
+import           Prelude                 hiding ( Monad(return, (>>), (>>=))
                                                 , pure
                                                 )
 import           Types.AppState
@@ -41,7 +42,7 @@ import           UI.Form                        ( ZZZForm
 import           UI.Forms.KeyValueList          ( makeKeyValueForm )
 
 finishEditingEnvironment
-  :: Monad m => IxStateT m (AppState 'EnvironmentEditTag) (AppState 'EnvironmentEditTag) ()
+  :: IxMonadState m => m (AppState 'EnvironmentEditTag) (AppState 'EnvironmentEditTag) ()
 finishEditingEnvironment = do
   s <- iget
   let EnvironmentEditScreen c@(EnvironmentContext eid) form = s ^. screen
@@ -65,6 +66,6 @@ makeEnvironmentEditForm s c =
         editState
 
 showEnvironmentEditScreen
-  :: Monad m => EnvironmentContext -> IxStateT m (AppState a) (AppState 'EnvironmentEditTag) ()
+  :: IxMonadState m => EnvironmentContext -> m (AppState a) (AppState 'EnvironmentEditTag) ()
 showEnvironmentEditScreen c =
   imodify $ \s -> s & screen .~ EnvironmentEditScreen c (makeEnvironmentEditForm s c)

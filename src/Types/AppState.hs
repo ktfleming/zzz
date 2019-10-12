@@ -109,6 +109,24 @@ emptyAppState = AppState { appStateScreen              = HelpScreen
 data AnyAppState where
     AnyAppState ::AppState a -> AnyAppState
 
+-- Making instances for HasX for AnyAppState, where X is a field of AppState, will
+-- allow us to use those lenses when we have AnyAppState in the State monad without having
+-- to unwrap and wrap it every time. Unfortunately this can't be simplified with a
+-- Lens' AnyAppState (AppState a) due to the existential appearing in positive position,
+-- so we have to jump over the `AppState a` for each individual lens.
+
+instance HasCurrentTime AnyAppState (Maybe UTCTime) where
+  currentTime = lens getter setter
+   where
+    getter (AnyAppState s) = s ^. currentTime
+    setter (AnyAppState s) t = AnyAppState (s & currentTime .~ t)
+
+instance HasModal AnyAppState (Maybe Modal) where
+  modal = lens getter setter
+   where
+    getter (AnyAppState s) = s ^. modal
+    setter (AnyAppState s) m = AnyAppState (s & modal .~ m)
+
 instance ToJSON (AppState a) where
   toJSON s = object
     [ "projects" .= (s ^. projects)

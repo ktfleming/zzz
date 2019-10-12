@@ -1,12 +1,12 @@
 {-# LANGUAGE DataKinds           #-}
+{-# LANGUAGE FlexibleContexts    #-}
 {-# LANGUAGE GADTs               #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE RebindableSyntax    #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Events.RequestDefs where
 
-import           Brick                          ( EventM
-                                                , vScrollBy
+import           Brick                          ( vScrollBy
                                                 , vScrollToBeginning
                                                 , viewportScroll
                                                 )
@@ -18,94 +18,95 @@ import           Brick.Focus                    ( FocusRing
                                                 )
 import           Brick.Widgets.List             ( listSelected )
 import           Control.Lens
-import           Control.Monad.Indexed          ( ireturn
-                                                )
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed          ( ireturn )
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , iget
                                                 , imodify
                                                 )
-import           Control.Monad.Indexed.Trans    ( ilift )
 import qualified Data.HashMap.Strict           as Map
 import           Data.Maybe                     ( isNothing )
+import           Data.UUID.V4                   ( nextRandom )
 import           Graphics.Vty.Input.Events
 import           Language.Haskell.DoNotation
 import           Prelude                 hiding ( Monad(return, (>>), (>>=))
-                                                , pure)
+                                                , pure
+                                                )
 import           Request.Request                ( cancelRequest
                                                 , sendRequest
                                                 )
 import           Types.AppState
 import           Types.Brick.CustomEvent        ( CustomEvent(..) )
 import           Types.Brick.Name
+import           Types.Classes.Fields
 import           Types.Modal                    ( Modal(..) )
+import           Types.Models.Id                ( RequestDefId(..) )
 import           Types.Models.Project           ( ProjectContext(..) )
 import           Types.Models.RequestDef        ( RequestDefContext(..) )
 import           Types.Models.Response          ( ResponseIndex(..) )
 import           Types.Models.Screen
-import           Types.Models.Screen.Optics         ( updateBrickForm
+import           Types.Models.Screen.Optics     ( updateBrickForm
                                                 , updateBrickList
                                                 )
+import           Types.Monads
 import           UI.Projects.Details            ( showProjectDetails )
 import           UI.RequestDefs.Add             ( finishAddingRequestDef )
 import           UI.RequestDefs.Details         ( showRequestDefDetails )
 import           UI.RequestDefs.Edit            ( finishEditingRequestDef
                                                 , showEditRequestDefScreen
                                                 )
-import           Utils.IxState                  ( extractScreen
-                                                , save
-                                                , submerge
-                                                , wrapScreen
-                                                , (>>>)
-                                                )
-import Utils.IfThenElse (ifThenElse)
+import           Utils.IfThenElse               ( ifThenElse )
 
 handleEventRequestAdd
-  :: Key
+  :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'RequestDefAddTag) AnyAppState ()
+  -> m (AppState 'RequestDefAddTag) AnyAppState ()
 handleEventRequestAdd key mods chan = do
   s <- iget
   let RequestDefAddScreen c _ = s ^. screen
   case (key, mods) of
     (KChar 's', [MCtrl]) -> do
-      finishAddingRequestDef
-      save chan
+      rid <- iliftIO $ RequestDefId <$> nextRandom
+      finishAddingRequestDef rid
+      sendEvent Save chan
       showProjectDetails c
       submerge
     (KEsc, []) -> showProjectDetails c >>> submerge
-    _ -> do
+    _          -> do
       extractScreen
       updateBrickForm key
       wrapScreen s
       submerge
 
 handleEventRequestEdit
-  :: Key
+  :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'RequestDefEditTag) AnyAppState ()
+  -> m (AppState 'RequestDefEditTag) AnyAppState ()
 handleEventRequestEdit key mods chan = do
   s <- iget
   let RequestDefEditScreen c _ = s ^. screen
   case (key, mods) of
     (KChar 's', [MCtrl]) -> do
       finishEditingRequestDef
-      save chan
+      sendEvent Save chan
       showRequestDefDetails c
       submerge
     (KEsc, []) -> showRequestDefDetails c >>> submerge
-    _ -> do
+    _          -> do
       extractScreen
       updateBrickForm key
       wrapScreen s
       submerge
 
 handleEventRequestDetails
-  :: Key
+  :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
+  => Key
   -> [Modifier]
   -> BChan CustomEvent
-  -> IxStateT (EventM Name) (AppState 'RequestDefDetailsTag) AnyAppState ()
+  -> m (AppState 'RequestDefDetailsTag) AnyAppState ()
 handleEventRequestDetails key mods chan = do
   s <- iget
   let RequestDefDetailsScreen c@(RequestDefContext _ rid) list ring _ = s ^. screen
@@ -119,8 +120,9 @@ handleEventRequestDetails key mods chan = do
 
       modifyFocus f = do
         imodify (screen . ringLens %~ f)
-        ilift (vScrollToBeginning (viewportScroll ResponseBodyViewport))
+        iliftEvent (vScrollToBeginning (viewportScroll ResponseBodyViewport))
         submerge
+
   case (key, mods) of
     (KLeft, []) ->
       let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
@@ -128,15 +130,14 @@ handleEventRequestDetails key mods chan = do
     (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
     (KChar 'd', []) -> case (focused, selectedResponse) of
       (Just ResponseList, Just i) -> imodify (modal ?~ DeleteResponseModal c i) >>> submerge
-      (Just ResponseBodyDetails, Just i) ->
-        imodify (modal ?~ DeleteResponseModal c i) >>> submerge
+      (Just ResponseBodyDetails, Just i) -> imodify (modal ?~ DeleteResponseModal c i) >>> submerge
       _ -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
     (KEnter, []) -> if focused == Just RequestDetails && isNothing activeRequest
       then sendRequest c chan >>> submerge
       else submerge
     (KChar '\t', []) -> modifyFocus focusNext
     (KBackTab  , []) -> modifyFocus focusPrev
-    _ -> case focused of
+    _                -> case focused of
       Just ResponseList -> do
         extractScreen
         updateBrickList key
@@ -145,7 +146,7 @@ handleEventRequestDetails key mods chan = do
       Just ResponseBodyDetails ->
         let vp = viewportScroll ResponseBodyViewport
         in  case key of
-              KUp   -> ilift (vScrollBy vp (-5)) >>> submerge
-              KDown -> ilift (vScrollBy vp 5) >>> submerge
+              KUp   -> iliftEvent (vScrollBy vp (-5)) >>> submerge
+              KDown -> iliftEvent (vScrollBy vp 5) >>> submerge
               _     -> submerge
       _ -> submerge

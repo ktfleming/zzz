@@ -5,7 +5,7 @@ module UI.Environments.List where
 
 import           Brick.Widgets.List             ( list )
 import           Control.Lens
-import           Control.Monad.Indexed.State    ( IxStateT
+import           Control.Monad.Indexed.State    ( IxMonadState
                                                 , imodify
                                                 )
 import           Data.HashMap.Strict            ( HashMap )
@@ -28,6 +28,6 @@ makeEnvironmentList em =
         tuples
   in  list EnvironmentList (NoEnvironment <| listItems) 1
 
-showEnvironmentListScreen :: Monad m => IxStateT m (AppState a) (AppState 'EnvironmentListTag) ()
+showEnvironmentListScreen :: IxMonadState m => m (AppState a) (AppState 'EnvironmentListTag) ()
 showEnvironmentListScreen =
   imodify $ \s -> s & screen .~ EnvironmentListScreen (makeEnvironmentList (s ^. environments))

@@ -18,6 +18,7 @@ import           Graphics.Vty                   ( defaultConfig
 import           Prelude                 hiding ( readFile )
 import           System.Directory               ( doesFileExist )
 import           Types.AppState
+import           Types.Classes.Fields
 import           Types.Constants                ( mainSettingsFile
                                                 , responseHistoryFile
                                                 )
