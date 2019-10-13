@@ -70,6 +70,15 @@ instance IxMonadIO AppM where
 submerge :: IxMonadState m => m (AppState i) AnyAppState ()
 submerge = imodify AnyAppState
 
+-- A different way to call `submerge`, to be used as a prefix.
+-- Note that `submerge` is always the last call in the chain, so we can just say
+-- sm $ do
+--   ...
+-- The idea is to de-emphasize the `submerge` at the end of the chain, since it's not
+-- really important and is only there to make the types work.
+sm :: IxMonadState m => m a (AppState o) () -> m a AnyAppState ()
+sm f = f >>> submerge
+
 -- Extract a tagged screen from a tagged AppState
 extractScreen :: IxMonadState m => m (AppState i) (Screen i) ()
 extractScreen = iget >>>= \s -> iput $ s ^. screen

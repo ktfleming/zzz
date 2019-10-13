@@ -53,18 +53,16 @@ handleEventEnvironmentAdd
 handleEventEnvironmentAdd key mods chan = do
   s <- iget
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> do
+    (KChar 's', [MCtrl]) -> sm $ do
       eid <- iliftIO $ EnvironmentId <$> nextRandom
       finishAddingEnvironment eid
       sendEvent Save chan
       showEnvironmentListScreen
-      submerge
     (KEsc, []) -> showEnvironmentListScreen >>> submerge
-    _          -> do
+    _          -> sm $ do
       extractScreen
       updateBrickForm key
       wrapScreen s
-      submerge
 
 -- Sets the provided environment (or no environment, in the case of Nothing) as the active one.
 -- This necessitates a reset of the currently displayed error, if the active screen happens to be
@@ -87,13 +85,12 @@ selectEnvironment c chan = do
 -- request def details screen
 refreshIfNecessary :: IxMonadState m => m AnyAppState AnyAppState ()
 refreshIfNecessary = do
-  (AnyAppState s') <- iget
-  case s' ^. screen of
-    RequestDefDetailsScreen{} -> do
-      iput s'
+  (AnyAppState s) <- iget
+  case s ^. screen of
+    RequestDefDetailsScreen{} -> sm $ do
+      iput s
       refreshResponseList
       imodify $ screen . lastError .~ Nothing
-      submerge
     _ -> ireturn ()
 
 handleEventEnvironmentList
@@ -112,17 +109,16 @@ handleEventEnvironmentList key mods chan = do
       Just NoEnvironment       -> selectEnvironment Nothing chan
       Nothing                  -> submerge
     (KChar 'd', []) -> case selectedEnv of
-      Just (AnEnvironment c _) -> imodify (modal ?~ DeleteEnvironmentModal c) >>> submerge
+      Just (AnEnvironment c _) -> sm $ imodify (modal ?~ DeleteEnvironmentModal c)
       _                        -> submerge
     (KChar 'e', []) -> case selectedEnv of
-      Just (AnEnvironment c _) -> showEnvironmentEditScreen c >>> submerge
+      Just (AnEnvironment c _) -> sm $ showEnvironmentEditScreen c
       _                        -> submerge
-    (KChar 'a', []) -> showEnvironmentAddScreen >>> submerge
-    _               -> do
+    (KChar 'a', []) -> sm $ showEnvironmentAddScreen
+    _               -> sm $ do
       extractScreen
       updateBrickList key
       wrapScreen s
-      submerge
 
 handleEventEnvironmentEdit
   :: (IxMonadState m, IxMonadIO m, IxMonadEvent m)
@@ -133,14 +129,12 @@ handleEventEnvironmentEdit
 handleEventEnvironmentEdit key mods chan = do
   s <- iget
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> do
+    (KChar 's', [MCtrl]) -> sm $ do
       finishEditingEnvironment
       sendEvent Save chan
       showEnvironmentListScreen
-      submerge
-    (KEsc, []) -> showEnvironmentListScreen >>> submerge
-    _          -> do
+    (KEsc, []) -> sm $ showEnvironmentListScreen
+    _          -> sm $ do
       extractScreen
       updateBrickForm key
       wrapScreen s
-      submerge

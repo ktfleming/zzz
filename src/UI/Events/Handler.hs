@@ -127,11 +127,10 @@ handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = do
   iput s
   case s ^. screen of
     MessagesScreen -> unstashScreen
-    _              -> do
+    _              -> sm $ do
       stashScreen
       imodify (screen .~ MessagesScreen)
       iliftEvent (vScrollToEnd (viewportScroll MessagesViewport))
-      submerge
 
 handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = do
   (AnyAppState s) <- iget
@@ -140,19 +139,17 @@ handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = do
 
 -- Have to stash the screen before giving the user the chance to select an Environment (either via the
 -- global search or the environment list screen) since that necessitates a screen unstash.
-handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ = do
+handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ = sm $ do
   (AnyAppState s) <- iget
   iput s
   stashScreen
   showSearchScreen
-  submerge
 
-handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = do
+handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = sm $ do
   (AnyAppState s) <- iget
   iput s
   stashScreen
   showEnvironmentListScreen
-  submerge
 
 handleEventInState (VtyEvent (EvKey key mods)) chan = do
   (AnyAppState s) <- iget

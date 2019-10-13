@@ -75,33 +75,25 @@ renderModal s m = case m of
 handleConfirm :: IxMonadState m => Modal -> m AnyAppState AnyAppState ()
 handleConfirm m = do
   (AnyAppState s) <- iget
+  iput s
   case m of
-    DeleteProjectModal c -> do
-      iput s
+    DeleteProjectModal c -> sm $ do
       deleteProject c
       showProjectListScreen
-      submerge
-    DeleteRequestDefModal c@(RequestDefContext pid _) -> do
-      iput s
+    DeleteRequestDefModal c@(RequestDefContext pid _) -> sm $ do
       deleteRequestDef c
       showProjectDetails (ProjectContext pid)
-      submerge
-    DeleteEnvironmentModal c -> do
-      iput s
+    DeleteEnvironmentModal c -> sm $ do
       deleteEnvironment c
       showEnvironmentListScreen
-      submerge
-    DeleteResponseModal c i -> do
-      iput s
+    DeleteResponseModal c i -> sm $ do
       deleteResponse c i
       case s ^. screen of
         -- Note: this `RequestDefDetailsScreen` branch should always be the case, but for
         -- now it's necessary since this function runs in AnyAppState while `refreshResponseList`
         -- runs in a tagged AppState.
-        RequestDefDetailsScreen{} -> do
-          refreshResponseList
-          submerge
-        _ -> submerge
+        RequestDefDetailsScreen{} -> refreshResponseList
+        _                         -> return ()
 
 dismissModal :: (IxMonadState m, HasModal a (Maybe Modal)) => m a a ()
 dismissModal = imodify $ modal .~ Nothing

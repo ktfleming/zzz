@@ -10,6 +10,7 @@ where
 import           Brick                          ( vScrollBy
                                                 , viewportScroll
                                                 )
+import           Control.Monad.Indexed          ( ireturn )
 import           Control.Monad.Indexed.State    ( IxMonadState )
 import           Graphics.Vty.Input.Events
 import           Types.AppState                 ( AnyAppState
@@ -26,7 +27,7 @@ handleEventMessages
   -> m (AppState 'MessagesTag) AnyAppState ()
 handleEventMessages key _ =
   let vp = viewportScroll MessagesViewport
-  in  case key of
-        KUp   -> iliftEvent (vScrollBy vp (-5)) >>> submerge
-        KDown -> iliftEvent (vScrollBy vp 5) >>> submerge
-        _     -> submerge
+  in  sm $ case key of
+        KUp   -> iliftEvent (vScrollBy vp (-5))
+        KDown -> iliftEvent (vScrollBy vp 5)
+        _     -> ireturn ()

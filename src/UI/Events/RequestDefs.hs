@@ -66,18 +66,16 @@ handleEventRequestAdd key mods chan = do
   s <- iget
   let RequestDefAddScreen c _ = s ^. screen
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> do
+    (KChar 's', [MCtrl]) -> sm $ do
       rid <- iliftIO $ RequestDefId <$> nextRandom
       finishAddingRequestDef rid
       sendEvent Save chan
       showProjectDetails c
-      submerge
-    (KEsc, []) -> showProjectDetails c >>> submerge
-    _          -> do
+    (KEsc, []) -> sm $ showProjectDetails c
+    _          -> sm $ do
       extractScreen
       updateBrickForm key
       wrapScreen s
-      submerge
 
 handleEventRequestEdit
   :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
@@ -89,17 +87,15 @@ handleEventRequestEdit key mods chan = do
   s <- iget
   let RequestDefEditScreen c _ = s ^. screen
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> do
+    (KChar 's', [MCtrl]) -> sm $ do
       finishEditingRequestDef
       sendEvent Save chan
       showRequestDefDetails c
-      submerge
-    (KEsc, []) -> showRequestDefDetails c >>> submerge
-    _          -> do
+    (KEsc, []) -> sm $ showRequestDefDetails c
+    _          -> sm $ do
       extractScreen
       updateBrickForm key
       wrapScreen s
-      submerge
 
 handleEventRequestDetails
   :: (IxMonadState m, IxMonadEvent m, IxMonadIO m)
@@ -118,35 +114,33 @@ handleEventRequestDetails key mods chan = do
         (\(RequestDefDetailsScreen x y _ z) toSet -> RequestDefDetailsScreen x y toSet z)
       selectedResponse = ResponseIndex <$> listSelected list
 
-      modifyFocus f = do
+      modifyFocus f = sm $ do
         imodify (screen . ringLens %~ f)
         iliftEvent (vScrollToBeginning (viewportScroll ResponseBodyViewport))
-        submerge
 
   case (key, mods) of
     (KLeft, []) ->
-      let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid) >>> submerge
-    (KChar 'x', []) -> maybe (ireturn ()) (cancelRequest c) activeRequest >>> submerge
-    (KChar 'e', []) -> showEditRequestDefScreen c >>> submerge
+      sm $ let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid)
+    (KChar 'x', []) -> sm $ maybe (ireturn ()) (cancelRequest c) activeRequest
+    (KChar 'e', []) -> sm $ showEditRequestDefScreen c
     (KChar 'd', []) -> case (focused, selectedResponse) of
-      (Just ResponseList, Just i) -> imodify (modal ?~ DeleteResponseModal c i) >>> submerge
-      (Just ResponseBodyDetails, Just i) -> imodify (modal ?~ DeleteResponseModal c i) >>> submerge
-      _ -> imodify (modal ?~ DeleteRequestDefModal c) >>> submerge
+      (Just ResponseList, Just i) -> sm $ imodify (modal ?~ DeleteResponseModal c i)
+      (Just ResponseBodyDetails, Just i) -> sm $ imodify (modal ?~ DeleteResponseModal c i)
+      _ -> sm $ imodify (modal ?~ DeleteRequestDefModal c)
     (KEnter, []) -> if focused == Just RequestDetails && isNothing activeRequest
-      then sendRequest c chan >>> submerge
+      then sm $ sendRequest c chan
       else submerge
     (KChar '\t', []) -> modifyFocus focusNext
     (KBackTab  , []) -> modifyFocus focusPrev
     _                -> case focused of
-      Just ResponseList -> do
+      Just ResponseList -> sm $ do
         extractScreen
         updateBrickList key
         wrapScreen s
-        submerge
       Just ResponseBodyDetails ->
         let vp = viewportScroll ResponseBodyViewport
-        in  case key of
-              KUp   -> iliftEvent (vScrollBy vp (-5)) >>> submerge
-              KDown -> iliftEvent (vScrollBy vp 5) >>> submerge
-              _     -> submerge
+        in  sm $ case key of
+              KUp   -> iliftEvent (vScrollBy vp (-5))
+              KDown -> iliftEvent (vScrollBy vp 5)
+              _     -> ireturn ()
       _ -> submerge

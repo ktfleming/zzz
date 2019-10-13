@@ -148,8 +148,8 @@ searchSelect
   => SearchResult
   -> BChan CustomEvent
   -> m (AppState 'SearchTag) AnyAppState ()
-searchSelect (ProjectResult _ c     ) _    = showProjectDetails c >>> submerge
-searchSelect (RequestDefResult _ _ c) _    = showRequestDefDetails c >>> submerge
+searchSelect (ProjectResult _ c     ) _    = sm $ showProjectDetails c
+searchSelect (RequestDefResult _ _ c) _    = sm $ showRequestDefDetails c
 searchSelect (EnvironmentResult _ c ) chan = selectEnvironment (Just c) chan
 
 data Direction = Up | Down -- needed to know which direction to skip past section headers
@@ -190,19 +190,18 @@ handleEventSearch
 handleEventSearch key mods chan = do
   s <- iget
   let SearchScreen edt resultList allResults = s ^. screen
-      forwardToList k direction = do
+      forwardToList k direction = sm $ do
         extractScreen
         updateBrickList k
         scrollPastSection direction
         wrapScreen s
-        submerge
   case key of
     KUp    -> forwardToList key Up
     KDown  -> forwardToList key Down
     KEnter -> case listSelectedElement resultList of
       Just (_, SelectableResult selected) -> searchSelect selected chan
       _ -> submerge
-    _ -> do
+    _ -> sm $ do
       updatedEditor <- iliftEvent $ handleEditorEvent (EvKey key mods) edt
       let editContents   = getEditContents updatedEditor
           searchString   = fromMaybe "" (headMay editContents)
@@ -219,4 +218,3 @@ handleEventSearch key mods chan = do
       imodify
         $  screen
         .~ SearchScreen updatedEditor (listMoveDown (makeResultList updatedResults)) allResults
-      submerge

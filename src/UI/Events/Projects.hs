@@ -51,17 +51,15 @@ handleEventProjectAdd
 handleEventProjectAdd key mods chan = do
   s <- iget
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> do
+    (KChar 's', [MCtrl]) -> sm $ do
       finishAddingProject
       sendEvent Save chan
       showProjectListScreen
-      submerge
-    (KEsc, []) -> showProjectListScreen >>> submerge
-    _          -> do
+    (KEsc, []) -> sm $ showProjectListScreen
+    _          -> sm $ do
       extractScreen
       updateBrickForm key
       wrapScreen s
-      submerge
 
 handleEventProjectEdit
   :: (IxMonadState m, IxMonadIO m, IxMonadEvent m)
@@ -73,17 +71,15 @@ handleEventProjectEdit key mods chan = do
   s <- iget
   let ProjectEditScreen c _ = s ^. screen
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> do
+    (KChar 's', [MCtrl]) -> sm $ do
       finishEditingProject
       sendEvent Save chan
       showProjectDetails c
-      submerge
-    (KEsc, []) -> showProjectDetails c >>> submerge
-    _          -> do
+    (KEsc, []) -> sm $ showProjectDetails c
+    _          -> sm $ do
       extractScreen
       updateBrickForm key
       wrapScreen s
-      submerge
 
 handleEventProjectDetails
   :: (IxMonadState m, IxMonadEvent m)
@@ -96,17 +92,16 @@ handleEventProjectDetails key mods _ = do
   let ProjectDetailsScreen c list = s ^. screen
   case (key, mods) of
     (KRight, []) -> case listSelectedElement list of
-      Just (_, RequestDefListItem reqContext _) -> showRequestDefDetails reqContext >>> submerge
+      Just (_, RequestDefListItem reqContext _) -> sm $ showRequestDefDetails reqContext
       Nothing -> submerge
-    (KChar 'e', []) -> showEditProjectScreen c >>> submerge
-    (KChar 'a', []) -> showAddRequestDefScreen c >>> submerge
-    (KChar 'd', []) -> imodify (modal ?~ DeleteProjectModal c) >>> submerge
-    (KLeft    , []) -> showProjectListScreen >>> submerge
-    _               -> do
+    (KChar 'e', []) -> sm $ showEditProjectScreen c
+    (KChar 'a', []) -> sm $ showAddRequestDefScreen c
+    (KChar 'd', []) -> sm $ imodify (modal ?~ DeleteProjectModal c)
+    (KLeft    , []) -> sm $ showProjectListScreen
+    _               -> sm $ do
       extractScreen
       updateBrickList key
       wrapScreen s
-      submerge
 
 handleEventProjectList
   :: (IxMonadState m, IxMonadEvent m)
@@ -119,11 +114,10 @@ handleEventProjectList key mods _ = do
   let ProjectListScreen list = s ^. screen
   case (key, mods) of
     (KRight, []) -> case listSelectedElement list of
-      Just (_, ProjectListItem context _) -> showProjectDetails context >>> submerge
+      Just (_, ProjectListItem context _) -> sm $ showProjectDetails context
       Nothing                             -> submerge
-    (KChar 'a', []) -> showProjectAddScreen >>> submerge
-    _               -> do
+    (KChar 'a', []) -> sm $ showProjectAddScreen
+    _               -> sm $ do
       extractScreen
       updateBrickList key
       wrapScreen s
-      submerge
