@@ -1,9 +1,8 @@
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
 
 module Types.Classes.Fields where
 
-import           Control.Lens
+import Control.Lens
 
 -- These are written out by hand so that makeFields from lens will use these typeclasses
 -- instead of generating ones in other files via TemplateHaskell; this makes it easier to
@@ -44,3 +43,6 @@ class HasCurrentTime s a | s -> a where
 
 class HasModal s a | s -> a where
   modal :: Lens' s a
+
+class HasProjects s a | s -> a where
+  projects :: Lens' s a

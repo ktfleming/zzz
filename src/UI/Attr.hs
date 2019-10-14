@@ -1,8 +1,9 @@
 module UI.Attr where
 
-import           Brick.AttrMap                  ( AttrName
-                                                , attrName
-                                                )
+import Brick.AttrMap
+  ( AttrName,
+    attrName,
+  )
 
 errorAttr :: AttrName
 errorAttr = attrName "error"

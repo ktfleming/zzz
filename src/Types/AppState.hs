@@ -1,86 +1,101 @@
-{-# LANGUAGE DataKinds                  #-}
-{-# LANGUAGE DeriveAnyClass             #-}
-{-# LANGUAGE DeriveGeneric              #-}
-{-# LANGUAGE FlexibleInstances          #-}
-{-# LANGUAGE FunctionalDependencies     #-}
-{-# LANGUAGE GADTs                      #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveAnyClass #-}
+{-# LANGUAGE DeriveGeneric #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE GADTs #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures             #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE NamedFieldPuns             #-}
-{-# LANGUAGE OverloadedStrings          #-}
-{-# LANGUAGE ScopedTypeVariables        #-}
-{-# LANGUAGE TemplateHaskell            #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Types.AppState where
 
-import           Control.Concurrent.Async       ( Async )
-import           Control.Lens                   ( Lens
-                                                , coerced
-                                                , lens
-                                                , view
-                                                , (&)
-                                                , (.~)
-                                                , (^.)
-                                                )
-import           Control.Lens.TH
-import           Data.Aeson                     ( FromJSON
-                                                , FromJSONKey
-                                                , ToJSON
-                                                , ToJSONKey
-                                                , object
-                                                , parseJSON
-                                                , toJSON
-                                                , withObject
-                                                , (.:)
-                                                , (.:?)
-                                                , (.=)
-                                                )
-import           Data.Hashable                  ( Hashable )
-import           Data.HashMap.Strict            ( HashMap )
-import qualified Data.HashMap.Strict           as Map
-import           Data.Maybe                     ( fromMaybe )
-import           Data.Sequence                  ( Seq )
-import qualified Data.Sequence                 as S
-import qualified Data.Text                     as T
-import           Data.Time                      ( UTCTime )
-import           GHC.Generics
-import           Types.Classes.Fields
-import           Types.Modal
-import           Types.Models.Environment
-import           Types.Models.Id                ( EnvironmentId(..)
-                                                , ProjectId
-                                                , RequestDefId
-                                                )
-import           Types.Models.Project
-import           Types.Models.RequestDef
-import           Types.Models.Response          ( Response )
-import           Types.Models.Screen
+import Control.Concurrent.Async (Async)
+import Control.Lens
+  ( (&),
+    (.~),
+    Lens,
+    (^.),
+    coerced,
+    lens,
+    view,
+  )
+import Control.Lens.TH
+import Data.Aeson
+  ( (.:),
+    (.:?),
+    (.=),
+    FromJSON,
+    FromJSONKey,
+    ToJSON,
+    ToJSONKey,
+    object,
+    parseJSON,
+    toJSON,
+    withObject,
+  )
+import Data.HashMap.Strict (HashMap)
+import qualified Data.HashMap.Strict as Map
+import Data.Hashable (Hashable)
+import Data.Maybe (fromMaybe)
+import Data.Sequence (Seq)
+import qualified Data.Sequence as S
+import Data.Singletons.Decide
+  ( (%~),
+    Decision (..),
+  )
+import qualified Data.Text as T
+import Data.Time (UTCTime)
+import Data.Type.Equality
+import GHC.Generics
+import Types.Classes.Fields
+import Types.Modal
+import Types.Models.Environment
+import Types.Models.Id
+  ( EnvironmentId (..),
+    ProjectId,
+    RequestDefId,
+  )
+import Types.Models.Project
+import Types.Models.RequestDef
+import Types.Models.Response (Response)
+import Types.Models.Screen
 
-data Message = Message { messageDateTime :: UTCTime, messageText :: T.Text }
+data Message = Message {messageDateTime :: UTCTime, messageText :: T.Text} deriving (Eq, Show)
 
 makeFields ''Message
 
-newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show)
+newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show, Eq)
 
 -- Just a regular type alias instead of a newtype because I had some trouble getting
 -- the lens for this field in `AppState` to work. Could revisit in the future.
-data EnvironmentKey = IdKey EnvironmentId | NoEnvironmentKey deriving (Eq, Generic)
+data EnvironmentKey = IdKey EnvironmentId | NoEnvironmentKey deriving (Eq, Show, Generic)
+
 type Responses = HashMap RequestDefId (HashMap EnvironmentKey (Seq Response))
 
-data AppState (a :: ScreenTag) = AppState {
-                            appStateScreen :: Screen a
-                         , _appStateProjects :: HashMap ProjectId Project
-                         , _appStateEnvironments :: HashMap EnvironmentId Environment
-                         , _appStateEnvironmentContext :: Maybe EnvironmentContext -- the currently selected environment
-                         , _appStateModal :: Maybe Modal
-                         , _appStateMessages :: Seq Message
-                         , _appStateResponses :: Responses
-                         , _appStateHelpPanelVisible :: HelpPanelVisible
-                         , _appStateActiveRequests :: HashMap RequestDefId (Async ())
-                         , _appStateStashedScreen :: Maybe AnyScreen
-                         , _appStateCurrentTime :: Maybe UTCTime
-                         }
+newtype AppAsync = AppAsync (Async ()) deriving (Eq)
+
+instance Show AppAsync where
+  show _ = "(Async)"
+
+data AppState (a :: ScreenTag)
+  = AppState
+      { appStateScreen :: Screen a,
+        _appStateProjects :: HashMap ProjectId Project,
+        _appStateEnvironments :: HashMap EnvironmentId Environment,
+        _appStateEnvironmentContext :: Maybe EnvironmentContext, -- the currently selected environment
+        _appStateModal :: Maybe Modal,
+        _appStateMessages :: Seq Message,
+        _appStateResponses :: Responses,
+        _appStateHelpPanelVisible :: HelpPanelVisible,
+        _appStateActiveRequests :: HashMap RequestDefId AppAsync,
+        _appStateStashedScreen :: Maybe AnyScreen,
+        _appStateCurrentTime :: Maybe UTCTime
+      }
+  deriving (Eq, Show)
 
 makeFields ''AppState
 
@@ -88,26 +103,35 @@ makeFields ''AppState
 -- doesn't seem to generate the same thing; does makeFields only generate Lens'?
 screen :: Lens (AppState a) (AppState b) (Screen a) (Screen b)
 screen = lens getter setter
- where
-  getter AppState { appStateScreen } = appStateScreen
-  setter appState newScreen = appState { appStateScreen = newScreen }
+  where
+    getter AppState {appStateScreen} = appStateScreen
+    setter appState newScreen = appState {appStateScreen = newScreen}
 
 emptyAppState :: AppState 'HelpTag
-emptyAppState = AppState { appStateScreen              = HelpScreen
-                         , _appStateProjects           = Map.empty
-                         , _appStateEnvironments       = Map.empty
-                         , _appStateEnvironmentContext = Nothing
-                         , _appStateModal              = Nothing
-                         , _appStateMessages           = S.empty
-                         , _appStateResponses          = Map.empty
-                         , _appStateHelpPanelVisible   = HelpPanelVisible False
-                         , _appStateActiveRequests     = Map.empty
-                         , _appStateStashedScreen      = Nothing
-                         , _appStateCurrentTime        = Nothing
-                         }
+emptyAppState = AppState
+  { appStateScreen = HelpScreen,
+    _appStateProjects = Map.empty,
+    _appStateEnvironments = Map.empty,
+    _appStateEnvironmentContext = Nothing,
+    _appStateModal = Nothing,
+    _appStateMessages = S.empty,
+    _appStateResponses = Map.empty,
+    _appStateHelpPanelVisible = HelpPanelVisible False,
+    _appStateActiveRequests = Map.empty,
+    _appStateStashedScreen = Nothing,
+    _appStateCurrentTime = Nothing
+  }
 
 data AnyAppState where
-    AnyAppState ::AppState a -> AnyAppState
+  AnyAppState :: Sing a -> AppState a -> AnyAppState
+
+instance Show AnyAppState where
+  show (AnyAppState _ s) = show s
+
+instance Eq AnyAppState where
+  AnyAppState t1 s1 == AnyAppState t2 s2 = case t1 %~ t2 of
+    Proved Refl -> s1 == s2
+    Disproved _ -> False
 
 -- Making instances for HasX for AnyAppState, where X is a field of AppState, will
 -- allow us to use those lenses when we have AnyAppState in the State monad without having
@@ -117,27 +141,34 @@ data AnyAppState where
 
 instance HasCurrentTime AnyAppState (Maybe UTCTime) where
   currentTime = lens getter setter
-   where
-    getter (AnyAppState s) = s ^. currentTime
-    setter (AnyAppState s) t = AnyAppState (s & currentTime .~ t)
+    where
+      getter (AnyAppState _ s) = s ^. currentTime
+      setter (AnyAppState tag s) t = AnyAppState tag (s & currentTime .~ t)
 
 instance HasModal AnyAppState (Maybe Modal) where
   modal = lens getter setter
-   where
-    getter (AnyAppState s) = s ^. modal
-    setter (AnyAppState s) m = AnyAppState (s & modal .~ m)
+    where
+      getter (AnyAppState _ s) = s ^. modal
+      setter (AnyAppState tag s) m = AnyAppState tag (s & modal .~ m)
+
+instance HasProjects AnyAppState (HashMap ProjectId Project) where
+  projects = lens getter setter
+    where
+      getter (AnyAppState _ s) = s ^. projects
+      setter (AnyAppState tag s) ps = AnyAppState tag (s & projects .~ ps)
 
 instance ToJSON (AppState a) where
-  toJSON s = object
-    [ "projects" .= (s ^. projects)
-    , "environments" .= (s ^. environments)
-    , "environment_context" .= (s ^. environmentContext)
-    ]
+  toJSON s =
+    object
+      [ "projects" .= (s ^. projects),
+        "environments" .= (s ^. environments),
+        "environment_context" .= (s ^. environmentContext)
+      ]
 
 instance FromJSON (AppState 'HelpTag) where
   parseJSON = withObject "AppState" $ \o -> do
-    ps  <- o .: "projects"
-    es  <- o .: "environments"
+    ps <- o .: "projects"
+    es <- o .: "environments"
     eid <- o .:? "environment_context"
     return $ emptyAppState & projects .~ ps & environments .~ es & environmentContext .~ eid
 
@@ -167,7 +198,11 @@ currentVariables :: AppState a -> Seq Variable
 currentVariables s = maybe S.empty (view variables) (currentEnvironment s)
 
 instance FromJSON EnvironmentKey
+
 instance FromJSONKey EnvironmentKey
+
 instance ToJSON EnvironmentKey
+
 instance ToJSONKey EnvironmentKey
+
 instance Hashable EnvironmentKey

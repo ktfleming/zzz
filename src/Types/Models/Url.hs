@@ -1,15 +1,16 @@
-{-# LANGUAGE DataKinds                  #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 
 module Types.Models.Url where
 
-import           Data.Aeson                     ( FromJSON
-                                                , ToJSON
-                                                )
-import qualified Data.Text                     as T
-import           Data.Text.Encoding             ( encodeUtf8 )
-import           Network.HTTP.Req               ( parseUrl )
-import           Safe                           ( headMay )
+import Data.Aeson
+  ( FromJSON,
+    ToJSON,
+  )
+import qualified Data.Text as T
+import Data.Text.Encoding (encodeUtf8)
+import Network.HTTP.Req (parseUrl)
+import Safe (headMay)
 
 newtype Url = Url T.Text deriving (Show, FromJSON, ToJSON, Eq)
 
@@ -27,4 +28,3 @@ validateUrl ts = headMay ts >>= validateUrl'
 -- and then throw away the output; we only care if the parse returns Just or not.
 validateUrl' :: T.Text -> Maybe Url
 validateUrl' t = Url t <$ parseUrl (encodeUtf8 t)
-

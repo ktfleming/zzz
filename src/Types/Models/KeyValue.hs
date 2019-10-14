@@ -1,25 +1,25 @@
 {-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE MultiParamTypeClasses  #-}
-{-# LANGUAGE NamedFieldPuns         #-}
-{-# LANGUAGE OverloadedStrings      #-}
-{-# LANGUAGE TemplateHaskell        #-}
+{-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE TemplateHaskell #-}
 
 module Types.Models.KeyValue where
 
-import           Control.Lens            hiding ( (.=) )
-import           Data.Aeson                     ( FromJSON
-                                                , ToJSON
-                                                , object
-                                                , parseJSON
-                                                , toJSON
-                                                , withObject
-                                                , (.:)
-                                                , (.=)
-                                                )
-import           Data.Text                     as T
-import           Types.Classes.Fields
+import Control.Lens hiding ((.=))
+import Data.Aeson
+  ( (.:),
+    (.=),
+    FromJSON,
+    ToJSON,
+    object,
+    parseJSON,
+    toJSON,
+    withObject,
+  )
+import Data.Text as T
+import Types.Classes.Fields
 
-data KeyValue = KeyValue { keyValueName :: T.Text, keyValueValue :: T.Text }
+data KeyValue = KeyValue {keyValueName :: T.Text, keyValueValue :: T.Text}
 
 makeFields ''KeyValue
 
@@ -32,6 +32,7 @@ isTextEnabled :: T.Text -> Bool
 isTextEnabled t = T.take 2 t /= "--"
 
 class KeyValueIso a where
+
   keyValueIso :: Iso' a KeyValue
 
   isEnabled :: a -> Bool

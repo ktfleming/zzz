@@ -1,27 +1,28 @@
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.Messages
-  ( messageWidget
+  ( messageWidget,
   )
 where
 
-import           Brick                          ( ViewportType(Vertical)
-                                                , Widget
-                                                , str
-                                                , txt
-                                                , vBox
-                                                , viewport
-                                                , withAttr
-                                                , (<+>)
-                                                )
-import           Control.Lens
-import           Data.Foldable                  ( toList )
-import           Data.Sequence                  ( Seq )
-import           Data.Time.ISO8601              ( formatISO8601 )
-import           Types.AppState                 ( Message(..) )
-import           Types.Brick.Name               ( Name(MessagesViewport) )
-import           Types.Classes.Fields
-import           UI.Attr                        ( timestampAttr )
+import Brick
+  ( (<+>),
+    ViewportType (Vertical),
+    Widget,
+    str,
+    txt,
+    vBox,
+    viewport,
+    withAttr,
+  )
+import Control.Lens
+import Data.Foldable (toList)
+import Data.Sequence (Seq)
+import Data.Time.ISO8601 (formatISO8601)
+import Types.AppState (Message (..))
+import Types.Brick.Name (Name (MessagesViewport))
+import Types.Classes.Fields
+import UI.Attr (timestampAttr)
 
 oneMessage :: Message -> Widget Name
 oneMessage m =

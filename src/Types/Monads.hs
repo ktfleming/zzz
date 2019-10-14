@@ -1,57 +1,69 @@
-{-# LANGUAGE ConstraintKinds            #-}
-{-# LANGUAGE FlexibleContexts           #-}
-{-# LANGUAGE FlexibleInstances          #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE MultiParamTypeClasses      #-}
-{-# LANGUAGE StandaloneDeriving         #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Types.Monads where
 
-import           Types.Brick.Name               ( Name )
-
-import           Brick                          ( EventM )
-
-import           Brick.BChan                    ( BChan
-                                                , writeBChan
-                                                )
-import           Control.Lens
-import           Control.Monad.Indexed
-import           Control.Monad.Indexed.State
-import           Control.Monad.Indexed.Trans    ( ilift )
-import           Control.Monad.IO.Class         ( MonadIO
-                                                , liftIO
-                                                )
-import           Types.AppState                 ( AnyAppState(..)
-                                                , AppState
-                                                , screen
-                                                , stashedScreen
-                                                )
-import           Types.Brick.CustomEvent        ( CustomEvent(..) )
-import           Types.Models.Screen            ( AnyScreen(..)
-                                                , Screen
-                                                )
+import Brick (EventM)
+import Brick.BChan
+  ( BChan,
+    writeBChan,
+  )
+import Control.Lens
+import Control.Monad.IO.Class
+  ( MonadIO,
+    liftIO,
+  )
+import Control.Monad.Indexed
+import Control.Monad.Indexed.State
+import Control.Monad.Indexed.Trans (ilift)
+import Data.Singletons
+  ( SingI,
+    sing,
+  )
+import Types.AppState
+  ( AnyAppState (..),
+    AppState,
+    screen,
+    stashedScreen,
+  )
+import Types.Brick.CustomEvent (CustomEvent (..))
+import Types.Brick.Name (Name)
+import Types.Models.Screen
+  ( AnyScreen (..),
+    Screen,
+  )
 
 -- The main monad that this app runs in. It uses the IxState indexed monad to
 -- represent type-safe transitions between tagged AppStates, where the tag
 -- defines which screen of the app the user is viewing / interacting with.
 -- It includes Brick's EventM monad (which itself includes IO) to do event handling.
-newtype AppM i o a = AppM {
-  runAppM :: IxStateT (EventM Name) i o a
-} deriving (IxPointed, IxFunctor, IxApplicative, IxMonad, IxMonadState)
+newtype AppM i o a
+  = AppM
+      { runAppM :: IxStateT (EventM Name) i o a
+      }
+  deriving (IxPointed, IxFunctor, IxApplicative, IxMonad, IxMonadState)
 
 -- When the input and output states are the same type, can treat this as a regular monad
 deriving instance Functor (AppM i i)
+
 deriving instance Applicative (AppM i i)
+
 deriving instance Monad (AppM i i)
+
 deriving instance MonadIO (AppM i i)
 
 -- Analogous to MonadIO, describing a indexed monad into which Brick's EventM monad can be lifted.
--- Note that since this is for indexed monads, `m` is of kind * -> * -> * -> * instead of * -> *
+-- Note that since this is for indexed monads, `m` is of kind * -> * -> * -> * instead of * -> *.
+-- The provided `a` is only for use in testing (see TestM)
 class IxMonadEvent m where
-  iliftEvent :: EventM Name a -> m i i a
+  iliftEvent :: a -> EventM Name a -> m i i a
 
 instance IxMonadEvent AppM where
-  iliftEvent = AppM . ilift
+  iliftEvent _ = AppM . ilift
 
 -- Just a generalization of the regular MonadIO typeclass into one that works for indexed monads,
 -- as long as the input and output types are the same (similar to IxMonadEvent)
@@ -67,8 +79,8 @@ instance IxMonadIO AppM where
 
 -- "Submerges" the tagged output state into an AnyAppState. This is necessary for
 -- interacting with Brick's top-level event handler.
-submerge :: IxMonadState m => m (AppState i) AnyAppState ()
-submerge = imodify AnyAppState
+submerge :: (SingI i, IxMonadState m) => m (AppState i) AnyAppState ()
+submerge = imodify $ AnyAppState sing
 
 -- A different way to call `submerge`, to be used as a prefix.
 -- Note that `submerge` is always the last call in the chain, so we can just say
@@ -76,7 +88,7 @@ submerge = imodify AnyAppState
 --   ...
 -- The idea is to de-emphasize the `submerge` at the end of the chain, since it's not
 -- really important and is only there to make the types work.
-sm :: IxMonadState m => m a (AppState o) () -> m a AnyAppState ()
+sm :: (SingI o, IxMonadState m) => m a (AppState o) () -> m a AnyAppState ()
 sm f = f >>> submerge
 
 -- Extract a tagged screen from a tagged AppState
@@ -92,8 +104,8 @@ wrapScreen s = iget >>>= \scr -> iput $ s & screen .~ scr
 --   input state: that tagged AppState (with the matching tag)
 --   output state: AnyAppState
 -- , run the function on the input state and return the appropriate monad that can be used in `handleEventInState`
-(|$|)
-  :: IxMonadState m => m (AppState i) AnyAppState () -> AppState i -> m AnyAppState AnyAppState ()
+(|$|) ::
+  IxMonadState m => m (AppState i) AnyAppState () -> AppState i -> m AnyAppState AnyAppState ()
 (|$|) ixs i = iput i >>> ixs
 
 -- Send a custom event to Brick's event loop
@@ -102,13 +114,12 @@ sendEvent ev chan = iliftIO (writeBChan chan ev)
 
 -- Store the currently displayed Screen in the AppState's `stashedScreen`, so
 -- it can be restored with `unstashScreen`
-stashScreen :: IxMonadState m => m (AppState a) (AppState a) ()
-stashScreen = iget >>>= \s -> imodify $ stashedScreen ?~ AnyScreen (s ^. screen)
+stashScreen :: (SingI a, IxMonadState m) => m (AppState a) (AppState a) ()
+stashScreen = iget >>>= \s -> imodify $ stashedScreen ?~ AnyScreen sing (s ^. screen)
 
 -- Remove the currently stashed screen (if there is one) and set it as the
 -- currently displayed screen
-unstashScreen :: IxMonadState m => m (AppState i) AnyAppState ()
+unstashScreen :: (SingI i, IxMonadState m) => m (AppState i) AnyAppState ()
 unstashScreen = iget >>>= \s -> case s ^. stashedScreen of
-  Nothing                  -> submerge
-  Just (AnyScreen stashed) -> imodify $ AnyAppState . (screen .~ stashed)
-
+  Nothing -> submerge
+  Just (AnyScreen tag stashed) -> imodify $ AnyAppState tag . (screen .~ stashed)
