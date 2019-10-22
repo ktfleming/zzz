@@ -4,18 +4,21 @@
 {-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 module Types.Models.Screen.Optics
   ( updateBrickForm,
     updateBrickList,
     listLens,
+    formLens,
     lastError,
     FormMode (..),
+    ifValid,
   )
 where
 
 import Brick (BrickEvent (..))
-import Brick.Forms (handleFormEvent)
+import Brick.Forms (allFieldsValid, handleFormEvent)
 import Brick.Widgets.List (handleListEvent)
 import Control.Lens hiding (imap)
 import Control.Monad.Indexed (imap)
@@ -24,11 +27,13 @@ import Control.Monad.Indexed.State
     iget,
     imodify,
   )
+import Data.Singletons (SingI)
 import Graphics.Vty.Input.Events
   ( Event (..),
     Key,
   )
 import Language.Haskell.DoNotation
+import Types.AppState (AnyAppState (..), AppState, screen)
 import Types.Forms (FormMode (..))
 import Types.Models.Environment
   ( EnvironmentFormState,
@@ -48,10 +53,12 @@ import Types.Models.Screen
 import Types.Monads
   ( IxMonadEvent,
     iliftEvent,
+    submerge,
   )
 import Types.Search (SearchListItem)
 import UI.Form (AppForm (..))
 import UI.List (AppList (..))
+import Utils.IfThenElse
 import Prelude hiding
   ( Monad ((>>), (>>=), return),
     pure,
@@ -59,7 +66,7 @@ import Prelude hiding
 
 class HasBrickForm a where
 
-  type FormState a = b | b -> a
+  type FormState a
 
   formLens :: Lens' a (AppForm (FormState a))
 
@@ -111,6 +118,16 @@ instance HasBrickForm (Screen 'EnvironmentAddTag) where
 
   formLens = lens (\(EnvironmentAddScreen form) -> form) (\_ f -> EnvironmentAddScreen f)
 
+-- For getting a form out of an AppState that contains a Screen that contains a form
+instance HasBrickForm (Screen a) => HasBrickForm (AppState a) where
+
+  type FormState (AppState a) = FormState (Screen a)
+
+  formLens =
+    lens
+      (view (screen . formLens))
+      (\s form -> s & screen . formLens .~ form)
+
 updateBrickForm ::
   (IxMonadState m, IxMonadEvent m, HasBrickForm (Screen a)) => Key -> m (Screen a) (Screen a) ()
 updateBrickForm key = do
@@ -161,6 +178,16 @@ instance HasBrickList (Screen 'SearchTag) where
 
   listLens = lens (\(SearchScreen _ l _) -> l) (\(SearchScreen e _ rs) l -> SearchScreen e l rs)
 
+-- For getting a list out of an AppState that contains a Screen that contains a list
+instance HasBrickList (Screen a) => HasBrickList (AppState a) where
+
+  type ListItem (AppState a) = ListItem (Screen a)
+
+  listLens =
+    lens
+      (view (screen . listLens))
+      (\s list -> s & screen . listLens .~ list)
+
 updateBrickList ::
   (IxMonadState m, IxMonadEvent m, HasBrickList (Screen a)) => Key -> m (Screen a) (Screen a) ()
 updateBrickList key = do
@@ -175,3 +202,10 @@ lastError =
   lens
     (\(RequestDefDetailsScreen _ _ _ e) -> e)
     (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)
+
+-- Starting with an AppState that has a form, check if the form is valid. If so, run the provided action; if not, just submerge the state.
+ifValid :: (IxMonadState m, SingI i, HasBrickForm (AppState i)) => m (AppState i) AnyAppState () -> m (AppState i) AnyAppState ()
+ifValid onValid = do
+  model <- iget
+  let AppForm form = model ^. formLens
+  if allFieldsValid form then onValid else submerge

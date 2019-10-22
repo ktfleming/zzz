@@ -1,6 +1,6 @@
 import Specs.NavigationSpec (navTestTree)
-import Test.Tasty
 import Specs.ParsingSpec (parsingSpec)
+import Test.Tasty
 import Test.Tasty.Hspec (testSpec)
 
 main :: IO ()

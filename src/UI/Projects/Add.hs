@@ -19,7 +19,6 @@ import Brick
   )
 import Brick.Forms
   ( (@@=),
-    editTextField,
     formState,
     newForm,
     setFormConcat,
@@ -47,6 +46,7 @@ import Types.Monads
   )
 import UI.Form
   ( AppForm (..),
+    nonEmptyTextField,
     spacedConcat,
   )
 import Prelude hiding
@@ -63,10 +63,14 @@ finishAddingProject = do
   let project = Project {projectName = formState form ^. name, projectRequestDefs = Map.empty}
   imodify $ projects . at pid ?~ project
 
-makeProjectAddForm :: AppForm (ProjectFormState 'Adding)
-makeProjectAddForm = AppForm $ setFormConcat spacedConcat $ newForm
-  [(txt "Project Name: " <+>) @@= editTextField (name . coerced) ProjectFormNameField (Just 1)]
-  ProjectFormState {projectFormStateName = ProjectName "New Project"}
+makeProjectAddForm :: ProjectFormState 'Adding -> AppForm (ProjectFormState 'Adding)
+makeProjectAddForm fs =
+  AppForm $ setFormConcat spacedConcat $
+    newForm
+      [(txt "Project Name: " <+>) @@= nonEmptyTextField (name . coerced) ProjectFormNameField]
+      fs
 
 showProjectAddScreen :: IxMonadState m => m (AppState a) (AppState 'ProjectAddTag) ()
-showProjectAddScreen = imodify $ screen .~ ProjectAddScreen makeProjectAddForm
+showProjectAddScreen =
+  let fs = ProjectFormState {projectFormStateName = ProjectName "New Project"}
+   in imodify $ screen .~ ProjectAddScreen (makeProjectAddForm fs)

@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE Rank2Types #-}
 
 module UI.Form where
 
@@ -12,9 +13,13 @@ import Brick
   )
 import Brick.Forms
   ( Form,
+    FormFieldState,
+    editField,
     formState,
   )
+import Control.Lens (Lens')
 import qualified Data.Text as T
+import Safe (headMay)
 import Types.Brick.CustomEvent
 import Types.Brick.Name
 
@@ -36,3 +41,17 @@ renderText = txt . T.intercalate "\n"
 -- has a blank line after it
 spacedConcat :: [Widget Name] -> Widget Name
 spacedConcat ws = vBox $ padBottom (Pad 1) <$> ws
+
+nonEmptyTextField :: Lens' a T.Text -> Name -> a -> FormFieldState a CustomEvent Name
+nonEmptyTextField lens name s =
+  let validate :: [T.Text] -> Maybe T.Text
+      validate ts = headMay ts >>= \h -> if T.null h then Nothing else Just h
+   in editField
+        lens
+        name
+        (Just 1)
+        id
+        validate
+        renderText
+        id
+        s

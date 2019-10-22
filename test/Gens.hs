@@ -9,6 +9,7 @@ import Data.Singletons (sing)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
 import GHC.IO (unsafePerformIO)
+import Graphics.Vty (Key (KChar), Modifier (MCtrl, MMeta))
 import Hedgehog (Gen)
 import qualified Hedgehog.Gen as Gen
 import qualified Hedgehog.Range as Range
@@ -32,7 +33,9 @@ import Types.Models.Project
 import Types.Models.RequestDef
 import Types.Models.Screen
 import Types.Models.Url (Url (..))
+import UI.Projects.Add (makeProjectAddForm)
 import UI.Projects.Details (makeRequestDefList)
+import UI.Projects.Edit (makeProjectEditForm)
 import UI.Projects.List (makeProjectList)
 
 genUUID :: Gen UUID
@@ -94,17 +97,30 @@ genEnvironments = fmap Map.fromList $ Gen.list (Range.linear 0 10) $ do
   env <- genEnvironment
   return (eid, env)
 
+genProjectFormState :: Gen (ProjectFormState a)
+genProjectFormState = do
+  name <- ProjectName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
+  return $ ProjectFormState name
+
 genScreen :: ScreenTag -> HashMap ProjectId Project -> Gen AnyScreen
-genScreen tag projects = case tag of
-  ProjectListTag -> return $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
-  ProjectDetailsTag ->
-    if Map.null projects
-      then Gen.discard -- need at least one project
-      else do
-        (pid, p) <- Gen.element $ Map.toList projects
-        let c = ProjectContext pid
-        return $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
-  _ -> undefined
+genScreen tag projects =
+  case tag of
+    ProjectListTag -> return $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
+    ProjectDetailsTag ->
+      if Map.null projects
+        then Gen.discard -- need at least one project
+        else do
+          (pid, p) <- Gen.element $ Map.toList projects
+          let c = ProjectContext pid
+          return $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
+    ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectAddForm <$> genProjectFormState
+    ProjectEditTag ->
+      if Map.null projects
+        then Gen.discard
+        else do
+          pid <- Gen.element $ Map.keys projects
+          AnyScreen sing . ProjectEditScreen (ProjectContext pid) . makeProjectEditForm <$> genProjectFormState
+    _ -> undefined
 
 genEnvContext :: HashMap EnvironmentId Environment -> Gen (Maybe EnvironmentContext)
 genEnvContext envs =
@@ -133,3 +149,9 @@ genAppState tag = do
         _appStateStashedScreen = Nothing,
         _appStateCurrentTime = Nothing
       }
+
+genKeyWithMods :: Gen (Key, [Modifier])
+genKeyWithMods = do
+  key <- KChar <$> Gen.alpha
+  mods <- Gen.frequency [(1, Gen.constant []), (1, Gen.element [[MCtrl], [MMeta]])]
+  return (key, mods)

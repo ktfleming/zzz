@@ -7,6 +7,7 @@
 module UI.Projects.Edit
   ( finishEditingProject,
     showEditProjectScreen,
+    makeProjectEditForm,
   )
 where
 
@@ -16,7 +17,6 @@ import Brick
   )
 import Brick.Forms
   ( (@@=),
-    editTextField,
     formState,
     newForm,
     setFormConcat,
@@ -38,6 +38,7 @@ import Types.Models.Project
 import Types.Models.Screen
 import UI.Form
   ( AppForm (..),
+    nonEmptyTextField,
     spacedConcat,
   )
 import Prelude hiding
@@ -57,18 +58,19 @@ finishEditingProject = do
 updateProject :: Project -> ProjectFormState 'Editing -> Project
 updateProject base form = base & name .~ (form ^. name)
 
-makeEditProjectForm :: AppState a -> ProjectContext -> AppForm (ProjectFormState 'Editing)
-makeEditProjectForm s c =
-  let p = model s c
-      editState = ProjectFormState {projectFormStateName = p ^. name}
-   in AppForm $ setFormConcat spacedConcat $
-        newForm
-          [ (txt "Project Name: " <+>)
-              @@= editTextField (name . coerced) ProjectFormNameField (Just 1)
-          ]
-          editState
+makeProjectEditForm :: ProjectFormState 'Editing -> AppForm (ProjectFormState 'Editing)
+makeProjectEditForm fs =
+  AppForm $ setFormConcat spacedConcat $
+    newForm
+      [ (txt "Project Name: " <+>)
+          @@= nonEmptyTextField (name . coerced) ProjectFormNameField
+      ]
+      fs
 
 showEditProjectScreen ::
   IxMonadState m => ProjectContext -> m (AppState a) (AppState 'ProjectEditTag) ()
-showEditProjectScreen c =
-  imodify $ \s -> s & screen .~ ProjectEditScreen c (makeEditProjectForm s c)
+showEditProjectScreen c = do
+  s <- iget
+  let p = model s c
+      fs = ProjectFormState {projectFormStateName = p ^. name}
+  imodify $ screen .~ ProjectEditScreen c (makeProjectEditForm fs)

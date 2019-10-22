@@ -23,7 +23,8 @@ import Types.Models.Project (ProjectListItem (..))
 import Types.Models.RequestDef (RequestDefListItem (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
-  ( updateBrickForm,
+  ( ifValid,
+    updateBrickForm,
     updateBrickList,
   )
 import Types.Monads
@@ -58,10 +59,11 @@ handleEventProjectAdd ::
 handleEventProjectAdd key mods chan = do
   s <- iget
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> sm $ do
-      finishAddingProject
-      sendEvent Save chan
-      showProjectListScreen
+    (KChar 's', [MCtrl]) ->
+      ifValid $ sm $ do
+        finishAddingProject
+        sendEvent Save chan
+        showProjectListScreen
     (KEsc, []) -> sm showProjectListScreen
     _ -> sm $ do
       extractScreen
@@ -78,10 +80,11 @@ handleEventProjectEdit key mods chan = do
   s <- iget
   let ProjectEditScreen c _ = s ^. screen
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> sm $ do
-      finishEditingProject
-      sendEvent Save chan
-      showProjectDetails c
+    (KChar 's', [MCtrl]) ->
+      ifValid $ sm $ do
+        finishEditingProject
+        sendEvent Save chan
+        showProjectDetails c
     (KEsc, []) -> sm $ showProjectDetails c
     _ -> sm $ do
       extractScreen
