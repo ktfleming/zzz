@@ -10,6 +10,7 @@ module UI.RequestDefs.Details
   ( requestDefDetailsWidget,
     showRequestDefDetails,
     refreshResponseList,
+    makeResponseList,
   )
 where
 

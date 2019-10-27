@@ -15,14 +15,12 @@ import Brick
 import Brick.Forms
   ( (@@=),
     FormFieldState,
-    editTextField,
     formState,
     newForm,
     radioField,
     setFormConcat,
   )
 import Control.Lens
-import Control.Monad ((>=>))
 import Control.Monad.Indexed.State
   ( IxMonadState,
     iget,
@@ -49,6 +47,7 @@ import Types.Models.Screen
 import Types.Models.Url (Url (..))
 import UI.Form
   ( AppForm (..),
+    nonEmptyTextField,
     renderText,
     spacedConcat,
   )
@@ -56,6 +55,7 @@ import UI.Forms.FocusAwareEditor (focusAwareEditField)
 import UI.Forms.KeyValueList (makeKeyValueForm)
 import UI.Forms.RequestBody (requestBodyForm)
 import UI.Url (colorizedUrl)
+import Utils.IfThenElse
 import Prelude hiding
   ( Monad ((>>), (>>=), return),
     pure,
@@ -90,7 +90,7 @@ urlField ::
   FormFieldState (RequestDefFormState a) CustomEvent Name
 urlField vars s =
   let validate :: [T.Text] -> Maybe Url
-      validate = headMay >=> Just . Url
+      validate ts = headMay ts >>= \u -> if T.null u then Nothing else Just (Url u)
       readOnlyRender :: [T.Text] -> Widget Name
       readOnlyRender ts = maybe emptyWidget (colorizedUrl vars) (Url <$> headMay ts)
    in focusAwareEditField
@@ -104,27 +104,29 @@ urlField vars s =
         (Just readOnlyRender)
         s
 
-makeEditRequestDefForm :: AppState a -> RequestDefContext -> AppForm (RequestDefFormState 'Editing)
-makeEditRequestDefForm s c =
+makeRequestDefEditForm :: Seq Variable -> RequestDefFormState 'Editing -> AppForm (RequestDefFormState 'Editing)
+makeRequestDefEditForm vars fs =
+  AppForm $ setFormConcat spacedConcat $
+    newForm
+      [ (txt "Name:     " <+>) @@= nonEmptyTextField (name . coerced) RequestDefFormNameField,
+        (txt "URL:      " <+>) @@= urlField vars,
+        (txt "Method:   " <+>) @@= radioField method allMethodsRadio,
+        (txt "Body      " <+>) @@= requestBodyForm,
+        (txt "Headers:  " <+>) @@= makeKeyValueForm headers HeadersField
+      ]
+      fs
+
+showEditRequestDefScreen ::
+  IxMonadState m => RequestDefContext -> m (AppState a) (AppState 'RequestDefEditTag) ()
+showEditRequestDefScreen c = do
+  s <- iget
   let r = model s c
-      editState = RequestDefFormState
+      vars = currentVariables s
+      fs = RequestDefFormState
         { requestDefFormStateName = r ^. name,
           requestDefFormStateUrl = r ^. url,
           requestDefFormStateMethod = r ^. method,
           requestDefFormStateBody = r ^. body,
           requestDefFormStateHeaders = r ^. headers
         }
-   in AppForm $ setFormConcat spacedConcat $
-        newForm
-          [ (txt "Name:     " <+>) @@= editTextField (name . coerced) RequestDefFormNameField (Just 1),
-            (txt "URL:      " <+>) @@= urlField (currentVariables s),
-            (txt "Method:   " <+>) @@= radioField method allMethodsRadio,
-            (txt "Body      " <+>) @@= requestBodyForm,
-            (txt "Headers:  " <+>) @@= makeKeyValueForm headers HeadersField
-          ]
-          editState
-
-showEditRequestDefScreen ::
-  IxMonadState m => RequestDefContext -> m (AppState a) (AppState 'RequestDefEditTag) ()
-showEditRequestDefScreen c =
-  imodify $ \s -> s & screen .~ RequestDefEditScreen c (makeEditRequestDefForm s c)
+  imodify $ screen .~ RequestDefEditScreen c (makeRequestDefEditForm vars fs)

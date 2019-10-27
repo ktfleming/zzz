@@ -3,93 +3,38 @@
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
-module Specs.NavigationSpec
-  ( navTestTree,
+module Specs.Navigation.Projects
+  ( projectNavTestTree,
   )
 where
 
-import Brick.BChan (newBChan)
 import Brick.Forms (allFieldsValid)
-import Brick.Types (BrickEvent (VtyEvent))
-import Brick.Widgets.List (listSelected)
 import Control.Lens
-import Control.Monad.IO.Class
-  ( MonadIO,
-    liftIO,
-  )
-import Control.Monad.Indexed ((>>>=))
-import Control.Monad.Indexed.State (runIxStateT)
 import qualified Data.HashMap.Strict as Map
-import Data.Maybe (isJust)
 import Data.Singletons
-  ( SingI,
-    fromSing,
-    sing,
-    withSingI,
+  ( fromSing,
   )
-import Gens
 import Graphics.Vty.Input.Events
 import Hedgehog
   ( (===),
-    MonadTest,
-    PropertyT,
     cover,
-    failure,
-    forAll,
   )
 import Test.Tasty
   ( TestTree,
     testGroup,
   )
-import TestMonad
-import TestUtils (prop, propN)
+import TestUtils
 import Types.AppState
 import Types.Classes.Fields
 import Types.Modal (Modal (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
-import Types.Monads
-import UI.Events.Handler (handleEventInState)
 import UI.Form (AppForm (..))
-import UI.List (AppList (..))
 
--- Given an initial tagged AppState and a BrickEvent, use the event handler to
--- process the event and return the resulting AppState (wrapped in AnyAppState)
-getNextState :: (SingI a, MonadIO m) => AppState a -> Key -> [Modifier] -> m AnyAppState
-getNextState s = getNextState' (AnyAppState sing s)
-
--- Same as getNextState but accepts AnyAppState to start with
-getNextState' :: MonadIO m => AnyAppState -> Key -> [Modifier] -> m AnyAppState
-getNextState' s key mods =
-  let testM = iliftIO (newBChan 5) >>>= handleEventInState (VtyEvent (EvKey key mods))
-   in liftIO $ snd <$> (runIxStateT . runTestM) testM s
-
--- Given a key (and modifiers) to press, an expected ScreenTag, and an initial AppState,
--- assert that handling the keypress event will result in the expected screen being placed in the state
-check :: (MonadTest m, MonadIO m) => Key -> [Modifier] -> ScreenTag -> AnyAppState -> m ()
-check key mods expectedTag (AnyAppState tag initial) = withSingI tag $ do
-  AnyAppState newTag _ <- getNextState initial key mods
-  fromSing newTag === expectedTag
-
-{- Some predicates to use when doing tests -}
-
--- Whether or not at least one Project is available
-hasProject :: AnyAppState -> Bool
-hasProject s = (not . Map.null) $ s ^. projects
-
--- Whether or not the currently displayed Project has at least one RequestDef
-requestDefSelected :: AppState 'ProjectDetailsTag -> Bool
-requestDefSelected s =
-  let AppList list = s ^. listLens
-   in isJust $ listSelected list
-
-with :: Monad m => ScreenTag -> PropertyT m AnyAppState
-with tag = forAll (genAppState tag)
-
-navTestTree :: TestTree
-navTestTree =
+projectNavTestTree :: TestTree
+projectNavTestTree =
   testGroup
-    "Navigation"
+    "Project Navigation"
     [ testGroup
         "ProjectListScreen"
         [ propN 1 "Pressing the 'a' key" $
@@ -105,12 +50,12 @@ navTestTree =
       testGroup
         "ProjectDetailsScreen"
         [ prop "Pressing the right arrow key" $ do
-            s@(AnyAppState SProjectDetailsTag initial) <- with ProjectDetailsTag
+            i@(AnyAppState SProjectDetailsTag initial) <- with ProjectDetailsTag
             let expected =
                   if requestDefSelected initial
                     then RequestDefDetailsTag
                     else ProjectDetailsTag
-            check KRight [] expected s,
+            check KRight [] expected i,
           propN 1 "Pressing the left arrow key" $
             with ProjectDetailsTag >>= check KLeft [] ProjectListTag,
           propN 1 "Pressing the 'e' key" $
@@ -118,11 +63,9 @@ navTestTree =
           propN 1 "Pressing the 'a' key" $
             with ProjectDetailsTag >>= check (KChar 'a') [] RequestDefAddTag,
           prop "Pressing the 'd' key" $ do
-            initial <- with ProjectDetailsTag
-            (AnyAppState SProjectDetailsTag newS) <- getNextState' initial (KChar 'd') []
-            case newS ^. screen of
-              ProjectDetailsScreen c _ -> newS ^. modal === Just (DeleteProjectModal c)
-              _ -> failure
+            i@(AnyAppState SProjectDetailsTag AppState {appStateScreen = ProjectDetailsScreen c _}) <- with ProjectDetailsTag
+            n <- getNextState' i (KChar 'd') []
+            n ^. modal === Just (DeleteProjectModal c)
         ],
       testGroup
         "ProjectAddScreen"

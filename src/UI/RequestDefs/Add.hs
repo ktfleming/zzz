@@ -12,7 +12,6 @@ import Brick
   )
 import Brick.Forms
   ( (@@=),
-    editTextField,
     formState,
     newForm,
     setFormConcat,
@@ -41,6 +40,7 @@ import Types.Models.Screen
 import Types.Models.Url (Url (..))
 import UI.Form
   ( AppForm (..),
+    nonEmptyTextField,
     spacedConcat,
   )
 import UI.Forms.KeyValueList (makeKeyValueForm)
@@ -65,20 +65,24 @@ finishAddingRequestDef rid = do
         }
   imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 
-makeAddRequestDefForm :: AppForm (RequestDefFormState 'Adding)
-makeAddRequestDefForm = AppForm $ setFormConcat spacedConcat $ newForm
-  [ (txt "Name:     " <+>) @@= editTextField (name . coerced) RequestDefFormNameField (Just 1),
-    (txt "URL:      " <+>) @@= editTextField (url . coerced) RequestDefFormUrlField (Just 1),
-    (txt "Headers:  " <+>) @@= makeKeyValueForm headers HeadersField
-  ]
-  RequestDefFormState
-    { requestDefFormStateName = RequestDefName "New Request Definition",
-      requestDefFormStateUrl = Url "http://example.com",
-      requestDefFormStateMethod = Get,
-      requestDefFormStateBody = RequestBody "",
-      requestDefFormStateHeaders = S.empty
-    }
+makeRequestDefAddForm :: RequestDefFormState 'Adding -> AppForm (RequestDefFormState 'Adding)
+makeRequestDefAddForm fs =
+  AppForm $ setFormConcat spacedConcat $
+    newForm
+      [ (txt "Name:     " <+>) @@= nonEmptyTextField (name . coerced) RequestDefFormNameField,
+        (txt "URL:      " <+>) @@= nonEmptyTextField (url . coerced) RequestDefFormUrlField,
+        (txt "Headers:  " <+>) @@= makeKeyValueForm headers HeadersField
+      ]
+      fs
 
 showAddRequestDefScreen ::
   IxMonadState m => ProjectContext -> m (AppState a) (AppState 'RequestDefAddTag) ()
-showAddRequestDefScreen c = imodify $ screen .~ RequestDefAddScreen c makeAddRequestDefForm
+showAddRequestDefScreen c =
+  let fs = RequestDefFormState
+        { requestDefFormStateName = RequestDefName "New Request Definition",
+          requestDefFormStateUrl = Url "http://example.com",
+          requestDefFormStateMethod = Get,
+          requestDefFormStateBody = RequestBody "",
+          requestDefFormStateHeaders = S.empty
+        }
+   in imodify $ screen .~ RequestDefAddScreen c (makeRequestDefAddForm fs)

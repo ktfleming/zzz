@@ -3,9 +3,12 @@
 
 module Gens where
 
+import Brick.Focus (focusRing, focusSetCurrent)
+import Control.Lens
 import Data.HashMap.Strict as Map
 import qualified Data.Sequence as Seq
 import Data.Singletons (sing)
+import Data.Time (NominalDiffTime, UTCTime (..), fromGregorian, secondsToDiffTime)
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
 import GHC.IO (unsafePerformIO)
@@ -18,25 +21,25 @@ import Types.AppState
     AppState (..),
     HelpPanelVisible (..),
   )
+import Types.Brick.Name
+import Types.Classes.Fields (variables)
 import Types.Methods (Method (..))
 import Types.Models.Environment
-  ( Environment (..),
-    EnvironmentContext (..),
-    EnvironmentName (..),
-    Variable (..),
-    VariableName (..),
-    VariableValue (..),
-  )
 import Types.Models.Header
 import Types.Models.Id
 import Types.Models.Project
 import Types.Models.RequestDef
+import Types.Models.Response
 import Types.Models.Screen
 import Types.Models.Url (Url (..))
+import UI.FocusRing (AppFocusRing (..))
 import UI.Projects.Add (makeProjectAddForm)
 import UI.Projects.Details (makeRequestDefList)
 import UI.Projects.Edit (makeProjectEditForm)
 import UI.Projects.List (makeProjectList)
+import UI.RequestDefs.Add (makeRequestDefAddForm)
+import UI.RequestDefs.Details (makeResponseList)
+import UI.RequestDefs.Edit (makeRequestDefEditForm)
 
 genUUID :: Gen UUID
 genUUID = Gen.constant $ unsafePerformIO nextRandom
@@ -102,25 +105,76 @@ genProjectFormState = do
   name <- ProjectName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
   return $ ProjectFormState name
 
-genScreen :: ScreenTag -> HashMap ProjectId Project -> Gen AnyScreen
-genScreen tag projects =
-  case tag of
-    ProjectListTag -> return $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
-    ProjectDetailsTag ->
-      if Map.null projects
-        then Gen.discard -- need at least one project
-        else do
-          (pid, p) <- Gen.element $ Map.toList projects
+genRequestDefFormState :: Gen (RequestDefFormState a)
+genRequestDefFormState = do
+  name <- RequestDefName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
+  url <- Url <$> Gen.text (Range.linear 0 30) Gen.alphaNum
+  method <- genMethod
+  body <- genRequestBody
+  headers <- Gen.seq (Range.linear 0 5) genHeader
+  return $ RequestDefFormState name url method body headers
+
+-- https://github.com/hedgehogqa/haskell-hedgehog/issues/215
+genUTCTime :: Gen UTCTime
+genUTCTime = do
+  y <- toInteger <$> Gen.int (Range.constant 2000 2019)
+  m <- Gen.int (Range.constant 1 12)
+  d <- Gen.int (Range.constant 1 28)
+  let day = fromGregorian y m d
+  secs <- toInteger <$> Gen.int (Range.constant 0 86401)
+  let diff = secondsToDiffTime secs
+  pure $ UTCTime day diff
+
+-- Just use a fixed value for now, might return to this later
+genNominalDiffTIme :: Gen NominalDiffTime
+genNominalDiffTIme = Gen.constant (1 :: NominalDiffTime)
+
+genResponse :: Gen Response
+genResponse = do
+  resBody <- ResponseBody <$> Gen.text (Range.linear 0 100) Gen.unicode
+  code <- StatusCode <$> Gen.int (Range.constant 100 599)
+  dateTime <- genUTCTime
+  method <- genMethod
+  url <- genUrl
+  reqBody <- genRequestBody
+  headers <- Gen.seq (Range.linear 0 10) genHeader
+  elapsed <- genNominalDiffTIme
+  return $ Response resBody code dateTime method url reqBody headers elapsed
+
+genScreen :: ScreenTag -> HashMap ProjectId Project -> Maybe Environment -> Gen AnyScreen
+genScreen tag projects env =
+  let requireProject :: Gen (ProjectId, Project)
+      requireProject = if Map.null projects then Gen.discard else Gen.element $ Map.toList projects
+      requireRequestDef :: Project -> Gen (RequestDefId, RequestDef)
+      requireRequestDef p = if Map.null (p ^. requestDefs) then Gen.discard else (Gen.element . Map.toList) (p ^. requestDefs)
+   in case tag of
+        ProjectListTag -> return $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
+        ProjectDetailsTag -> do
+          (pid, p) <- requireProject
           let c = ProjectContext pid
           return $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
-    ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectAddForm <$> genProjectFormState
-    ProjectEditTag ->
-      if Map.null projects
-        then Gen.discard
-        else do
-          pid <- Gen.element $ Map.keys projects
+        ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectAddForm <$> genProjectFormState
+        ProjectEditTag -> do
+          (pid, _) <- requireProject
           AnyScreen sing . ProjectEditScreen (ProjectContext pid) . makeProjectEditForm <$> genProjectFormState
-    _ -> undefined
+        RequestDefAddTag -> do
+          (pid, _) <- requireProject
+          AnyScreen sing . RequestDefAddScreen (ProjectContext pid) . makeRequestDefAddForm <$> genRequestDefFormState
+        RequestDefEditTag -> do
+          (pid, p) <- requireProject
+          (rid, _) <- requireRequestDef p
+          let vars = maybe Seq.empty (view variables) env
+          AnyScreen sing . RequestDefEditScreen (RequestDefContext pid rid) . makeRequestDefEditForm vars <$> genRequestDefFormState
+        RequestDefDetailsTag -> do
+          (pid, p) <- requireProject
+          (rid, _) <- requireRequestDef p
+          responses <- Gen.seq (Range.linear 0 10) genResponse
+          let choices = [RequestDetails, ResponseList, ResponseBodyDetails]
+              ring = focusRing choices
+          -- If no responses exist then the top section must be selected; otherwise randomly select one of the three sections
+          modifiedRing <- if Seq.null responses then Gen.constant ring else fmap (`focusSetCurrent` ring) (Gen.element choices)
+          return $ AnyScreen sing $ RequestDefDetailsScreen (RequestDefContext pid rid) (makeResponseList responses) (AppFocusRing modifiedRing) Nothing
+        _ -> undefined
 
 genEnvContext :: HashMap EnvironmentId Environment -> Gen (Maybe EnvironmentContext)
 genEnvContext envs =
@@ -133,7 +187,8 @@ genAppState tag = do
   projects <- genProjects
   envs <- genEnvironments
   envContext <- genEnvContext envs
-  AnyScreen stag scr <- genScreen tag projects
+  let env = envContext >>= \(EnvironmentContext eid) -> Map.lookup eid envs
+  AnyScreen stag scr <- genScreen tag projects env
   return $ AnyAppState
     stag
     AppState

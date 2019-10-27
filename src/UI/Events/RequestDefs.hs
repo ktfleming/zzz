@@ -45,7 +45,8 @@ import Types.Models.RequestDef (RequestDefContext (..))
 import Types.Models.Response (ResponseIndex (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
-  ( updateBrickForm,
+  ( ifValid,
+    updateBrickForm,
     updateBrickList,
   )
 import Types.Monads
@@ -74,7 +75,7 @@ handleEventRequestAdd key mods chan = do
   s <- iget
   let RequestDefAddScreen c _ = s ^. screen
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> sm $ do
+    (KChar 's', [MCtrl]) -> ifValid $ sm $ do
       rid <- iliftIO $ RequestDefId <$> nextRandom
       finishAddingRequestDef rid
       sendEvent Save chan
@@ -95,7 +96,7 @@ handleEventRequestEdit key mods chan = do
   s <- iget
   let RequestDefEditScreen c _ = s ^. screen
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> sm $ do
+    (KChar 's', [MCtrl]) -> ifValid $ sm $ do
       finishEditingRequestDef
       sendEvent Save chan
       showRequestDefDetails c
