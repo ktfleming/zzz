@@ -12,41 +12,6 @@ packages:
   original:
     hackage: brick-0.50@sha256:6e0d6e544673c452042040b49af9ca65407f7319d3285439c5d686a5bb7093ab,13903
 - completed:
-    hackage: config-ini-0.2.4.0@sha256:38a6d484d471c6fac81445de2eac8c4e8c82760962fca5491ae1c3bfca9c4047,3232
-    pantry-tree:
-      size: 886
-      sha256: b608472507ec84e468f768acab36d8c85b46bcf918f2a60604fff46137160d2d
-  original:
-    hackage: config-ini-0.2.4.0@sha256:38a6d484d471c6fac81445de2eac8c4e8c82760962fca5491ae1c3bfca9c4047,3232
-- completed:
-    hackage: data-clist-0.1.2.2@sha256:4d70add0a200a178853cd37c6469101bac3c36aebb3aa9c503ff225211b1a8c9,936
-    pantry-tree:
-      size: 219
-      sha256: 1ebcc75682379366f03666c2de30d04ef49684b48bd4529afdc5bfa750b4af61
-  original:
-    hackage: data-clist-0.1.2.2@sha256:4d70add0a200a178853cd37c6469101bac3c36aebb3aa9c503ff225211b1a8c9,936
-- completed:
-    hackage: text-zipper-0.10.1@sha256:8b73a97a3717a17df9b0a722b178950c476ff2268ca5c583e99d010c94af849e,1471
-    pantry-tree:
-      size: 600
-      sha256: ebd5f0e2fc8c59b1bde6706cef1fdb012d52bb26b3953a97a4fa6502f56cdd65
-  original:
-    hackage: text-zipper-0.10.1@sha256:8b73a97a3717a17df9b0a722b178950c476ff2268ca5c583e99d010c94af849e,1471
-- completed:
-    hackage: word-wrap-0.4.1@sha256:f72233b383ef569c557bfd9812cbb8e306c415ce509082c0bd15ee51c0239ccc,1606
-    pantry-tree:
-      size: 423
-      sha256: dcf5071895ee477e60e3c9de1e30eb711e11e9a7335db160616f80baeb20ad71
-  original:
-    hackage: word-wrap-0.4.1@sha256:f72233b383ef569c557bfd9812cbb8e306c415ce509082c0bd15ee51c0239ccc,1606
-- completed:
-    hackage: QuickCheck-2.12.6.1@sha256:ce974f511174fbc3102bccb13d6d45781d327194f0311790b9f8db6a7cb1bab3,6336
-    pantry-tree:
-      size: 2046
-      sha256: 1b9bf780a91762f07a63698d656234de0b68f5c8de760cc90153c01888730eb5
-  original:
-    hackage: QuickCheck-2.12.6.1@sha256:ce974f511174fbc3102bccb13d6d45781d327194f0311790b9f8db6a7cb1bab3,6336
-- completed:
     hackage: indexed-extras-0.2@sha256:e7e498023e33016fe45467dfee3c1379862e7e6654a806a965958fa1adc00304,1349
     pantry-tree:
       size: 299
@@ -55,7 +20,7 @@ packages:
     hackage: indexed-extras-0.2@sha256:e7e498023e33016fe45467dfee3c1379862e7e6654a806a965958fa1adc00304,1349
 snapshots:
 - completed:
-    size: 524786
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/11.yaml
-    sha256: 088bb91b545839510a41ae92fa5feb36779ef3529571a42bd12b9f51eb89ded3
-  original: lts-14.11
+    size: 545658
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/12.yaml
+    sha256: 26b807457213126d26b595439d705dc824dbb7618b0de6b900adc2bf6a059406
+  original: lts-14.12
