@@ -41,7 +41,10 @@ dependencies:
   - friendly-time
   - singletons
   - hedgehog
+  - hspec
+  - tasty
   - tasty-hedgehog
+  - tasty-hspec
 library:
   source-dirs:
     - src
@@ -65,8 +68,4 @@ tests:
       - '-with-rtsopts=-N'
     dependencies:
       - zzz
-      - hspec
-      - hedgehog
-      - tasty
-      - tasty-hedgehog
-      - tasty-hspec
+
