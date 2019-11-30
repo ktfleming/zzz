@@ -10,7 +10,7 @@ extra-source-files:
 description: 'Please see the README on GitHub at <https://github.com/kvnflm/zzz#readme>'
 dependencies:
   - base
-  - brick == 0.50
+  - brick == 0.50.1
   - vty
   - lens
   - generic-lens
@@ -31,7 +31,7 @@ dependencies:
   - iso8601-time
   - hashable
   - string-conversions
-  - indexed == 0.1.3
+  - indexed
   - indexed-extras == 0.2
   - do-notation
   - text-zipper

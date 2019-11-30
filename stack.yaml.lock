@@ -5,12 +5,12 @@
 
 packages:
 - completed:
-    hackage: brick-0.50@sha256:6e0d6e544673c452042040b49af9ca65407f7319d3285439c5d686a5bb7093ab,13903
+    hackage: brick-0.50.1@sha256:69096f79fae62d26a9fc216427840fa795ee0d2ffd93fa52718d81a7333e1c66,13919
     pantry-tree:
       size: 3752
-      sha256: 8c01f51ff6f26faaec42f24f900e436e71d54e7a3b7fd03ef8fdb4f02bd51eb3
+      sha256: 04fd573862f84b13c7848dee7c5e1be8e2e22abef8462c819384d04f5f4ce07c
   original:
-    hackage: brick-0.50@sha256:6e0d6e544673c452042040b49af9ca65407f7319d3285439c5d686a5bb7093ab,13903
+    hackage: brick-0.50.1@sha256:69096f79fae62d26a9fc216427840fa795ee0d2ffd93fa52718d81a7333e1c66,13919
 - completed:
     hackage: indexed-extras-0.2@sha256:e7e498023e33016fe45467dfee3c1379862e7e6654a806a965958fa1adc00304,1349
     pantry-tree:
@@ -20,7 +20,7 @@ packages:
     hackage: indexed-extras-0.2@sha256:e7e498023e33016fe45467dfee3c1379862e7e6654a806a965958fa1adc00304,1349
 snapshots:
 - completed:
-    size: 525663
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/14.yaml
-    sha256: 6edc48df46eb8bf7b861e98dd30d021a92c2e1820c9bb6528aac5d997b0e14ef
-  original: lts-14.14
+    size: 524804
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/16.yaml
+    sha256: 4d1519a4372d051d47a5eae2241cf3fb54e113d7475f89707ddb6ec06add2888
+  original: lts-14.16
