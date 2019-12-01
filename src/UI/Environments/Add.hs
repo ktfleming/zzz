@@ -9,6 +9,7 @@
 module UI.Environments.Add
   ( finishAddingEnvironment,
     showEnvironmentAddScreen,
+    makeEnvironmentAddForm,
   )
 where
 
@@ -19,7 +20,6 @@ import Brick
   )
 import Brick.Forms
   ( (@@=),
-    editTextField,
     formState,
     newForm,
     setFormConcat,
@@ -46,6 +46,7 @@ import Types.Models.Id (EnvironmentId (..))
 import Types.Models.Screen
 import UI.Form
   ( AppForm (..),
+    nonEmptyTextField,
     spacedConcat,
   )
 import UI.Forms.KeyValueList (makeKeyValueForm)
@@ -67,16 +68,20 @@ finishAddingEnvironment eid = do
         }
   imodify $ environments . at eid ?~ e
 
-makeEnvironmentAddForm :: AppForm (EnvironmentFormState 'Adding)
-makeEnvironmentAddForm = AppForm $ setFormConcat spacedConcat $ newForm
-  [ (txt "Environment Name: " <+>)
-      @@= editTextField (name . coerced) EnvironmentFormNameField (Just 1),
-    (txt "Variables:" <=>) @@= makeKeyValueForm variables VariablesField
-  ]
-  EnvironmentFormState
-    { environmentFormStateName = EnvironmentName "New Environment",
-      environmentFormStateVariables = S.empty
-    }
+makeEnvironmentAddForm :: EnvironmentFormState 'Adding -> AppForm (EnvironmentFormState 'Adding)
+makeEnvironmentAddForm fs =
+  AppForm $ setFormConcat spacedConcat $
+    newForm
+      [ (txt "Environment Name: " <+>)
+          @@= nonEmptyTextField (name . coerced) EnvironmentFormNameField,
+        (txt "Variables:" <=>) @@= makeKeyValueForm variables VariablesField
+      ]
+      fs
 
 showEnvironmentAddScreen :: IxMonadState m => m (AppState a) (AppState 'EnvironmentAddTag) ()
-showEnvironmentAddScreen = imodify $ screen .~ EnvironmentAddScreen makeEnvironmentAddForm
+showEnvironmentAddScreen =
+  let fs = EnvironmentFormState
+        { environmentFormStateName = EnvironmentName "New Environment",
+          environmentFormStateVariables = S.empty
+        }
+   in imodify $ screen .~ EnvironmentAddScreen (makeEnvironmentAddForm fs)

@@ -157,6 +157,18 @@ instance HasProjects AnyAppState (HashMap ProjectId Project) where
       getter (AnyAppState _ s) = s ^. projects
       setter (AnyAppState tag s) ps = AnyAppState tag (s & projects .~ ps)
 
+instance HasEnvironments AnyAppState (HashMap EnvironmentId Environment) where
+  environments = lens getter setter
+    where
+      getter (AnyAppState _ s) = s ^. environments
+      setter (AnyAppState tag s) es = AnyAppState tag (s & environments .~ es)
+
+instance HasStashedScreen AnyAppState (Maybe AnyScreen) where
+  stashedScreen = lens getter setter
+    where
+      getter (AnyAppState _ s) = s ^. stashedScreen
+      setter (AnyAppState tag s) stashed = AnyAppState tag (s & stashedScreen .~ stashed)
+
 instance ToJSON (AppState a) where
   toJSON s =
     object

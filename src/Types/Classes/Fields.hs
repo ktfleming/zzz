@@ -46,3 +46,9 @@ class HasModal s a | s -> a where
 
 class HasProjects s a | s -> a where
   projects :: Lens' s a
+
+class HasEnvironments s a | s -> a where
+  environments :: Lens' s a
+
+class HasStashedScreen s a | s -> a where
+  stashedScreen :: Lens' s a

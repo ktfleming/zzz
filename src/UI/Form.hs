@@ -42,6 +42,7 @@ renderText = txt . T.intercalate "\n"
 spacedConcat :: [Widget Name] -> Widget Name
 spacedConcat ws = vBox $ padBottom (Pad 1) <$> ws
 
+-- Text field with an included validation function that ensures the text is non-empty
 nonEmptyTextField :: Lens' a T.Text -> Name -> a -> FormFieldState a CustomEvent Name
 nonEmptyTextField lens name s =
   let validate :: [T.Text] -> Maybe T.Text

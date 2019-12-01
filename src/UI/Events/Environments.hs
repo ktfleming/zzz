@@ -30,7 +30,8 @@ import Types.Models.Environment
 import Types.Models.Id (EnvironmentId (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
-  ( lastError,
+  ( ifValid,
+    lastError,
     updateBrickForm,
     updateBrickList,
   )
@@ -61,7 +62,7 @@ handleEventEnvironmentAdd ::
 handleEventEnvironmentAdd key mods chan = do
   s <- iget
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> sm $ do
+    (KChar 's', [MCtrl]) -> ifValid $ sm $ do
       eid <- iliftIO $ EnvironmentId <$> nextRandom
       finishAddingEnvironment eid
       sendEvent Save chan
@@ -137,7 +138,7 @@ handleEventEnvironmentEdit ::
 handleEventEnvironmentEdit key mods chan = do
   s <- iget
   case (key, mods) of
-    (KChar 's', [MCtrl]) -> sm $ do
+    (KChar 's', [MCtrl]) -> ifValid $ sm $ do
       finishEditingEnvironment
       sendEvent Save chan
       showEnvironmentListScreen

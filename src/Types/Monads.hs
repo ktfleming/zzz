@@ -28,10 +28,10 @@ import Types.AppState
   ( AnyAppState (..),
     AppState,
     screen,
-    stashedScreen,
   )
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name (Name)
+import Types.Classes.Fields
 import Types.Models.Screen
   ( AnyScreen (..),
     Screen,
@@ -118,8 +118,8 @@ stashScreen :: (SingI a, IxMonadState m) => m (AppState a) (AppState a) ()
 stashScreen = iget >>>= \s -> imodify $ stashedScreen ?~ AnyScreen sing (s ^. screen)
 
 -- Remove the currently stashed screen (if there is one) and set it as the
--- currently displayed screen
+-- currently displayed screen. Then set the currently stashed screen to nothing.
 unstashScreen :: (SingI i, IxMonadState m) => m (AppState i) AnyAppState ()
 unstashScreen = iget >>>= \s -> case s ^. stashedScreen of
   Nothing -> submerge
-  Just (AnyScreen tag stashed) -> imodify $ AnyAppState tag . (screen .~ stashed)
+  Just (AnyScreen tag stashed) -> imodify $ AnyAppState tag . (screen .~ stashed) . (stashedScreen .~ Nothing)
