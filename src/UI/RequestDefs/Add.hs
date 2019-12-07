@@ -6,16 +6,7 @@
 
 module UI.RequestDefs.Add where
 
-import Brick
-  ( (<+>),
-    txt,
-  )
 import Brick.Forms
-  ( (@@=),
-    formState,
-    newForm,
-    setFormConcat,
-  )
 import Control.Lens
 import Control.Monad.Indexed.State
   ( IxMonadState,
@@ -26,9 +17,7 @@ import qualified Data.Sequence as S
 import Data.String (fromString)
 import Language.Haskell.DoNotation
 import Types.AppState
-import Types.Brick.Name
 import Types.Classes.Fields
-import Types.Forms (FormMode (..))
 import Types.Methods
 import Types.Models.Id (RequestDefId (..))
 import Types.Models.Project
@@ -39,11 +28,7 @@ import Types.Models.RequestDef
 import Types.Models.Screen
 import Types.Models.Url (Url (..))
 import UI.Form
-  ( AppForm (..),
-    nonEmptyTextField,
-    spacedConcat,
-  )
-import UI.Forms.KeyValueList (makeKeyValueForm)
+import UI.RequestDefs.Common (makeRequestDefForm)
 import Prelude hiding
   ( Monad ((>>), (>>=), return),
     pure,
@@ -65,19 +50,10 @@ finishAddingRequestDef rid = do
         }
   imodify $ projects . at pid . _Just . requestDefs . at rid ?~ req
 
-makeRequestDefAddForm :: RequestDefFormState 'Adding -> AppForm (RequestDefFormState 'Adding)
-makeRequestDefAddForm fs =
-  AppForm $ setFormConcat spacedConcat $
-    newForm
-      [ (txt "Name:     " <+>) @@= nonEmptyTextField (name . coerced) RequestDefFormNameField,
-        (txt "URL:      " <+>) @@= nonEmptyTextField (url . coerced) RequestDefFormUrlField,
-        (txt "Headers:  " <+>) @@= makeKeyValueForm headers HeadersField
-      ]
-      fs
-
 showAddRequestDefScreen ::
   IxMonadState m => ProjectContext -> m (AppState a) (AppState 'RequestDefAddTag) ()
-showAddRequestDefScreen c =
+showAddRequestDefScreen c = do
+  s <- iget
   let fs = RequestDefFormState
         { requestDefFormStateName = RequestDefName "New Request Definition",
           requestDefFormStateUrl = Url "http://example.com",
@@ -85,4 +61,5 @@ showAddRequestDefScreen c =
           requestDefFormStateBody = RequestBody "",
           requestDefFormStateHeaders = S.empty
         }
-   in imodify $ screen .~ RequestDefAddScreen c (makeRequestDefAddForm fs)
+      vars = currentVariables s
+  imodify $ screen .~ RequestDefAddScreen c (makeRequestDefForm vars fs)

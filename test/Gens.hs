@@ -38,17 +38,14 @@ import Types.Models.RequestDef
 import Types.Models.Response
 import Types.Models.Screen
 import Types.Models.Url (Url (..))
-import UI.Environments.Add (makeEnvironmentAddForm)
-import UI.Environments.Edit (makeEnvironmentEditForm)
+import UI.Environments.Common (makeEnvironmentForm)
 import UI.Environments.List (makeEnvironmentList)
 import UI.FocusRing (AppFocusRing (..))
-import UI.Projects.Add (makeProjectAddForm)
+import UI.Projects.Common (makeProjectForm)
 import UI.Projects.Details (makeRequestDefList)
-import UI.Projects.Edit (makeProjectEditForm)
 import UI.Projects.List (makeProjectList)
-import UI.RequestDefs.Add (makeRequestDefAddForm)
+import UI.RequestDefs.Common (makeRequestDefForm)
 import UI.RequestDefs.Details (makeResponseList)
-import UI.RequestDefs.Edit (makeRequestDefEditForm)
 
 genUUID :: Gen UUID
 genUUID = Gen.constant $ unsafePerformIO nextRandom
@@ -172,27 +169,26 @@ genScreen tag projects env envs stashedScreen responses =
       requireRequestDef p = if Map.null (p ^. requestDefs) then Gen.discard else (Gen.element . Map.toList) (p ^. requestDefs)
       requireEnvironment :: Gen (EnvironmentId, Environment)
       requireEnvironment = if Map.null envs then Gen.discard else Gen.element $ Map.toList envs
+      vars = case env of
+        NoEnvironmentKey -> Seq.empty
+        IdKey eid -> fromMaybe Seq.empty (view variables <$> Map.lookup eid envs)
    in case tag of
         ProjectListTag -> return $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
         ProjectDetailsTag -> do
           (pid, p) <- requireProject
           let c = ProjectContext pid
           return $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
-        ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectAddForm <$> genProjectFormState
+        ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectForm <$> genProjectFormState
         ProjectEditTag -> do
           (pid, _) <- requireProject
-          AnyScreen sing . ProjectEditScreen (ProjectContext pid) . makeProjectEditForm <$> genProjectFormState
+          AnyScreen sing . ProjectEditScreen (ProjectContext pid) . makeProjectForm <$> genProjectFormState
         RequestDefAddTag -> do
           (pid, _) <- requireProject
-          AnyScreen sing . RequestDefAddScreen (ProjectContext pid) . makeRequestDefAddForm <$> genRequestDefFormState
+          AnyScreen sing . RequestDefAddScreen (ProjectContext pid) . makeRequestDefForm vars <$> genRequestDefFormState
         RequestDefEditTag -> do
           (pid, p) <- requireProject
           (rid, _) <- requireRequestDef p
-          -- let vars = maybe Seq.empty (view variables) env
-          let vars = case env of
-                NoEnvironmentKey -> Seq.empty
-                IdKey eid -> fromMaybe Seq.empty (view variables <$> Map.lookup eid envs)
-          AnyScreen sing . RequestDefEditScreen (RequestDefContext pid rid) . makeRequestDefEditForm vars <$> genRequestDefFormState
+          AnyScreen sing . RequestDefEditScreen (RequestDefContext pid rid) . makeRequestDefForm vars <$> genRequestDefFormState
         RequestDefDetailsTag -> do
           (pid, p) <- requireProject
           (rid, _) <- requireRequestDef p
@@ -206,12 +202,12 @@ genScreen tag projects env envs stashedScreen responses =
           modifiedRing <- if Seq.null localResponses then Gen.constant ring else fmap (`focusSetCurrent` ring) (Gen.element choices)
           return $ AnyScreen sing $ RequestDefDetailsScreen (RequestDefContext pid rid) (makeResponseList localResponses) (AppFocusRing modifiedRing) Nothing
         EnvironmentAddTag ->
-          AnyScreen sing . EnvironmentAddScreen . makeEnvironmentAddForm <$> genEnvironmentFormState
+          AnyScreen sing . EnvironmentAddScreen . makeEnvironmentForm <$> genEnvironmentFormState
         EnvironmentListTag ->
           if isNothing stashedScreen then Gen.discard else return $ AnyScreen sing $ EnvironmentListScreen (makeEnvironmentList envs)
         EnvironmentEditTag -> do
           (eid, _) <- requireEnvironment
-          AnyScreen sing . EnvironmentEditScreen (EnvironmentContext eid) . makeEnvironmentEditForm <$> genEnvironmentFormState
+          AnyScreen sing . EnvironmentEditScreen (EnvironmentContext eid) . makeEnvironmentForm <$> genEnvironmentFormState
         _ -> undefined
 
 genEnvContext :: HashMap EnvironmentId Environment -> Gen (Maybe EnvironmentContext)
