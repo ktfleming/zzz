@@ -15,23 +15,11 @@ module UI.RequestDefs.Details
 where
 
 import Brick
-  ( (<+>),
-    Padding (Pad),
-    Widget,
-    emptyWidget,
-    padBottom,
-    padLeft,
-    txt,
-    txtWrap,
-    vBox,
-    vLimit,
-    withAttr,
-  )
 import Brick.Focus
   ( focusGetCurrent,
     focusRing,
   )
-import Brick.Widgets.Border (hBorder)
+import Brick.Widgets.Border
 import Brick.Widgets.Center (hCenter)
 import Brick.Widgets.List
   ( list,
@@ -47,7 +35,6 @@ import Control.Monad.Indexed.State
   )
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as Map
-import Data.Maybe (isJust)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as S
 import Data.String (fromString)
@@ -76,6 +63,7 @@ import UI.List
 import UI.Responses.Details (responseDetails)
 import UI.Text (explanationWithAttr)
 import UI.Url (colorizedUrl)
+import Utils.IfThenElse (ifThenElse)
 import Prelude hiding
   ( Monad ((>>), (>>=), return),
     pure,
@@ -101,6 +89,14 @@ refreshResponseList = do
       ekey = currentEnvironmentKey s
   imodify $ screen . listLens .~ makeResponseList (lookupResponses s c ekey)
 
+-- focusedBorderStyle :: BorderStyle
+-- focusedBorderStyle = borderStyleFromChar '█'
+
+-- Surround the provided widget with a border if it's focused, or just
+-- pad every side by 1 if not (to ensure it's the same size whether focused or not)
+borderOrPad :: Bool -> Widget Name -> Widget Name
+borderOrPad focused = if focused then border else padAll 1
+
 -- Displays the basic RequestDef info (URL, method, etc) as well as a warning
 -- if a variable used somewhere is not defined in the current environment
 topWidget :: AppState 'RequestDefDetailsTag -> RequestDefContext -> Bool -> Widget Name
@@ -118,38 +114,38 @@ topWidget s c@(RequestDefContext _ rid) focused =
         (True, _) ->
           [ explanationWithAttr
               importantExplanationAttr
-              "Currently sending request -- press x to cancel"
+              "Currently sending request -- press x to cancel."
           ]
-        (False, True) -> [explanationWithAttr explanationAttr "Press ENTER to send this request"]
-        (False, False) -> []
-   in vBox $ explanation <> [titleWidget, headersWidget]
+        _ -> []
+      mainBox = vBox $ explanation <> [titleWidget, headersWidget]
+   in borderOrPad focused $ padLeft (Pad 2) $ mainBox
 
-errorWidget :: RequestError -> Widget Name
-errorWidget = withAttr errorAttr . hCenter . txtWrap . errorDescription
+errorWidget :: Maybe RequestError -> Widget Name
+errorWidget = maybe emptyWidget (padBottom (Pad 1) . withAttr errorAttr . hCenter . txtWrap . errorDescription)
+
+responseHistoryWidget :: AppList ResponseWithCurrentTime -> Bool -> Widget Name
+responseHistoryWidget appList@(AppList innerList) focused =
+  let elems = listElements innerList
+   in if null elems
+        then emptyWidget
+        else
+          borderOrPad focused . vBox $
+            [ (padLeft (Pad 2) $ txtWrap "Response history:"),
+              (vLimit (min 10 (length elems)) (renderGenericList focused appList))
+            ]
 
 requestDefDetailsWidget :: AppState 'RequestDefDetailsTag -> Widget Name
 requestDefDetailsWidget s =
   let (RequestDefDetailsScreen c (AppList zl) (AppFocusRing ring) maybeError) = s ^. screen
       focused = focusGetCurrent ring
-      requestFocused = focused == Just RequestDetails
-      historyListFocused = focused == Just ResponseList
-      bodyFocused = focused == Just ResponseBodyDetails
-      hasResponses = not $ null (listElements zl)
       bodyWidget = case listSelectedElement zl of
-        Just (_, r) -> responseDetails r bodyFocused
+        Just (_, r) -> borderOrPad (focused == Just ResponseBodyDetails) $ responseDetails r
         Nothing -> txtWrap "No response selected."
       listWithTime :: AppList ResponseWithCurrentTime
       listWithTime = coerce $ ResponseWithCurrentTime (s ^. currentTime) <$> zl
-      allWidgets =
-        fst
-          <$> filter
-            snd
-            [ (padLeft (Pad 2) (topWidget s c requestFocused), True),
-              (hBorder, hasResponses || isJust maybeError),
-              maybe (emptyWidget, False) ((,True) . padBottom (Pad 1) . errorWidget) maybeError,
-              (padLeft (Pad 2) $ txtWrap "Response history:", hasResponses),
-              (vLimit 10 (renderGenericList historyListFocused listWithTime), hasResponses),
-              (hBorder, not requestFocused),
-              (bodyWidget, not requestFocused)
-            ]
-   in vBox allWidgets
+   in overrideAttr borderAttr focusedBorderAttr $ vBox $
+        [ topWidget s c (focused == Just RequestDetails),
+          errorWidget maybeError,
+          responseHistoryWidget listWithTime (focused == Just ResponseList),
+          bodyWidget
+        ]

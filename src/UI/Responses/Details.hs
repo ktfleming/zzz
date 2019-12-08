@@ -7,17 +7,6 @@ module UI.Responses.Details
 where
 
 import Brick
-  ( (<+>),
-    (<=>),
-    Padding (..),
-    ViewportType (Vertical),
-    Widget,
-    padBottom,
-    str,
-    txt,
-    vBox,
-    viewport,
-  )
 import Brick.Widgets.Center (hCenterWith)
 import Control.Lens
 import Data.Sequence (Seq)
@@ -35,17 +24,15 @@ import Types.Models.KeyValue
 import Types.Models.RequestDef (RequestBody (..))
 import Types.Models.Response
 import Types.Models.Url
-import UI.Attr
 import UI.Forms.KeyValueList (readOnlyKeyValues)
 import UI.Json (readOnlyJson)
-import UI.Text (explanationWithAttr)
 
 centerSection :: T.Text -> Widget Name
 centerSection t = hCenterWith (Just '-') (txt (" " <> t <> " "))
 
 -- Response body plus URL, request body, and headers
-responseBodyViewport :: Response -> Widget Name
-responseBodyViewport r =
+responseDetails :: Response -> Widget Name
+responseDetails r =
   let u :: T.Text = r ^. url . coerced
       sentBody :: T.Text = r ^. requestBody . coerced
       keyValues :: Seq KeyValue = fmap (view keyValueIso) (r ^. headers)
@@ -67,15 +54,3 @@ responseBodyViewport r =
               (readOnlyJson (r ^. body . coerced), True),
               (centerSection "End", True)
             ]
-
--- The body text plus an optional message at the top
-responseDetails :: Response -> Bool -> Widget Name
-responseDetails r focused =
-  if focused
-    then
-      let explanation =
-            explanationWithAttr
-              explanationAttr
-              "Response body focused -- use the arrow keys to scroll, or TAB to switch focus"
-       in explanation <=> responseBodyViewport r
-    else responseBodyViewport r

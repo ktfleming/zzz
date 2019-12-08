@@ -83,3 +83,7 @@ statusCode500Attr = attrName "statusCode500"
 -- Messages
 timestampAttr :: AttrName
 timestampAttr = attrName "timestamp"
+
+-- "Focused" border
+focusedBorderAttr :: AttrName
+focusedBorderAttr = attrName "focusedBorder"
