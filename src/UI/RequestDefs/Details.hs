@@ -36,8 +36,9 @@ import Control.Monad.Indexed.State
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as Map
 import Data.Sequence (Seq)
-import qualified Data.Sequence as S
+import qualified Data.Sequence as Seq
 import Data.String (fromString)
+import qualified Data.Text as T
 import Language.Haskell.DoNotation
 import Types.AppState
 import Types.Brick.Name (Name (..))
@@ -56,6 +57,7 @@ import Types.Models.Screen.Optics (listLens)
 import UI.Attr
 import UI.FocusRing (AppFocusRing (..))
 import UI.Forms.KeyValueList (readOnlyKeyValues)
+import UI.Json (readOnlyJson)
 import UI.List
   ( AppList (..),
     renderGenericList,
@@ -89,9 +91,6 @@ refreshResponseList = do
       ekey = currentEnvironmentKey s
   imodify $ screen . listLens .~ makeResponseList (lookupResponses s c ekey)
 
--- focusedBorderStyle :: BorderStyle
--- focusedBorderStyle = borderStyleFromChar '█'
-
 -- Surround the provided widget with a border if it's focused, or just
 -- pad every side by 1 if not (to ensure it's the same size whether focused or not)
 borderOrPad :: Bool -> Widget Name -> Widget Name
@@ -108,8 +107,15 @@ topWidget s c@(RequestDefContext _ rid) focused =
           <+> padLeft
             (Pad 1)
             (colorizedUrl (currentVariables s) (r ^. url))
-      keyValues :: Seq KeyValue = (^. keyValueIso) <$> S.filter isEnabled (r ^. headers)
-      headersWidget = txt "Headers: " <+> readOnlyKeyValues keyValues
+      keyValues :: Seq KeyValue = (^. keyValueIso) <$> Seq.filter isEnabled (r ^. headers)
+      headersWidget =
+        if Seq.null keyValues
+          then emptyWidget
+          else txt "Headers: " <+> readOnlyKeyValues keyValues
+      bodyWidget =
+        if T.null (r ^. body . coerced)
+          then emptyWidget
+          else txt "Body:    " <+> (readOnlyJson $ r ^. body . coerced)
       explanation = case (hasActiveRequest, focused) of
         (True, _) ->
           [ explanationWithAttr
@@ -117,7 +123,7 @@ topWidget s c@(RequestDefContext _ rid) focused =
               "Currently sending request -- press x to cancel."
           ]
         _ -> []
-      mainBox = vBox $ explanation <> [titleWidget, headersWidget]
+      mainBox = vBox $ explanation <> [titleWidget, headersWidget, bodyWidget]
    in borderOrPad focused $ padLeft (Pad 2) $ mainBox
 
 errorWidget :: Maybe RequestError -> Widget Name

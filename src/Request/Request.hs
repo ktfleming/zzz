@@ -72,7 +72,7 @@ import Types.Monads
     iliftIO,
   )
 import Utils.IfThenElse (ifThenElse)
-import Utils.Text (substitute)
+import Utils.Text
 import Prelude hiding
   ( Monad (..),
     pure,
@@ -108,21 +108,21 @@ sendRequest c@(RequestDefContext _ rid) chan = do
   let r :: RequestDef = model s c
       e :: Maybe Environment = model s <$> s ^. environmentContext
       vars :: [Variable] = maybe [] (toList . view variables) e
-      u :: Url = coerce $ substitute vars (r ^. url . coerced)
+      finalUrl :: Url = substitute vars (r ^. url)
       errorHandler er = do
         imodify $ screen . lastError ?~ er
         (logMessage . errorDescription) er
   now <- iliftIO getCurrentTime
-  logMessage $ "Preparing to send request to URL " <> coerce u
+  logMessage $ "Preparing to send request to URL " <> coerce finalUrl
   -- Doing this kind of error handling instead of trying to use ExceptT / MonadError at least for now,
   -- since the two validations are independent so it's only one level of indentation. Could
   -- revisit this at some point.
-  case (validateVariables s r, (Req.parseUrl . encodeUtf8 . coerce) u) of
+  case (validateVariables s r, (Req.parseUrl . encodeUtf8 . coerce) finalUrl) of
     (Left er, _) -> errorHandler er
     (_, Nothing) -> errorHandler $ RequestFailed now "Error parsing URL"
     (Right _, Just validatedUrl) -> do
       let asyncRequest :: IO (Async ()) =
-            async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r u chan now
+            async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r finalUrl chan now vars
       asyncResult <- iliftIO $ AppAsync <$> asyncRequest
       imodify $ activeRequests . at rid ?~ asyncResult
 
@@ -130,18 +130,18 @@ sendRequest c@(RequestDefContext _ rid) chan = do
 -- event into Brick's BChan depending on whether it was a success or failure.
 -- Should be run on a background thread.
 backgroundSend ::
-  AnyReq -> RequestDefContext -> RequestDef -> Url -> BChan CustomEvent -> UTCTime -> IO ()
-backgroundSend anyReq c r u chan startTime =
-  runExceptT (constructResponse anyReq r u startTime) >>= \case
+  AnyReq -> RequestDefContext -> RequestDef -> Url -> BChan CustomEvent -> UTCTime -> [Variable] -> IO ()
+backgroundSend anyReq c r u chan startTime vars =
+  runExceptT (constructResponse anyReq r u startTime vars) >>= \case
     Left e -> writeBChan chan (ResponseError c e)
     Right response -> writeBChan chan (ResponseSuccess c response)
 
 -- Tries sending the request and constructs the resulting Response model if it was successful.
 -- If an HttpException is encountered, will return an error string in ExceptT's error channel.
 -- Should be run on a background thread.
-constructResponse :: AnyReq -> RequestDef -> Url -> UTCTime -> ExceptT String IO Response
-constructResponse anyReq r u startTime = do
-  bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r)
+constructResponse :: AnyReq -> RequestDef -> Url -> UTCTime -> [Variable] -> ExceptT String IO Response
+constructResponse anyReq r u startTime vars = do
+  bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r vars)
   now <- lift getCurrentTime :: ExceptT String IO UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
       response = Response
@@ -150,22 +150,22 @@ constructResponse anyReq r u startTime = do
           responseDateTime = now,
           responseMethod = r ^. method,
           responseUrl = u,
-          responseHeaders = S.filter isEnabled $ r ^. headers,
-          responseRequestBody = r ^. body,
+          responseHeaders = fmap (substituteHeader vars) $ S.filter isEnabled $ r ^. headers,
+          responseRequestBody = substitute vars $ r ^. body,
           responseElapsedTime = diffUTCTime now startTime
         }
   return response
 
 -- This performs the actual request via the req library's `runReq`. Should be run on a background thread.
-doHttpRequest :: AnyReq -> RequestDef -> IO Req.BsResponse
-doHttpRequest (AnyReq u opts) r =
+doHttpRequest :: AnyReq -> RequestDef -> [Variable] -> IO Req.BsResponse
+doHttpRequest (AnyReq u opts) r vars =
   let headerToOpt :: Header -> Req.Option scheme
       headerToOpt h =
-        Req.header (encodeUtf8 $ h ^. name . coerced) (encodeUtf8 $ h ^. value . coerced)
+        Req.header ((encodeUtf8 . substitute vars) $ h ^. name . coerced) ((encodeUtf8 . substitute vars) $ h ^. value . coerced)
       headerOpts :: Req.Option scheme
       headerOpts = (mconcat . toList) (headerToOpt <$> S.filter isEnabled (r ^. headers))
       allOpts = opts <> headerOpts
-      reqBody = Req.ReqBodyBs $ cs (r ^. body . coerced :: T.Text)
+      reqBody = Req.ReqBodyBs $ cs (substitute vars (r ^. body . coerced) :: T.Text)
    in Req.runReq httpConfig $ case r ^. method of
         Get -> Req.req Req.GET u Req.NoReqBody Req.bsResponse allOpts
         Post -> Req.req Req.POST u reqBody Req.bsResponse allOpts

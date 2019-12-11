@@ -14,6 +14,7 @@ import Control.Lens
     coerced,
   )
 import Control.Lens.TH
+import Control.Monad (join)
 import Data.Aeson
   ( (.:),
     (.=),
@@ -25,6 +26,7 @@ import Data.Aeson
     withObject,
   )
 import Data.Coerce (coerce)
+import Data.Foldable (toList)
 import Data.Maybe (catMaybes)
 import Data.Sequence (Seq)
 import qualified Data.Text as T
@@ -101,14 +103,15 @@ allVariables r =
       transformPart (TextPart _) = Nothing
       -- This plus `transformPart` is like Scala's `collect`, i.e. keep the VariableNames and
       -- discard the other parts
-      getVariables :: TemplatedUrl -> [VariableName]
-      getVariables (TemplatedUrl ps) = catMaybes $ transformPart <$> ps
-      urlVariables =
-        either
-          (const [])
-          getVariables
-          (runParser parseTemplatedUrl "Templated URL" (r ^. url . coerced))
-   in urlVariables
+      collectVariables :: TemplatedUrl -> [VariableName]
+      collectVariables (TemplatedUrl ps) = catMaybes $ transformPart <$> ps
+      -- Run the parser on the URL, headers, and body to extract variables that are used inside it
+      extractVariables :: T.Text -> [VariableName]
+      extractVariables t = either (const []) collectVariables (runParser parseTemplatedUrl "Templated text" t)
+      urlVariables = extractVariables $ r ^. url . coerced
+      bodyVariables = extractVariables $ r ^. body . coerced
+      headerVariables = (toList (r ^. headers)) >>= (\(Header n v) -> join [extractVariables (coerce n), extractVariables (coerce v)])
+   in join $ [urlVariables, bodyVariables, headerVariables]
 
 instance Displayable RequestDefListItem where
   display (RequestDefListItem _ n) = txt $ coerce n

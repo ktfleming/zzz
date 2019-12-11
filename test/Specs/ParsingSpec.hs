@@ -30,17 +30,14 @@ parsingSpec = do
     matchSearchText "one two three" "three two one" `shouldBe` False
   describe "substitute" $ it "should subsitute correctly" $ do
     let vars =
-          [ Variable
-              { variableName = VariableName "host",
-                variableValue = VariableValue "http://www.example.com"
-              },
-            Variable {variableName = VariableName "port", variableValue = VariableValue "8080"}
+          [ Variable (VariableName "host") (VariableValue "http://www.example.com"),
+            Variable (VariableName "port") (VariableValue "8080")
           ]
-    substitute vars "{{host}}:{{port}}/test" `shouldBe` "http://www.example.com:8080/test"
-    substitute vars "{{port}}{{port}}" `shouldBe` "80808080"
-    substitute vars "no_vars" `shouldBe` "no_vars"
-    substitute vars "{port}" `shouldBe` "{port}"
-    substitute vars "{{{port}}}" `shouldBe` "{8080}"
+    substitute vars "{{host}}:{{port}}/test" `shouldBe` ("http://www.example.com:8080/test" :: T.Text)
+    substitute vars "{{port}}{{port}}" `shouldBe` ("80808080" :: T.Text)
+    substitute vars "no_vars" `shouldBe` ("no_vars" :: T.Text)
+    substitute vars "{port}" `shouldBe` ("{port}" :: T.Text)
+    substitute vars "{{{port}}}" `shouldBe` ("{8080}" :: T.Text)
   describe "TemplatedUrlParser" $ it "should parse correctly" $ do
     let go :: T.Text -> [TemplatedUrlPart] -> Expectation
         go t parts = parse parseTemplatedUrl "" t `shouldBe` Right (TemplatedUrl parts)
