@@ -246,7 +246,7 @@ genAppState tag = do
   stashedScreen <-
     Gen.frequency
       [ (1, Gen.constant Nothing),
-        (3, genScreenTag >>= \stashedTag -> Just <$> genScreen stashedTag projects env envs Nothing responses)
+        (6, genScreenTag >>= \stashedTag -> Just <$> genScreen stashedTag projects env envs Nothing responses)
       ]
   AnyScreen stag scr <- genScreen tag projects env envs stashedScreen responses
   return $ AnyAppState
