@@ -32,10 +32,10 @@ import Data.Sequence (Seq)
 import qualified Data.Text as T
 import Data.Time (UTCTime)
 import Data.Time.ISO8601 (formatISO8601)
-import Parsing.TemplatedUrlParser
-  ( TemplatedUrl (..),
-    TemplatedUrlPart (..),
-    parseTemplatedUrl,
+import Parsing.TemplatedTextParser
+  ( TemplatedText (..),
+    TemplatedTextPart (..),
+    parseTemplatedText,
   )
 import Text.Megaparsec (runParser)
 import Types.Classes.Displayable
@@ -98,16 +98,16 @@ makeFields ''RequestDefFormState
 -- headers, body, etc.
 allVariables :: RequestDef -> [VariableName]
 allVariables r =
-  let transformPart :: TemplatedUrlPart -> Maybe VariableName
+  let transformPart :: TemplatedTextPart -> Maybe VariableName
       transformPart (TemplateVariable n) = Just (VariableName n)
       transformPart (TextPart _) = Nothing
       -- This plus `transformPart` is like Scala's `collect`, i.e. keep the VariableNames and
       -- discard the other parts
-      collectVariables :: TemplatedUrl -> [VariableName]
-      collectVariables (TemplatedUrl ps) = catMaybes $ transformPart <$> ps
+      collectVariables :: TemplatedText -> [VariableName]
+      collectVariables (TemplatedText ps) = catMaybes $ transformPart <$> ps
       -- Run the parser on the URL, headers, and body to extract variables that are used inside it
       extractVariables :: T.Text -> [VariableName]
-      extractVariables t = either (const []) collectVariables (runParser parseTemplatedUrl "Templated text" t)
+      extractVariables t = either (const []) collectVariables (runParser parseTemplatedText "Templated text" t)
       urlVariables = extractVariables $ r ^. url . coerced
       bodyVariables = extractVariables $ r ^. body . coerced
       headerVariables = (toList (r ^. headers)) >>= (\(Header n v) -> join [extractVariables (coerce n), extractVariables (coerce v)])

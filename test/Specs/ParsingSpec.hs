@@ -3,7 +3,7 @@
 module Specs.ParsingSpec where
 
 import qualified Data.Text as T
-import Parsing.TemplatedUrlParser
+import Parsing.TemplatedTextParser
 import Test.Hspec
 import Text.Megaparsec (parse)
 import Types.Models.Environment
@@ -38,9 +38,9 @@ parsingSpec = do
     substitute vars "no_vars" `shouldBe` ("no_vars" :: T.Text)
     substitute vars "{port}" `shouldBe` ("{port}" :: T.Text)
     substitute vars "{{{port}}}" `shouldBe` ("{8080}" :: T.Text)
-  describe "TemplatedUrlParser" $ it "should parse correctly" $ do
-    let go :: T.Text -> [TemplatedUrlPart] -> Expectation
-        go t parts = parse parseTemplatedUrl "" t `shouldBe` Right (TemplatedUrl parts)
+  describe "TemplatedTextParser" $ it "should parse correctly" $ do
+    let go :: T.Text -> [TemplatedTextPart] -> Expectation
+        go t parts = parse parseTemplatedText "" t `shouldBe` Right (TemplatedText parts)
     go "just a string" [TextPart "just a string"]
     go "{{variable}}" [TemplateVariable "variable"]
     go "text1{{var}}text2" [TextPart "text1", TemplateVariable "var", TextPart "text2"]

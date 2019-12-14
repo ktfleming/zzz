@@ -1,9 +1,9 @@
 {-# LANGUAGE OverloadedStrings #-}
 
-module Parsing.TemplatedUrlParser
-  ( TemplatedUrlPart (..),
-    TemplatedUrl (..),
-    parseTemplatedUrl,
+module Parsing.TemplatedTextParser
+  ( TemplatedTextPart (..),
+    TemplatedText (..),
+    parseTemplatedText,
   )
 where
 
@@ -28,19 +28,19 @@ import Text.Megaparsec.Char
     string,
   )
 
-data TemplatedUrlPart
+data TemplatedTextPart
   = TemplateVariable T.Text -- {{variable}}
   | TextPart T.Text -- everything else
   deriving (Show, Eq)
 
-type TemplatedUrlParser = Parsec Void T.Text
+type TemplatedTextParser = Parsec Void T.Text
 
-newtype TemplatedUrl = TemplatedUrl [TemplatedUrlPart] deriving (Show, Eq)
+newtype TemplatedText = TemplatedText [TemplatedTextPart] deriving (Show, Eq)
 
-parseTemplatedUrl :: TemplatedUrlParser TemplatedUrl
-parseTemplatedUrl = TemplatedUrl <$> many (try parseTemplateVariable <|> try parseTextPart) <* eof
+parseTemplatedText :: TemplatedTextParser TemplatedText
+parseTemplatedText = TemplatedText <$> many (try parseTemplateVariable <|> try parseTextPart) <* eof
 
-parseTemplateVariable :: TemplatedUrlParser TemplatedUrlPart
+parseTemplateVariable :: TemplatedTextParser TemplatedTextPart
 parseTemplateVariable =
   TemplateVariable . T.pack
     <$> between
@@ -48,5 +48,5 @@ parseTemplateVariable =
       (string "}}")
       (some (alphaNumChar <|> char '_'))
 
-parseTextPart :: TemplatedUrlParser TemplatedUrlPart
+parseTextPart :: TemplatedTextParser TemplatedTextPart
 parseTextPart = TextPart . T.pack <$> someTill anySingle (lookAhead (string "{{" $> ()) <|> eof)
