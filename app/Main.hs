@@ -5,6 +5,7 @@ module Main where
 
 import Brick (customMain)
 import Brick.BChan (newBChan)
+import Control.Arrow (left)
 import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except
@@ -29,10 +30,14 @@ import UI.Projects.List (makeProjectList)
 import Prelude hiding (readFile)
 
 getAppStateFromFile :: ExceptT String IO (AppState 'HelpTag)
-getAppStateFromFile = ExceptT $ eitherDecode <$> readFile mainSettingsFile
+getAppStateFromFile =
+  ExceptT $
+    left ("Error parsing zzz.json:\n\t" <>) . eitherDecode <$> readFile mainSettingsFile
 
 getResponsesFromFile :: ExceptT String IO Responses
-getResponsesFromFile = ExceptT $ eitherDecode <$> readFile responseHistoryFile
+getResponsesFromFile =
+  ExceptT $
+    left ("Error parsing responses.json:\n\t" <>) . eitherDecode <$> readFile responseHistoryFile
 
 main :: IO ()
 main = do
@@ -64,5 +69,5 @@ main = do
         (uiApp eventChannel)
         (AnyAppState SProjectListTag updatedState)
   case runOrError of
-    Left e -> putStrLn $ "Encountered error reading saved settings:\n" ++ e
+    Left e -> putStrLn e
     Right _ -> putStrLn "Done!"
