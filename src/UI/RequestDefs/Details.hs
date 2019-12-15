@@ -129,29 +129,30 @@ topWidget s c@(RequestDefContext _ rid) focused =
 errorWidget :: Maybe RequestError -> Widget Name
 errorWidget = maybe emptyWidget (padBottom (Pad 1) . withAttr errorAttr . hCenter . txtWrap . errorDescription)
 
-responseHistoryWidget :: AppList ResponseWithCurrentTime -> Bool -> Widget Name
-responseHistoryWidget appList@(AppList innerList) focused =
+responseHistoryWidget :: AppList ResponseWithCurrentTime -> Bool -> Bool -> Widget Name
+responseHistoryWidget appList@(AppList innerList) focused showSelection =
   let elems = listElements innerList
    in if null elems
         then emptyWidget
         else
           borderOrPad focused . vBox $
             [ (padLeft (Pad 2) $ txtWrap "Response history:"),
-              (vLimit (min 10 (length elems)) (renderGenericList focused appList))
+              (vLimit (min 10 (length elems)) (renderGenericList focused showSelection appList))
             ]
 
 requestDefDetailsWidget :: AppState 'RequestDefDetailsTag -> Widget Name
 requestDefDetailsWidget s =
   let (RequestDefDetailsScreen c (AppList zl) (AppFocusRing ring) maybeError) = s ^. screen
       focused = focusGetCurrent ring
-      bodyWidget = case listSelectedElement zl of
-        Just (_, r) -> borderOrPad (focused == Just ResponseBodyDetails) $ responseDetails r
-        Nothing -> txtWrap "No response selected."
+      showResponse = focused == Just ResponseBodyDetails || focused == Just ResponseList
+      bodyWidget = case (showResponse, listSelectedElement zl) of
+        (True, Just (_, r)) -> borderOrPad (focused == Just ResponseBodyDetails) $ responseDetails r
+        _ -> emptyWidget
       listWithTime :: AppList ResponseWithCurrentTime
       listWithTime = coerce $ ResponseWithCurrentTime (s ^. currentTime) <$> zl
    in overrideAttr borderAttr focusedBorderAttr $ vBox $
         [ topWidget s c (focused == Just RequestDetails),
           errorWidget maybeError,
-          responseHistoryWidget listWithTime (focused == Just ResponseList),
+          responseHistoryWidget listWithTime (focused == Just ResponseList) (focused /= Just RequestDetails),
           bodyWidget
         ]

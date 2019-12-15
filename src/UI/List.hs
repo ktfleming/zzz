@@ -26,9 +26,9 @@ newtype AppList a = AppList (GenericList Name Seq a) deriving (Show, Functor)
 instance Eq a => Eq (AppList a) where
   AppList list1 == AppList list2 = listElements list1 == listElements list2
 
-renderGenericList :: Displayable x => Bool -> AppList x -> Widget Name
-renderGenericList focused (AppList list) = renderList f focused list
+renderGenericList :: Displayable x => Bool -> Bool -> AppList x -> Widget Name
+renderGenericList focused showSelection (AppList list) = renderList f focused list
   where
     f selected item =
       let mainLine = padRight Max $ display item
-       in (if selected then txt "❯ " <+> mainLine else padLeft (Pad 2) mainLine)
+       in (if selected && showSelection then txt "❯ " <+> mainLine else padLeft (Pad 2) mainLine)

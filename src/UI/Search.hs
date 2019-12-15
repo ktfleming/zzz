@@ -114,7 +114,7 @@ searchWidget (ZZZEditor edt) results =
         if null (getEditContents edt)
           then withAttr searchPlaceholderAttr $ txt "Enter text to start searching."
           else renderEditor renderText False edt
-      allWidgets = fieldWidget <=> renderGenericList True results
+      allWidgets = fieldWidget <=> renderGenericList True True results
    in Widget Fixed Fixed $ render allWidgets
 
 -- Sort a sequence of named ID/model pairs by the model names

@@ -42,7 +42,7 @@ padForm :: Widget Name -> Widget Name
 padForm = padTop (Pad 1) . padLeft (Pad 2)
 
 listWithExplanation :: Displayable a => AppList a -> T.Text -> Widget Name
-listWithExplanation list e = txtWrap e <=> padTop (Pad 1) (renderGenericList True list)
+listWithExplanation list e = txtWrap e <=> padTop (Pad 1) (renderGenericList True True list)
 
 mainWidget :: AnyAppState -> Widget Name
 mainWidget (AnyAppState _ s) = case s ^. screen of
