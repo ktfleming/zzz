@@ -5,23 +5,14 @@
 module UI.Form where
 
 import Brick
-  ( Padding (Pad),
-    Widget,
-    padBottom,
-    txt,
-    vBox,
-  )
 import Brick.Forms
-  ( Form,
-    FormFieldState,
-    editField,
-    formState,
-  )
+import Brick.Widgets.Center (hCenter)
 import Control.Lens (Lens')
 import qualified Data.Text as T
 import Safe (headMay)
 import Types.Brick.CustomEvent
 import Types.Brick.Name
+import UI.Attr
 
 newtype AppForm a = AppForm (Form a CustomEvent Name)
 
@@ -56,3 +47,11 @@ nonEmptyTextField lens name s =
         renderText
         id
         s
+
+renderAppForm :: Form s e Name -> Widget Name
+renderAppForm form =
+  let errorMessage =
+        if allFieldsValid form
+          then emptyWidget
+          else padBottom (Pad 1) $withAttr errorAttr $ hCenter $ txt "The form contains invalid fields."
+   in errorMessage <=> renderForm form
