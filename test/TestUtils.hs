@@ -24,7 +24,7 @@ import Types.Models.Project (Project, requestDefs)
 import Types.Models.RequestDef
 import Types.Models.Screen (ScreenTag (..))
 import Types.Models.Screen.Optics
-import UI.Events.Handler (handleEventInState)
+import UI.Events.Handler (handleEvent)
 import UI.List (AppList (..))
 
 -- Shortcut to make tests less verbose
@@ -42,7 +42,7 @@ getNextState s = getNextState' (AnyAppState sing s)
 -- Same as getNextState but accepts AnyAppState to start with
 getNextState' :: MonadIO m => AnyAppState -> Key -> [Modifier] -> m AnyAppState
 getNextState' s key mods =
-  let testM = liftIO (newBChan 5) >>= \chan -> handleEventInState chan s (VtyEvent (EvKey key mods))
+  let testM = liftIO (newBChan 5) >>= \chan -> handleEvent chan s (VtyEvent (EvKey key mods))
    in liftIO $ runTestM testM
 
 -- Given a key (and modifiers) to press, an expected ScreenTag, and an initial AppState,

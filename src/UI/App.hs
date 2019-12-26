@@ -27,7 +27,7 @@ import Types.Monads
   )
 import UI.Attr
 import UI.Events.Handler
-  ( handleEventInState,
+  ( handleEvent,
     updateCurrentTime,
   )
 import UI.HelpPanel (helpPanel)
@@ -39,7 +39,7 @@ uiApp :: BChan CustomEvent -> App AnyAppState CustomEvent Name
 uiApp chan = App
   { appDraw = drawUI,
     appChooseCursor = showFirstCursor,
-    appHandleEvent = handleEvent chan,
+    appHandleEvent = brickHandleEvent chan,
     appStartEvent = startEvent,
     appAttrMap = const myMap
   }
@@ -60,17 +60,17 @@ startEvent = pure
 -- This is the function that's provided to Brick's `App` and must have this exact signature
 -- (note AnyAppState instead of AppState; since the input and output state must have the same type,
 -- we can't use AppState which is parameterized by a ScreenTag)
-handleEvent ::
+brickHandleEvent ::
   BChan CustomEvent ->
   AnyAppState ->
   BrickEvent Name CustomEvent ->
   EventM Name (Next AnyAppState)
 -- Ctrl-C always exits immediately
-handleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
+brickHandleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
 -- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
 -- with every event.
-handleEvent chan s ev =
-  runAppM (handleEventInState chan s ev >>= updateCurrentTime) >>= continue
+brickHandleEvent chan s ev =
+  runAppM (handleEvent chan s ev >>= updateCurrentTime) >>= continue
 
 myMap :: AttrMap
 myMap =
@@ -101,6 +101,5 @@ myMap =
       (statusCode300Attr, fg V.yellow),
       (statusCode400Attr, fg V.red),
       (statusCode500Attr, fg V.red),
-      (timestampAttr, fg V.green),
       (focusedBorderAttr, fg V.yellow)
     ]

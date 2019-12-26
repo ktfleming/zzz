@@ -4,7 +4,7 @@
 
 module UI.Events.Handler
   ( updateCurrentTime,
-    handleEventInState,
+    handleEvent,
   )
 where
 
@@ -103,23 +103,22 @@ saveState s = do
   pure s
 
 -- This function does the actual event handling, inside the AppM monad
--- TODO: rename
-handleEventInState ::
+handleEvent ::
   MonadEvent m =>
   BChan CustomEvent ->
   AnyAppState ->
   BrickEvent Name CustomEvent ->
   m AnyAppState
-handleEventInState _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
-handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
+handleEvent _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
+handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
   pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
 -- Have to stash the screen before giving the user the chance to select an Environment (either via the
 -- global search or the environment list screen) since that necessitates a screen unstash.
-handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'f') [MCtrl])) =
+handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'f') [MCtrl])) =
   pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
-handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
+handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
   pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
-handleEventInState chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
+handleEvent chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
   case (s ^. modal, key) of
     (Just _, KChar 'n') -> pure . dismissModal $ outer
     (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
@@ -137,4 +136,4 @@ handleEventInState chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
       EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
       SearchScreen {} -> handleEventSearch key mods chan s
       HelpScreen -> pure outer
-handleEventInState _ s _ = pure s
+handleEvent _ s _ = pure s
