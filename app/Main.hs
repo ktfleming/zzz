@@ -49,7 +49,7 @@ main = do
             & responses
             .~ rs
             & currentTime
-            ?~ time
+            .~ time
     eventChannel <- liftIO $ newBChan 5
     let buildVty = mkVty defaultConfig
     initialVty <- liftIO buildVty

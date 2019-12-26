@@ -12,7 +12,7 @@ import Data.Maybe (fromMaybe, isNothing)
 import qualified Data.Sequence as Seq
 import Data.Sequence (Seq)
 import Data.Singletons (sing)
-import Data.Time (NominalDiffTime, UTCTime (..), fromGregorian, secondsToDiffTime)
+import Data.Time
 import Data.UUID (UUID)
 import Data.UUID.V4 (nextRandom)
 import GHC.IO (unsafePerformIO)
@@ -261,7 +261,7 @@ genAppState tag = do
         _appStateHelpPanelVisible = HelpPanelVisible False,
         _appStateActiveRequests = Map.empty,
         _appStateStashedScreen = stashedScreen,
-        _appStateCurrentTime = Nothing
+        _appStateCurrentTime = UTCTime (ModifiedJulianDay 0) 0
       }
 
 genKeyWithMods :: Gen (Key, [Modifier])

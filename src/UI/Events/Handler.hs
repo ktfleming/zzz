@@ -56,7 +56,7 @@ import Prelude hiding (writeFile)
 updateCurrentTime :: MonadIO m => AnyAppState -> m AnyAppState
 updateCurrentTime s = do
   time <- liftIO getCurrentTime
-  pure $ s & currentTime ?~ time
+  pure $ s & currentTime .~ time
 
 handleCustomEvent :: MonadIO m => CustomEvent -> AppState a -> m (AppState a)
 handleCustomEvent Save s = saveState s

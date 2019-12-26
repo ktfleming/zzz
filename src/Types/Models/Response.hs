@@ -109,16 +109,12 @@ instance Displayable StatusCode where
       w = str $ showInt code ""
 
 -- When displaying the response history list, we also need to have the current time
--- in order to calculate the relative time ("X days ago", etc). This is retrieved from
--- the AppState, and is a Maybe because it's also a Maybe in AppState (since it's initialized
--- as Nothing when the app is started, see `emptyAppState`).
-data ResponseWithCurrentTime = ResponseWithCurrentTime (Maybe UTCTime) Response
+-- in order to calculate the relative time ("X days ago", etc).
+data ResponseWithCurrentTime = ResponseWithCurrentTime UTCTime Response
 
 instance Displayable ResponseWithCurrentTime where
-  display (ResponseWithCurrentTime maybeTime r) =
+  display (ResponseWithCurrentTime time r) =
     let sc = display (r ^. statusCode)
-        relativeTime = case maybeTime of
-          Just t -> " (" <> humanReadableTime' t (r ^. dateTime) <> ")"
-          Nothing -> ""
+        relativeTime = " (" <> humanReadableTime' time (r ^. dateTime) <> ")"
         timestamp = txt $ T.pack $ formatISO8601 (r ^. dateTime) <> relativeTime
      in sc <+> padLeft (Pad 1) timestamp

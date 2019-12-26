@@ -46,7 +46,7 @@ import Data.Singletons.Decide
   ( (%~),
     Decision (..),
   )
-import Data.Time (UTCTime)
+import Data.Time
 import Data.Type.Equality
 import GHC.Generics
 import Types.Classes.Fields
@@ -86,7 +86,7 @@ data AppState (a :: ScreenTag)
         _appStateHelpPanelVisible :: HelpPanelVisible,
         _appStateActiveRequests :: HashMap RequestDefId AppAsync,
         _appStateStashedScreen :: Maybe AnyScreen,
-        _appStateCurrentTime :: Maybe UTCTime
+        _appStateCurrentTime :: UTCTime
       }
   deriving (Eq, Show)
 
@@ -111,7 +111,7 @@ emptyAppState = AppState
     _appStateHelpPanelVisible = HelpPanelVisible False,
     _appStateActiveRequests = Map.empty,
     _appStateStashedScreen = Nothing,
-    _appStateCurrentTime = Nothing
+    _appStateCurrentTime = UTCTime (ModifiedJulianDay 0) 0 -- Will be immediately overwritten on app startup
   }
 
 data AnyAppState where
@@ -131,7 +131,7 @@ instance Eq AnyAppState where
 -- due to the existential appearing in positive position (at least I think that's why)
 -- so we have to jump over the `AppState a` for each individual lens.
 
-instance HasCurrentTime AnyAppState (Maybe UTCTime) where
+instance HasCurrentTime AnyAppState (UTCTime) where
   currentTime = lens getter setter
     where
       getter (AnyAppState _ s) = s ^. currentTime
