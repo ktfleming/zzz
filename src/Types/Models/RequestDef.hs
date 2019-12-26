@@ -1,8 +1,6 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -40,7 +38,6 @@ import Parsing.TemplatedTextParser
 import Text.Megaparsec (runParser)
 import Types.Classes.Displayable
 import Types.Classes.Fields
-import Types.Forms (FormMode)
 import Types.Methods (Method)
 import Types.Models.Environment (VariableName (..))
 import Types.Models.Header
@@ -76,7 +73,7 @@ data RequestDef
       }
   deriving (Show, Eq)
 
-data RequestDefFormState (a :: FormMode)
+data RequestDefFormState
   = RequestDefFormState
       { requestDefFormStateName :: RequestDefName,
         requestDefFormStateUrl :: Url,
@@ -110,8 +107,8 @@ allVariables r =
       extractVariables t = either (const []) collectVariables (runParser parseTemplatedText "Templated text" t)
       urlVariables = extractVariables $ r ^. url . coerced
       bodyVariables = extractVariables $ r ^. body . coerced
-      headerVariables = (toList (r ^. headers)) >>= (\(Header n v) -> join [extractVariables (coerce n), extractVariables (coerce v)])
-   in join $ [urlVariables, bodyVariables, headerVariables]
+      headerVariables = toList (r ^. headers) >>= (\(Header n v) -> join [extractVariables (coerce n), extractVariables (coerce v)])
+   in join [urlVariables, bodyVariables, headerVariables]
 
 instance Displayable RequestDefListItem where
   display (RequestDefListItem _ n) = txt $ coerce n

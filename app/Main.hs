@@ -1,4 +1,3 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Main where
@@ -9,7 +8,7 @@ import Control.Arrow (left)
 import Control.Lens
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Trans.Except
-import Data.Aeson (eitherDecode)
+import Data.Aeson (FromJSON, eitherDecode)
 import Data.ByteString.Lazy (readFile)
 import qualified Data.HashMap.Strict as Map
 import Data.Time (getCurrentTime)
@@ -29,23 +28,16 @@ import UI.App (uiApp)
 import UI.Projects.List (makeProjectList)
 import Prelude hiding (readFile)
 
-getAppStateFromFile :: ExceptT String IO (AppState 'HelpTag)
-getAppStateFromFile =
-  ExceptT $
-    left ("Error parsing zzz.json:\n\t" <>) . eitherDecode <$> readFile mainSettingsFile
-
-getResponsesFromFile :: ExceptT String IO Responses
-getResponsesFromFile =
-  ExceptT $
-    left ("Error parsing responses.json:\n\t" <>) . eitherDecode <$> readFile responseHistoryFile
+getDataFromFile :: FromJSON a => String -> ExceptT String IO a
+getDataFromFile file = ExceptT $ left (("Error parsing " <> file <> ":\n\t") <>) . eitherDecode <$> readFile file
 
 main :: IO ()
 main = do
   runOrError :: Either String AnyAppState <- runExceptT $ do
     mainFileExists <- liftIO $ doesFileExist mainSettingsFile
     responseFileExists <- liftIO $ doesFileExist responseHistoryFile
-    s <- if mainFileExists then getAppStateFromFile else liftIO $ return emptyAppState
-    rs <- if responseFileExists then getResponsesFromFile else liftIO $ return Map.empty
+    s <- if mainFileExists then getDataFromFile mainSettingsFile else liftIO $ pure emptyAppState
+    rs <- if responseFileExists then getDataFromFile responseHistoryFile else liftIO $ pure Map.empty
     time <- liftIO getCurrentTime
     -- The default AppState returned by the JSON deserializer starts at the HelpScreen
     -- (done that way to avoid cyclic dependencies), so update the active screen to

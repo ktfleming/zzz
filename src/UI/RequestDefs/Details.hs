@@ -1,10 +1,7 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TupleSections #-}
 
 module UI.RequestDefs.Details
   ( requestDefDetailsWidget,
@@ -27,19 +24,11 @@ import Brick.Widgets.List
     listSelectedElement,
   )
 import Control.Lens
-import Control.Monad.Indexed ((>>>=))
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-  )
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as Map
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
-import Data.String (fromString)
 import qualified Data.Text as T
-import Language.Haskell.DoNotation
 import Types.AppState
 import Types.Brick.Name (Name (..))
 import Types.Classes.Displayable (display)
@@ -53,7 +42,7 @@ import Types.Models.KeyValue
 import Types.Models.RequestDef
 import Types.Models.Response
 import Types.Models.Screen
-import Types.Models.Screen.Optics (listLens)
+import Types.Models.Screen.Optics (context, listLens)
 import UI.Attr
 import UI.FocusRing (AppFocusRing (..))
 import UI.Forms.KeyValueList (readOnlyKeyValues)
@@ -65,31 +54,23 @@ import UI.List
 import UI.Responses.Details (responseDetails)
 import UI.Text (explanationWithAttr)
 import UI.Url (colorizedUrl)
-import Utils.IfThenElse (ifThenElse)
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-  )
 
 makeResponseList :: Seq Response -> AppList Response
 makeResponseList rs = AppList $ list ResponseList rs 1
 
 showRequestDefDetails ::
-  IxMonadState m => RequestDefContext -> m (AppState a) (AppState 'RequestDefDetailsTag) ()
-showRequestDefDetails c = iget >>>= \s ->
+  RequestDefContext -> AppState a -> AppState 'RequestDefDetailsTag
+showRequestDefDetails c s =
   let ring = AppFocusRing $ focusRing [RequestDetails, ResponseList, ResponseBodyDetails]
       ekey = currentEnvironmentKey s
-   in imodify $
-        screen
-          .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing
+   in s & screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing
 
 refreshResponseList ::
-  IxMonadState m => m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
-refreshResponseList = do
-  s <- iget
-  let RequestDefDetailsScreen c _ _ _ = s ^. screen -- TODO: lens (or just getter) for the context inside a screen?
+  AppState 'RequestDefDetailsTag -> AppState 'RequestDefDetailsTag
+refreshResponseList s =
+  let c = s ^. screen ^. context
       ekey = currentEnvironmentKey s
-  imodify $ screen . listLens .~ makeResponseList (lookupResponses s c ekey)
+   in s & screen . listLens .~ makeResponseList (lookupResponses s c ekey)
 
 -- Surround the provided widget with a border if it's focused, or just
 -- pad every side by 1 if not (to ensure it's the same size whether focused or not)
@@ -115,7 +96,7 @@ topWidget s c@(RequestDefContext _ rid) focused =
       bodyWidget =
         if T.null (r ^. body . coerced)
           then emptyWidget
-          else txt "Body:    " <+> (readOnlyJson $ r ^. body . coerced)
+          else txt "Body:    " <+> readOnlyJson (r ^. body . coerced)
       explanation = case (hasActiveRequest, focused) of
         (True, _) ->
           [ explanationWithAttr
@@ -124,7 +105,7 @@ topWidget s c@(RequestDefContext _ rid) focused =
           ]
         _ -> []
       mainBox = vBox $ explanation <> [titleWidget, headersWidget, bodyWidget]
-   in borderOrPad focused $ padLeft (Pad 2) $ mainBox
+   in borderOrPad focused $ padLeft (Pad 2) mainBox
 
 errorWidget :: Maybe RequestError -> Widget Name
 errorWidget = maybe emptyWidget (padBottom (Pad 1) . withAttr errorAttr . hCenter . txtWrap . errorDescription)
@@ -136,8 +117,8 @@ responseHistoryWidget appList@(AppList innerList) focused showSelection =
         then emptyWidget
         else
           borderOrPad focused . vBox $
-            [ (padLeft (Pad 2) $ txtWrap "Response history:"),
-              (vLimit (min 10 (length elems)) (renderGenericList focused showSelection appList))
+            [ padLeft (Pad 2) $ txtWrap "Response history:",
+              vLimit (min 10 (length elems)) (renderGenericList focused showSelection appList)
             ]
 
 requestDefDetailsWidget :: AppState 'RequestDefDetailsTag -> Widget Name
@@ -150,9 +131,10 @@ requestDefDetailsWidget s =
         _ -> emptyWidget
       listWithTime :: AppList ResponseWithCurrentTime
       listWithTime = coerce $ ResponseWithCurrentTime (s ^. currentTime) <$> zl
-   in overrideAttr borderAttr focusedBorderAttr $ vBox $
-        [ topWidget s c (focused == Just RequestDetails),
-          errorWidget maybeError,
-          responseHistoryWidget listWithTime (focused == Just ResponseList) (focused /= Just RequestDetails),
-          bodyWidget
-        ]
+   in overrideAttr borderAttr focusedBorderAttr $
+        vBox
+          [ topWidget s c (focused == Just RequestDetails),
+            errorWidget maybeError,
+            responseHistoryWidget listWithTime (focused == Just ResponseList) (focused /= Just RequestDetails),
+            bodyWidget
+          ]

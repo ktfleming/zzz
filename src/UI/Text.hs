@@ -3,15 +3,6 @@
 module UI.Text where
 
 import Brick
-  ( (<+>),
-    AttrName,
-    Padding (Pad),
-    Widget,
-    padBottom,
-    padTop,
-    txt,
-    withAttr,
-  )
 import Brick.Widgets.Center (hCenter)
 import qualified Data.Text as T
 import Types.Brick.Name (Name)

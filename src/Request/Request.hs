@@ -1,10 +1,6 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
 module Request.Request
@@ -24,18 +20,13 @@ import Control.Concurrent.Async
   )
 import Control.Error
 import Control.Lens
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-  )
+import Control.Monad.IO.Class
 import Control.Monad.Trans.Class (lift)
 import Data.Coerce (coerce)
 import Data.Foldable (toList)
 import Data.HashSet (HashSet)
 import qualified Data.HashSet as HashSet
-import qualified Data.Sequence as S
-import Data.String (fromString)
+import qualified Data.Sequence as Seq
 import Data.String.Conversions (cs)
 import qualified Data.Text as T
 import Data.Text.Encoding
@@ -47,7 +38,6 @@ import Data.Time
     getCurrentTime,
   )
 import Data.Time.Clock (UTCTime)
-import Language.Haskell.DoNotation
 import Messages.Messages (logMessage)
 import qualified Network.HTTP.Req as Req
 import Types.AppState
@@ -67,18 +57,8 @@ import Types.Models.Response
 import Types.Models.Screen
 import Types.Models.Screen.Optics (lastError)
 import Types.Models.Url (Url (..))
-import Types.Monads
-  ( IxMonadIO,
-    iliftIO,
-  )
-import Utils.IfThenElse (ifThenElse)
 import Utils.Text
-import Prelude hiding
-  ( Monad (..),
-    pure,
-  )
 
--- GADT to hide the scheme
 data AnyReq where
   AnyReq :: Req.Url scheme -> Req.Option scheme -> AnyReq
 
@@ -96,24 +76,21 @@ eitherReqToAnyReq (Right (u, opts)) = AnyReq u opts
 -- HTTP request on a background thread with `async`. This way we don't block Brick's event loop. The
 -- result of the request will be sent back into the event loop via a BChan so that the global AppState
 -- can be updated appropriately.
--- Since it's possible that the URL cannot be parsed (in case of manually editing the JSON file, etc),
--- this function adds an ExceptT to the top of the monad stack to deal with that case.
 sendRequest ::
-  (IxMonadState m, IxMonadIO m) =>
+  MonadIO m =>
   RequestDefContext ->
   BChan CustomEvent ->
-  m (AppState 'RequestDefDetailsTag) (AppState 'RequestDefDetailsTag) ()
-sendRequest c@(RequestDefContext _ rid) chan = do
-  s <- iget
+  AppState 'RequestDefDetailsTag ->
+  m (AppState 'RequestDefDetailsTag)
+sendRequest c@(RequestDefContext _ rid) chan s = do
   let r :: RequestDef = model s c
       e :: Maybe Environment = model s <$> s ^. environmentContext
       vars :: [Variable] = maybe [] (toList . view variables) e
       finalUrl :: Url = substitute vars (r ^. url)
-      errorHandler er = do
-        imodify $ screen . lastError ?~ er
-        (logMessage . errorDescription) er
-  now <- iliftIO getCurrentTime
-  logMessage $ "Preparing to send request to URL " <> coerce finalUrl
+      -- Handling an error means logging it and updating the `lastError` field on the Screen
+      errorHandler er =
+        logMessage (errorDescription er) . (screen . lastError ?~ er) $ s
+  now <- liftIO getCurrentTime
   -- Doing this kind of error handling instead of trying to use ExceptT / MonadError at least for now,
   -- since the two validations are independent so it's only one level of indentation. Could
   -- revisit this at some point.
@@ -123,8 +100,8 @@ sendRequest c@(RequestDefContext _ rid) chan = do
     (Right _, Just validatedUrl) -> do
       let asyncRequest :: IO (Async ()) =
             async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r finalUrl chan now vars
-      asyncResult <- iliftIO $ AppAsync <$> asyncRequest
-      imodify $ activeRequests . at rid ?~ asyncResult
+      asyncResult <- liftIO $ AppAsync <$> asyncRequest
+      pure $ s & activeRequests . at rid ?~ asyncResult
 
 -- Tries sending the request and constructing the Response model, then sends a custom
 -- event into Brick's BChan depending on whether it was a success or failure.
@@ -132,9 +109,9 @@ sendRequest c@(RequestDefContext _ rid) chan = do
 backgroundSend ::
   AnyReq -> RequestDefContext -> RequestDef -> Url -> BChan CustomEvent -> UTCTime -> [Variable] -> IO ()
 backgroundSend anyReq c r u chan startTime vars =
-  runExceptT (constructResponse anyReq r u startTime vars) >>= \case
-    Left e -> writeBChan chan (ResponseError c e)
-    Right response -> writeBChan chan (ResponseSuccess c response)
+  runExceptT (constructResponse anyReq r u startTime vars) >>= \result -> writeBChan chan $ case result of
+    Left e -> ResponseError c e
+    Right response -> ResponseSuccess c response
 
 -- Tries sending the request and constructs the resulting Response model if it was successful.
 -- If an HttpException is encountered, will return an error string in ExceptT's error channel.
@@ -144,26 +121,26 @@ constructResponse anyReq r u startTime vars = do
   bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r vars)
   now <- lift getCurrentTime :: ExceptT String IO UTCTime
   let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
-      response = Response
-        { responseBody = ResponseBody responseMsg,
-          responseStatusCode = StatusCode $ Req.responseStatusCode bsResponse,
-          responseDateTime = now,
-          responseMethod = r ^. method,
-          responseUrl = u,
-          responseHeaders = fmap (substituteHeader vars) $ S.filter isEnabled $ r ^. headers,
-          responseRequestBody = substitute vars $ r ^. body,
-          responseElapsedTime = diffUTCTime now startTime
-        }
-  return response
+  pure Response
+    { responseBody = ResponseBody responseMsg,
+      responseStatusCode = StatusCode $ Req.responseStatusCode bsResponse,
+      responseDateTime = now,
+      responseMethod = r ^. method,
+      responseUrl = u,
+      responseHeaders = fmap (substituteHeader vars) . Seq.filter isEnabled $ r ^. headers,
+      responseRequestBody = substitute vars (r ^. body),
+      responseElapsedTime = diffUTCTime now startTime
+    }
 
 -- This performs the actual request via the req library's `runReq`. Should be run on a background thread.
 doHttpRequest :: AnyReq -> RequestDef -> [Variable] -> IO Req.BsResponse
 doHttpRequest (AnyReq u opts) r vars =
   let headerToOpt :: Header -> Req.Option scheme
       headerToOpt h =
-        Req.header ((encodeUtf8 . substitute vars) $ h ^. name . coerced) ((encodeUtf8 . substitute vars) $ h ^. value . coerced)
+        let encodeAndSub = encodeUtf8 . substitute vars
+         in Req.header (encodeAndSub $ h ^. name . coerced) (encodeAndSub $ h ^. value . coerced)
       headerOpts :: Req.Option scheme
-      headerOpts = (mconcat . toList) (headerToOpt <$> S.filter isEnabled (r ^. headers))
+      headerOpts = (mconcat . toList) (headerToOpt <$> Seq.filter isEnabled (r ^. headers))
       allOpts = opts <> headerOpts
       reqBody = Req.ReqBodyBs $ cs (substitute vars (r ^. body . coerced) :: T.Text)
    in Req.runReq httpConfig $ case r ^. method of
@@ -174,13 +151,14 @@ doHttpRequest (AnyReq u opts) r vars =
         Delete -> Req.req Req.DELETE u Req.NoReqBody Req.bsResponse allOpts
 
 cancelRequest ::
-  (IxMonadState m, IxMonadIO m) =>
+  MonadIO m =>
   RequestDefContext ->
   Async () ->
-  m (AppState a) (AppState a) ()
-cancelRequest (RequestDefContext _ rid) target = do
-  imodify $ activeRequests . at rid .~ Nothing
-  iliftIO $ cancel target
+  AppState a ->
+  m (AppState a)
+cancelRequest (RequestDefContext _ rid) target s = do
+  liftIO $ cancel target
+  pure $ s & activeRequests . at rid .~ Nothing
 
 -- `Req`'s default config, but without throwing an exception on non-2xx status codes,
 -- since we want to keep those as normal Responses
@@ -193,7 +171,7 @@ validateVariables :: AppState 'RequestDefDetailsTag -> RequestDef -> Either Requ
 validateVariables s r =
   let varsInEnvironment :: HashSet VariableName =
         (HashSet.fromList . toList) $
-          maybe S.empty (\e -> view name <$> e ^. variables) (currentEnvironment s)
+          maybe Seq.empty (\e -> view name <$> e ^. variables) (currentEnvironment s)
       unmatchedVariables :: [VariableName] =
         filter (not . flip HashSet.member varsInEnvironment) (allVariables r)
    in if null unmatchedVariables then Right () else Left (UnmatchedVariables unmatchedVariables)

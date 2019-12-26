@@ -1,8 +1,6 @@
-{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-{-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
@@ -32,7 +30,6 @@ import Types.Classes.Displayable
     display,
   )
 import Types.Classes.Fields
-import Types.Forms (FormMode)
 import Types.Models.Id
   ( ProjectId,
     RequestDefId,
@@ -52,7 +49,7 @@ newtype ProjectContext = ProjectContext ProjectId deriving (Show, Eq)
 
 data ProjectListItem = ProjectListItem ProjectContext ProjectName deriving (Show, Eq)
 
-newtype ProjectFormState (a :: FormMode) = ProjectFormState {projectFormStateName :: ProjectName} deriving (Eq, Show)
+newtype ProjectFormState = ProjectFormState {projectFormStateName :: ProjectName} deriving (Eq, Show)
 
 makeFields ''Project
 

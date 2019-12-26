@@ -74,8 +74,8 @@ environmentNavTree =
             -- Selecting an environment should unstash the stashed screen, leaving nothing stashed
             newState ^. stashedScreen === Nothing
             selectedEnv <- case listSelectedElement list of
-              Just (_, NoEnvironment) -> return Nothing
-              Just (_, (AnEnvironment ec _)) -> return $ Just ec
+              Just (_, NoEnvironment) -> pure Nothing
+              Just (_, (AnEnvironment ec _)) -> pure $ Just ec
               Nothing -> failure -- there should always be an item selected in the list
 
             -- The environment that was selected should be reflected in the new state

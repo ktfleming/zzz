@@ -13,7 +13,7 @@ import Types.Classes.Fields
 import Types.Models.Project
 import UI.Form
 
-makeProjectForm :: ProjectFormState a -> AppForm (ProjectFormState a)
+makeProjectForm :: ProjectFormState -> AppForm ProjectFormState
 makeProjectForm fs =
   AppForm $ setFormConcat spacedConcat $
     newForm

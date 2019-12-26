@@ -8,8 +8,6 @@ import Brick.Types (BrickEvent (VtyEvent))
 import Brick.Widgets.List (listSelected)
 import Control.Lens
 import Control.Monad.IO.Class (MonadIO, liftIO)
-import Control.Monad.Indexed ((>>>=))
-import Control.Monad.Indexed.State (runIxStateT)
 import qualified Data.HashMap.Strict as Map
 import Data.Maybe (isJust)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
@@ -26,7 +24,6 @@ import Types.Models.Project (Project, requestDefs)
 import Types.Models.RequestDef
 import Types.Models.Screen (ScreenTag (..))
 import Types.Models.Screen.Optics
-import Types.Monads
 import UI.Events.Handler (handleEventInState)
 import UI.List (AppList (..))
 
@@ -45,8 +42,8 @@ getNextState s = getNextState' (AnyAppState sing s)
 -- Same as getNextState but accepts AnyAppState to start with
 getNextState' :: MonadIO m => AnyAppState -> Key -> [Modifier] -> m AnyAppState
 getNextState' s key mods =
-  let testM = iliftIO (newBChan 5) >>>= handleEventInState (VtyEvent (EvKey key mods))
-   in liftIO $ snd <$> (runIxStateT . runTestM) testM s
+  let testM = liftIO (newBChan 5) >>= \chan -> handleEventInState chan s (VtyEvent (EvKey key mods))
+   in liftIO $ runTestM testM
 
 -- Given a key (and modifiers) to press, an expected ScreenTag, and an initial AppState,
 -- assert that handling the keypress event will result in the expected screen being placed in the state

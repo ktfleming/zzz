@@ -17,7 +17,7 @@ import Types.Models.Header
 tryPretty :: T.Text -> Maybe T.Text
 tryPretty t = do
   decoded <- (decode . cs) t :: Maybe Value
-  return $ (cs . encodePretty) decoded
+  pure . (cs . encodePretty) $ decoded
 
 -- Substitutes any variables like {{this}} inside the provided text
 substitute :: Coercible T.Text a => [Variable] -> a -> a

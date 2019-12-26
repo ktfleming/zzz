@@ -6,25 +6,10 @@ module UI.Json
 where
 
 import Brick
-  ( (<+>),
-    Widget,
-    emptyWidget,
-    txt,
-    txtWrap,
-    vBox,
-    withAttr,
-  )
 import Data.Either.Combinators (rightToMaybe)
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
 import Parsing.JsonParser
-  ( EndingComma (..),
-    Indentation (..),
-    JsonKey (..),
-    JsonLine (..),
-    JsonValue (..),
-    parseLine,
-  )
 import Text.Megaparsec (runParser)
 import Types.Brick.Name (Name)
 import UI.Attr
@@ -73,4 +58,4 @@ readOnlyJson t = case tryPretty t of
   Nothing -> txtWrap t
   Just json -> fromMaybe (txtWrap json) $ do
     parsed <- (rightToMaybe . sequence) $ runParser parseLine "JSON response body" <$> T.lines json
-    return $ vBox (colorizedJsonLine <$> parsed)
+    pure $ vBox (colorizedJsonLine <$> parsed)

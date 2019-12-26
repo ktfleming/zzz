@@ -3,7 +3,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 
 module Types.Monads where
 
@@ -17,9 +16,6 @@ import Control.Monad.IO.Class
   ( MonadIO,
     liftIO,
   )
-import Control.Monad.Indexed
-import Control.Monad.Indexed.State
-import Control.Monad.Indexed.Trans (ilift)
 import Data.Singletons
   ( SingI,
     sing,
@@ -34,92 +30,48 @@ import Types.Brick.Name (Name)
 import Types.Classes.Fields
 import Types.Models.Screen
   ( AnyScreen (..),
-    Screen,
   )
 
--- The main monad that this app runs in. It uses the IxState indexed monad to
--- represent type-safe transitions between tagged AppStates, where the tag
--- defines which screen of the app the user is viewing / interacting with.
--- It includes Brick's EventM monad (which itself includes IO) to do event handling.
-newtype AppM i o a
+newtype AppM a
   = AppM
-      { runAppM :: IxStateT (EventM Name) i o a
+      { runAppM :: (EventM Name) a
       }
-  deriving (IxPointed, IxFunctor, IxApplicative, IxMonad, IxMonadState)
+  deriving (Functor, Applicative, Monad, MonadIO)
 
--- When the input and output states are the same type, can treat this as a regular monad
-deriving instance Functor (AppM i i)
-
-deriving instance Applicative (AppM i i)
-
-deriving instance Monad (AppM i i)
-
-deriving instance MonadIO (AppM i i)
-
--- Analogous to MonadIO, describing a indexed monad into which Brick's EventM monad can be lifted.
--- Note that since this is for indexed monads, `m` is of kind * -> * -> * -> * instead of * -> *.
+-- Analogous to MonadIO, describing a monad into which Brick's EventM monad can be lifted.
 -- The provided `a` is only for use in testing (see TestM)
-class IxMonadEvent m where
-  iliftEvent :: a -> EventM Name a -> m i i a
+class MonadIO m => MonadEvent m where
+  liftEvent :: a -> EventM Name a -> m a
 
-instance IxMonadEvent AppM where
-  iliftEvent _ = AppM . ilift
+instance MonadEvent AppM where
+  liftEvent _ = AppM
 
--- Just a generalization of the regular MonadIO typeclass into one that works for indexed monads,
--- as long as the input and output types are the same (similar to IxMonadEvent)
-class IxMonadIO m where
-  iliftIO :: IO a -> m i i a
-
-instance IxMonadIO AppM where
-  iliftIO = liftIO
-
--- Analogous to >> for regular monads
-(>>>) :: IxMonadState m => m i j a -> m j k b -> m i k b
-(>>>) f g = f >>>= const g
-
--- "Submerges" the tagged output state into an AnyAppState. This is necessary for
+-- Wraps the tagged output state into an AnyAppState. This is necessary for
 -- interacting with Brick's top-level event handler.
-submerge :: (SingI i, IxMonadState m) => m (AppState i) AnyAppState ()
-submerge = imodify $ AnyAppState sing
-
--- A different way to call `submerge`, to be used as a prefix.
--- Note that `submerge` is always the last call in the chain, so we can just say
--- sm $ do
---   ...
--- The idea is to de-emphasize the `submerge` at the end of the chain, since it's not
--- really important and is only there to make the types work.
-sm :: (SingI o, IxMonadState m) => m a (AppState o) () -> m a AnyAppState ()
-sm f = f >>> submerge
-
--- Extract a tagged screen from a tagged AppState
-extractScreen :: IxMonadState m => m (AppState i) (Screen i) ()
-extractScreen = iget >>>= \s -> iput $ s ^. screen
-
--- Given a tagged AppState, update its screen to the tagged screen currently
--- in the state, and put the updated AppState in the state
-wrapScreen :: IxMonadState m => AppState i -> m (Screen i) (AppState i) ()
-wrapScreen s = iget >>>= \scr -> iput $ s & screen .~ scr
-
--- Given a tagged AppState and a function in an indexed monad which has
---   input state: that tagged AppState (with the matching tag)
---   output state: AnyAppState
--- , run the function on the input state and return the appropriate monad that can be used in `handleEventInState`
-(|$|) ::
-  IxMonadState m => m (AppState i) AnyAppState () -> AppState i -> m AnyAppState AnyAppState ()
-(|$|) ixs i = iput i >>> ixs
+wrap :: SingI a => AppState a -> AnyAppState
+wrap = AnyAppState sing
 
 -- Send a custom event to Brick's event loop
-sendEvent :: IxMonadIO m => CustomEvent -> BChan CustomEvent -> m i i ()
-sendEvent ev chan = iliftIO (writeBChan chan ev)
+sendEvent :: MonadIO m => CustomEvent -> BChan CustomEvent -> m ()
+sendEvent ev chan = liftIO (writeBChan chan ev)
+
+-- Run and get the result of the given monadic action (in practice, an updated
+-- AppState), then fire a save event so that the updated state is saved. Finally
+-- return the result.
+saveAfter :: MonadIO m => BChan CustomEvent -> m a -> m a
+saveAfter chan action = do
+  result <- action
+  sendEvent Save chan
+  pure result
 
 -- Store the currently displayed Screen in the AppState's `stashedScreen`, so
 -- it can be restored with `unstashScreen`
-stashScreen :: (SingI a, IxMonadState m) => m (AppState a) (AppState a) ()
-stashScreen = iget >>>= \s -> imodify $ stashedScreen ?~ AnyScreen sing (s ^. screen)
+stashScreen :: SingI a => AppState a -> AppState a
+stashScreen s = s & stashedScreen ?~ AnyScreen sing (s ^. screen)
 
 -- Remove the currently stashed screen (if there is one) and set it as the
 -- currently displayed screen. Then set the currently stashed screen to nothing.
-unstashScreen :: (SingI i, IxMonadState m) => m (AppState i) AnyAppState ()
-unstashScreen = iget >>>= \s -> case s ^. stashedScreen of
-  Nothing -> submerge
-  Just (AnyScreen tag stashed) -> imodify $ AnyAppState tag . (screen .~ stashed) . (stashedScreen .~ Nothing)
+unstashScreen :: SingI a => AppState a -> AnyAppState
+unstashScreen s = case s ^. stashedScreen of
+  Nothing -> wrap s
+  Just (AnyScreen tag stashed) -> AnyAppState tag $ s & (screen .~ stashed) . (stashedScreen .~ Nothing)

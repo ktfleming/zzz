@@ -21,7 +21,6 @@ import Data.Singletons.TH
   )
 import Data.Type.Equality
 import Types.Brick.Name (Name)
-import Types.Forms (FormMode (..))
 import Types.Models.Environment
 import Types.Models.Project
 import Types.Models.RequestDef
@@ -36,8 +35,6 @@ import UI.Form (AppForm)
 import UI.List (AppList)
 
 -- These are only used in conjunction with DataKinds to form phantom type "tags" used on Screen and AppState.
--- The phantom type on AppScreen is used to determine valid state inputs and outputs in the event-handling
--- code that runs inside the IxStateT monad stack.
 data ScreenTag
   = ProjectAddTag
   | ProjectEditTag
@@ -61,11 +58,11 @@ singDecideInstances [''ScreenTag] -- to be able to use %~ in the Eq instances fo
 -- Represents what main "view" of the app the user is looking at, and also holds the local state for that view
 data Screen (a :: ScreenTag) where
   ProjectAddScreen ::
-    AppForm (ProjectFormState 'Adding) ->
+    AppForm ProjectFormState ->
     Screen 'ProjectAddTag
   ProjectEditScreen ::
     ProjectContext ->
-    AppForm (ProjectFormState 'Editing) ->
+    AppForm ProjectFormState ->
     Screen 'ProjectEditTag
   ProjectListScreen ::
     AppList ProjectListItem ->
@@ -76,11 +73,11 @@ data Screen (a :: ScreenTag) where
     Screen 'ProjectDetailsTag
   RequestDefEditScreen ::
     RequestDefContext ->
-    AppForm (RequestDefFormState 'Editing) ->
+    AppForm RequestDefFormState ->
     Screen 'RequestDefEditTag
   RequestDefAddScreen ::
     ProjectContext ->
-    AppForm (RequestDefFormState 'Adding) ->
+    AppForm RequestDefFormState ->
     Screen 'RequestDefAddTag
   RequestDefDetailsScreen ::
     RequestDefContext ->
@@ -93,10 +90,10 @@ data Screen (a :: ScreenTag) where
     Screen 'EnvironmentListTag
   EnvironmentEditScreen ::
     EnvironmentContext ->
-    AppForm (EnvironmentFormState 'Editing) ->
+    AppForm EnvironmentFormState ->
     Screen 'EnvironmentEditTag
   EnvironmentAddScreen ::
-    AppForm (EnvironmentFormState 'Adding) ->
+    AppForm EnvironmentFormState ->
     Screen 'EnvironmentAddTag
   SearchScreen ::
     ZZZEditor ->

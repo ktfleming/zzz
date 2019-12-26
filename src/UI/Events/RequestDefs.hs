@@ -1,8 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Events.RequestDefs where
 
@@ -19,17 +17,12 @@ import Brick.Focus
   )
 import Brick.Widgets.List (listSelected)
 import Control.Lens
-import Control.Monad.Indexed (ireturn)
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-  )
+import Control.Monad ((<=<))
+import Control.Monad.IO.Class (liftIO)
 import qualified Data.HashMap.Strict as Map
 import Data.Maybe (isNothing)
 import Data.UUID.V4 (nextRandom)
 import Graphics.Vty.Input.Events
-import Language.Haskell.DoNotation
 import Request.Request
   ( cancelRequest,
     sendRequest,
@@ -45,10 +38,6 @@ import Types.Models.RequestDef (RequestDefContext (..))
 import Types.Models.Response (ResponseIndex (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
-  ( ifValid,
-    updateBrickForm,
-    updateBrickList,
-  )
 import Types.Monads
 import UI.FocusRing (AppFocusRing (..))
 import UI.List (AppList (..))
@@ -59,98 +48,87 @@ import UI.RequestDefs.Edit
   ( finishEditingRequestDef,
     showEditRequestDefScreen,
   )
-import Utils.IfThenElse (ifThenElse)
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-  )
 
 handleEventRequestAdd ::
-  (IxMonadState m, IxMonadEvent m, IxMonadIO m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
-  m (AppState 'RequestDefAddTag) AnyAppState ()
-handleEventRequestAdd key mods chan = do
-  s <- iget
-  let RequestDefAddScreen c _ = s ^. screen
-  case (key, mods) of
-    (KChar 's', [MCtrl]) -> ifValid $ sm $ do
-      rid <- iliftIO $ RequestDefId <$> nextRandom
-      finishAddingRequestDef rid
-      sendEvent Save chan
-      showProjectDetails c
-    (KEsc, []) -> sm $ showProjectDetails c
-    _ -> sm $ do
-      extractScreen
-      updateBrickForm key
-      wrapScreen s
+  AppState 'RequestDefAddTag ->
+  m AnyAppState
+handleEventRequestAdd key mods chan s =
+  let c = s ^. screen ^. context
+      doAdd s' = do
+        rid <- liftIO $ RequestDefId <$> nextRandom
+        saveAfter chan $ pure . wrap . showProjectDetails c . finishAddingRequestDef rid $ s'
+   in case (key, mods) of
+        (KChar 's', [MCtrl]) -> ifValid doAdd
+        (KEsc, []) -> pure . wrap . showProjectDetails c
+        _ -> pure . wrap <=< updateBrickForm key
+        $ s
 
 handleEventRequestEdit ::
-  (IxMonadState m, IxMonadEvent m, IxMonadIO m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
-  m (AppState 'RequestDefEditTag) AnyAppState ()
-handleEventRequestEdit key mods chan = do
-  s <- iget
-  let RequestDefEditScreen c _ = s ^. screen
-  case (key, mods) of
-    (KChar 's', [MCtrl]) -> ifValid $ sm $ do
-      finishEditingRequestDef
-      sendEvent Save chan
-      showRequestDefDetails c
-    (KEsc, []) -> sm $ showRequestDefDetails c
-    _ -> sm $ do
-      extractScreen
-      updateBrickForm key
-      wrapScreen s
+  AppState 'RequestDefEditTag ->
+  m AnyAppState
+handleEventRequestEdit key mods chan s =
+  let c = s ^. screen ^. context
+      doEdit = saveAfter chan . pure . wrap . showRequestDefDetails c . finishEditingRequestDef
+   in case (key, mods) of
+        (KChar 's', [MCtrl]) -> ifValid doEdit
+        (KEsc, []) -> pure . wrap . showRequestDefDetails c
+        _ -> pure . wrap <=< updateBrickForm key
+        $ s
 
 handleEventRequestDetails ::
-  (IxMonadState m, IxMonadEvent m, IxMonadIO m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
-  m (AppState 'RequestDefDetailsTag) AnyAppState ()
-handleEventRequestDetails key mods chan = do
-  s <- iget
-  let RequestDefDetailsScreen c@(RequestDefContext _ rid) (AppList list) (AppFocusRing ring) _ =
-        s ^. screen
+  AppState 'RequestDefDetailsTag ->
+  m AnyAppState
+handleEventRequestDetails key mods chan s =
+  let RequestDefDetailsScreen c@(RequestDefContext _ rid) (AppList list) (AppFocusRing ring) _ = s ^. screen
       focused = focusGetCurrent ring
       activeRequest = Map.lookup rid (s ^. activeRequests . coerced)
       ringLens :: Lens' (Screen 'RequestDefDetailsTag) (AppFocusRing Name)
       ringLens =
         lens
           (\(RequestDefDetailsScreen _ _ target _) -> target)
-          (\(RequestDefDetailsScreen x y _ z) toSet -> RequestDefDetailsScreen x y toSet z)
+          (\(RequestDefDetailsScreen c' l' _ e') r' -> RequestDefDetailsScreen c' l' r' e')
       selectedResponse = ResponseIndex <$> listSelected list
-      modifyFocus f = sm $ do
-        imodify $ screen . ringLens %~ (\(AppFocusRing r) -> AppFocusRing (f r))
-        iliftEvent () $ vScrollToBeginning (viewportScroll ResponseBodyViewport)
-  case (key, mods) of
-    (KLeft, []) ->
-      sm $ let (RequestDefContext pid _) = c in showProjectDetails (ProjectContext pid)
-    (KChar 'x', []) -> sm $ maybe (ireturn ()) (cancelRequest c) activeRequest
-    (KChar 'e', []) -> sm $ showEditRequestDefScreen c
-    (KChar 'd', []) -> case (focused, selectedResponse) of
-      (Just ResponseList, Just i) -> sm $ imodify (modal ?~ DeleteResponseModal c i)
-      (Just ResponseBodyDetails, Just i) -> sm $ imodify (modal ?~ DeleteResponseModal c i)
-      _ -> sm $ imodify (modal ?~ DeleteRequestDefModal c)
-    (KEnter, []) ->
-      if focused == Just RequestDetails && isNothing activeRequest
-        then sm $ sendRequest c chan
-        else submerge
-    (KChar '\t', []) -> modifyFocus focusNext
-    (KBackTab, []) -> modifyFocus focusPrev
-    _ -> case focused of
-      Just ResponseList -> sm $ do
-        extractScreen
-        updateBrickList key
-        wrapScreen s
-      Just ResponseBodyDetails ->
-        let vp = viewportScroll ResponseBodyViewport
-         in sm $ case key of
-              KUp -> iliftEvent () (vScrollBy vp (-5))
-              KDown -> iliftEvent () (vScrollBy vp 5)
-              _ -> ireturn ()
-      _ -> submerge
+      modifyFocus f s' = do
+        liftEvent () $ vScrollToBeginning (viewportScroll ResponseBodyViewport)
+        pure $ s' & screen . ringLens %~ (\(AppFocusRing r) -> AppFocusRing (f r))
+   in case (key, mods) of
+        (KLeft, []) ->
+          let (RequestDefContext pid _) = c
+           in pure . wrap . showProjectDetails (ProjectContext pid)
+        (KChar 'x', []) ->
+          case activeRequest of
+            Just toCancel -> fmap wrap . cancelRequest c toCancel
+            Nothing -> pure . wrap
+        (KChar 'e', []) -> pure . wrap . showEditRequestDefScreen c
+        (KChar 'd', []) -> case (focused, selectedResponse) of
+          (Just ResponseList, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i)
+          (Just ResponseBodyDetails, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i)
+          _ -> pure . wrap . (modal ?~ DeleteRequestDefModal c)
+        (KEnter, []) ->
+          if focused == Just RequestDetails && isNothing activeRequest
+            then fmap wrap . sendRequest c chan
+            else pure . wrap
+        (KChar '\t', []) -> fmap wrap . modifyFocus focusNext
+        (KBackTab, []) -> fmap wrap . modifyFocus focusPrev
+        _ -> case focused of
+          Just ResponseList -> pure . wrap <=< updateBrickList key
+          Just ResponseBodyDetails ->
+            let vp = viewportScroll ResponseBodyViewport
+             in case key of
+                  KUp -> \s' -> liftEvent () (vScrollBy vp (-5)) >> pure (wrap s')
+                  KDown -> \s' -> liftEvent () (vScrollBy vp 5) >> pure (wrap s')
+                  _ -> pure . wrap
+          _ -> pure . wrap
+        $ s

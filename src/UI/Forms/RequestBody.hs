@@ -21,7 +21,7 @@ import UI.Forms.FocusAwareEditor (focusAwareEditField)
 import UI.Json (readOnlyJson)
 import Utils.Text (tryPretty)
 
-requestBodyForm :: RequestDefFormState a -> FormFieldState (RequestDefFormState a) CustomEvent Name
+requestBodyForm :: RequestDefFormState -> FormFieldState RequestDefFormState CustomEvent Name
 requestBodyForm s =
   let initFn :: RequestBody -> T.Text
       initFn (RequestBody t) = fromMaybe t (tryPretty t)

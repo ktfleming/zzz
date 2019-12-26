@@ -9,20 +9,12 @@ module UI.Forms.KeyValueList
 where
 
 import Brick
-  ( (<+>),
-    Widget,
-    txt,
-    vBox,
-    vLimit,
-    withAttr,
-    withBorderStyle,
-  )
 import Brick.Forms (FormFieldState (..))
 import Brick.Widgets.Border (border)
 import Brick.Widgets.Border.Style (unicodeRounded)
 import Control.Lens
 import Data.Foldable (toList)
-import Data.Sequence as S
+import Data.Sequence as Seq
 import Data.Sequence (Seq)
 import Data.Text as T
 import Types.Brick.CustomEvent (CustomEvent)
@@ -65,7 +57,7 @@ makeKeyValueForm modelLens n s =
       -- this will be used to separate the line into the key and value
       -- (at the first such character, if more than one are present)
       validate :: [T.Text] -> Maybe (Seq KeyValue)
-      validate [] = Just S.empty
+      validate [] = Just Seq.empty
       validate ts =
         let textToKeyValue :: Text -> Maybe KeyValue
             textToKeyValue t =
@@ -73,7 +65,7 @@ makeKeyValueForm modelLens n s =
                in if T.null right
                     then Nothing -- either no '=', or '=' is the last character
                     else Just $ KeyValue left right
-         in (sequence . S.fromList . fmap textToKeyValue) (Prelude.filter (not . T.null) ts)
+         in (sequence . Seq.fromList . fmap textToKeyValue) (Prelude.filter (not . T.null) ts)
       readOnlyRender :: [T.Text] -> Widget name
       readOnlyRender = vBox . fmap readOnlyRenderOneLine
       readOnlyRenderOneLine :: T.Text -> Widget name

@@ -65,7 +65,7 @@ genHeader :: Gen Header
 genHeader = do
   name <- HeaderName <$> Gen.text (Range.linear 1 15) Gen.alpha
   value <- HeaderValue <$> Gen.text (Range.linear 1 15) Gen.alpha
-  return $ Header name value
+  pure $ Header name value
 
 genRequestDefs :: Gen (HashMap RequestDefId RequestDef)
 genRequestDefs = fmap Map.fromList $ Gen.list (Range.linear 0 20) $ do
@@ -75,7 +75,7 @@ genRequestDefs = fmap Map.fromList $ Gen.list (Range.linear 0 20) $ do
   method <- genMethod
   body <- genRequestBody
   headers <- Gen.seq (Range.linear 0 10) genHeader
-  return (rid, RequestDef name url method body headers)
+  pure (rid, RequestDef name url method body headers)
 
 genProject :: Gen Project
 genProject = do
@@ -86,19 +86,19 @@ genProjects :: Gen (HashMap ProjectId Project)
 genProjects = fmap Map.fromList $ Gen.list (Range.linear 0 20) $ do
   pid <- ProjectId <$> genUUID
   project <- genProject
-  return (pid, project)
+  pure (pid, project)
 
 genVariable :: Gen Variable
 genVariable = do
   name <- VariableName <$> Gen.text (Range.linear 1 20) Gen.alphaNum
   value <- VariableValue <$> Gen.text (Range.linear 1 30) Gen.alphaNum
-  return $ Variable name value
+  pure $ Variable name value
 
 genEnvironment :: Gen Environment
 genEnvironment = do
   name <- EnvironmentName <$> Gen.text (Range.linear 1 20) Gen.alphaNum
   vars <- Gen.seq (Range.linear 0 10) genVariable
-  return $ Environment name vars
+  pure $ Environment name vars
 
 -- Most of the time there will be 1-5 environments, occasionally no
 -- environments (to reduce discards on tests that require an environment)
@@ -110,29 +110,29 @@ genEnvironments =
         fmap Map.fromList $ Gen.list (Range.linear 1 5) $ do
           eid <- EnvironmentId <$> genUUID
           env <- genEnvironment
-          return (eid, env)
+          pure (eid, env)
       )
     ]
 
-genProjectFormState :: Gen (ProjectFormState a)
+genProjectFormState :: Gen ProjectFormState
 genProjectFormState = do
   name <- ProjectName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
-  return $ ProjectFormState name
+  pure $ ProjectFormState name
 
-genRequestDefFormState :: Gen (RequestDefFormState a)
+genRequestDefFormState :: Gen RequestDefFormState
 genRequestDefFormState = do
   name <- RequestDefName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
   url <- Url <$> Gen.text (Range.linear 0 30) Gen.alphaNum
   method <- genMethod
   body <- genRequestBody
   headers <- Gen.seq (Range.linear 0 5) genHeader
-  return $ RequestDefFormState name url method body headers
+  pure $ RequestDefFormState name url method body headers
 
-genEnvironmentFormState :: Gen (EnvironmentFormState a)
+genEnvironmentFormState :: Gen EnvironmentFormState
 genEnvironmentFormState = do
   name <- EnvironmentName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
   vars <- Gen.seq (Range.linear 0 5) genVariable
-  return $ EnvironmentFormState name vars
+  pure $ EnvironmentFormState name vars
 
 -- https://github.com/hedgehogqa/haskell-hedgehog/issues/215
 genUTCTime :: Gen UTCTime
@@ -159,7 +159,7 @@ genResponse = do
   reqBody <- genRequestBody
   headers <- Gen.seq (Range.linear 0 10) genHeader
   elapsed <- genNominalDiffTIme
-  return $ Response resBody code dateTime method url reqBody headers elapsed
+  pure $ Response resBody code dateTime method url reqBody headers elapsed
 
 genScreen :: ScreenTag -> HashMap ProjectId Project -> EnvironmentKey -> HashMap EnvironmentId Environment -> Maybe AnyScreen -> Responses -> Gen AnyScreen
 genScreen tag projects env envs stashedScreen responses =
@@ -171,13 +171,13 @@ genScreen tag projects env envs stashedScreen responses =
       requireEnvironment = if Map.null envs then Gen.discard else Gen.element $ Map.toList envs
       vars = case env of
         NoEnvironmentKey -> Seq.empty
-        IdKey eid -> fromMaybe Seq.empty (view variables <$> Map.lookup eid envs)
+        IdKey eid -> maybe Seq.empty (view variables) (Map.lookup eid envs)
    in case tag of
-        ProjectListTag -> return $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
+        ProjectListTag -> pure $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
         ProjectDetailsTag -> do
           (pid, p) <- requireProject
           let c = ProjectContext pid
-          return $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
+          pure $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
         ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectForm <$> genProjectFormState
         ProjectEditTag -> do
           (pid, _) <- requireProject
@@ -200,11 +200,11 @@ genScreen tag projects env envs stashedScreen responses =
               localResponses = fromMaybe Seq.empty (Map.lookup env localResponseMap)
           -- If no responses exist then the top section must be selected; otherwise randomly select one of the three sections
           modifiedRing <- if Seq.null localResponses then Gen.constant ring else fmap (`focusSetCurrent` ring) (Gen.element choices)
-          return $ AnyScreen sing $ RequestDefDetailsScreen (RequestDefContext pid rid) (makeResponseList localResponses) (AppFocusRing modifiedRing) Nothing
+          pure $ AnyScreen sing $ RequestDefDetailsScreen (RequestDefContext pid rid) (makeResponseList localResponses) (AppFocusRing modifiedRing) Nothing
         EnvironmentAddTag ->
           AnyScreen sing . EnvironmentAddScreen . makeEnvironmentForm <$> genEnvironmentFormState
         EnvironmentListTag ->
-          if isNothing stashedScreen then Gen.discard else return $ AnyScreen sing $ EnvironmentListScreen (makeEnvironmentList envs)
+          if isNothing stashedScreen then Gen.discard else pure $ AnyScreen sing $ EnvironmentListScreen (makeEnvironmentList envs)
         EnvironmentEditTag -> do
           (eid, _) <- requireEnvironment
           AnyScreen sing . EnvironmentEditScreen (EnvironmentContext eid) . makeEnvironmentForm <$> genEnvironmentFormState
@@ -223,8 +223,8 @@ genResponseMap :: [RequestDefId] -> [EnvironmentKey] -> Gen Responses
 genResponseMap rids ekeys =
   -- Creates the sub-Map for a single RequestDef, where each environment has between 0 and 10 responses
   let genSubMap :: Gen (HashMap EnvironmentKey (Seq Response)) -- [(EnvironmentKey, [Response])]
-      genSubMap = fmap Map.fromList $ traverse (\e -> (e,) . Seq.fromList <$> Gen.list (Range.linear 0 10) genResponse) ekeys
-   in fmap Map.fromList $ traverse (\r -> (r,) <$> genSubMap) rids
+      genSubMap = Map.fromList <$> traverse (\e -> (e,) . Seq.fromList <$> Gen.list (Range.linear 0 10) genResponse) ekeys
+   in Map.fromList <$> traverse (\r -> (r,) <$> genSubMap) rids
 
 genAppState :: ScreenTag -> Gen AnyAppState
 genAppState tag = do
@@ -232,7 +232,7 @@ genAppState tag = do
   envs <- genEnvironments
   let rds = fmap (view requestDefs) (Map.elems projects)
       rids = mconcat $ Map.keys <$> rds
-      envKeys = (IdKey <$> (Map.keys envs)) ++ [NoEnvironmentKey]
+      envKeys = (IdKey <$> Map.keys envs) ++ [NoEnvironmentKey]
   responses <- genResponseMap rids envKeys
   -- currently selected environment
   envContext <- genEnvContext envs
@@ -249,7 +249,7 @@ genAppState tag = do
         (6, genScreenTag >>= \stashedTag -> Just <$> genScreen stashedTag projects env envs Nothing responses)
       ]
   AnyScreen stag scr <- genScreen tag projects env envs stashedScreen responses
-  return $ AnyAppState
+  pure $ AnyAppState
     stag
     AppState
       { appStateScreen = scr,
@@ -269,4 +269,4 @@ genKeyWithMods :: Gen (Key, [Modifier])
 genKeyWithMods = do
   key <- KChar <$> Gen.alpha
   mods <- Gen.frequency [(1, Gen.constant []), (1, Gen.element [[MCtrl], [MMeta]])]
-  return (key, mods)
+  pure (key, mods)

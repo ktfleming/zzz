@@ -8,13 +8,6 @@ module UI.StatusBar
 where
 
 import Brick
-  ( (<+>),
-    Widget,
-    fill,
-    txt,
-    vLimit,
-    withAttr,
-  )
 import Control.Lens
 import qualified Data.Text as T
 import Types.AppState
@@ -47,10 +40,11 @@ statusBar :: AppState s -> Widget Name
 statusBar s =
   let envName :: T.Text = maybe "No environment" (^. name . coerced) (currentEnvironment s)
    in (withAttr statusBarAttr . vLimit 1) $
-        txt (title s) <+> fill ' '
-          <+> withAttr
-            environmentNameAttr
-            (txt envName)
+        hBox
+          [ txt (title s),
+            fill ' ',
+            withAttr environmentNameAttr (txt envName)
+          ]
 
 projectBaseTitle :: AppState a -> ProjectContext -> T.Text
 projectBaseTitle s c = model s c ^. name . coerced

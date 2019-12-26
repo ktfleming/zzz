@@ -52,7 +52,7 @@ focusAwareEditField stLens n limit ini val renderText wrapEditor readOnlyRender 
          in if null ls then id else Z.moveCursor pos
       initialText = ini $ initialState ^. stLens
       handleEvent (VtyEvent e) ed = handleEditorEvent e ed
-      handleEvent _ ed = return ed
+      handleEvent _ ed = pure ed
       defaultRender focused e = wrapEditor $ renderEditor renderText focused e
    in FormFieldState
         { formFieldState = initVal,

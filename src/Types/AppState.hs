@@ -1,5 +1,4 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE DeriveAnyClass #-}
 {-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
@@ -42,7 +41,7 @@ import qualified Data.HashMap.Strict as Map
 import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Data.Sequence (Seq)
-import qualified Data.Sequence as S
+import qualified Data.Sequence as Seq
 import Data.Singletons.Decide
   ( (%~),
     Decision (..),
@@ -70,10 +69,10 @@ makeFields ''Message
 
 newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show, Eq)
 
--- Just a regular type alias instead of a newtype because I had some trouble getting
--- the lens for this field in `AppState` to work. Could revisit in the future.
 data EnvironmentKey = IdKey EnvironmentId | NoEnvironmentKey deriving (Eq, Show, Generic)
 
+-- Just a regular type alias instead of a newtype because I had some trouble getting
+-- the lens for this field in `AppState` to work. Could revisit in the future.
 type Responses = HashMap RequestDefId (HashMap EnvironmentKey (Seq Response))
 
 newtype AppAsync = AppAsync (Async ()) deriving (Eq)
@@ -114,7 +113,7 @@ emptyAppState = AppState
     _appStateEnvironments = Map.empty,
     _appStateEnvironmentContext = Nothing,
     _appStateModal = Nothing,
-    _appStateMessages = S.empty,
+    _appStateMessages = Seq.empty,
     _appStateResponses = Map.empty,
     _appStateHelpPanelVisible = HelpPanelVisible False,
     _appStateActiveRequests = Map.empty,
@@ -134,9 +133,9 @@ instance Eq AnyAppState where
     Disproved _ -> False
 
 -- Making instances for HasX for AnyAppState, where X is a field of AppState, will
--- allow us to use those lenses when we have AnyAppState in the State monad without having
--- to unwrap and wrap it every time. Unfortunately this can't be simplified with a
--- Lens' AnyAppState (AppState a) due to the existential appearing in positive position,
+-- allow us to use those lenses without having to unwrap and wrap it every time.
+-- Unfortunately this can't be simplified with a Lens' AnyAppState (AppState a)
+-- due to the existential appearing in positive position (at least I think that's why)
 -- so we have to jump over the `AppState a` for each individual lens.
 
 instance HasCurrentTime AnyAppState (Maybe UTCTime) where
@@ -182,7 +181,7 @@ instance FromJSON (AppState 'HelpTag) where
     ps <- o .: "projects"
     es <- o .: "environments"
     eid <- o .:? "environment_context"
-    return $ emptyAppState & projects .~ ps & environments .~ es & environmentContext .~ eid
+    pure $ emptyAppState & projects .~ ps & environments .~ es & environmentContext .~ eid
 
 lookupProject :: AppState a -> ProjectContext -> Project
 lookupProject s (ProjectContext pid) = (Map.!) (s ^. projects) pid
@@ -192,7 +191,7 @@ lookupRequestDef s (RequestDefContext pid rid) =
   let p = lookupProject s (ProjectContext pid) in (Map.!) (p ^. requestDefs) rid
 
 lookupResponses :: AppState a -> RequestDefContext -> EnvironmentKey -> Seq Response
-lookupResponses s (RequestDefContext _ rid) eid = fromMaybe S.empty $ do
+lookupResponses s (RequestDefContext _ rid) eid = fromMaybe Seq.empty $ do
   envMap <- Map.lookup rid (s ^. responses)
   Map.lookup eid envMap
 
@@ -207,7 +206,7 @@ currentEnvironmentKey :: AppState a -> EnvironmentKey
 currentEnvironmentKey s = maybe NoEnvironmentKey IdKey (s ^. environmentContext . coerced)
 
 currentVariables :: AppState a -> Seq Variable
-currentVariables s = maybe S.empty (view variables) (currentEnvironment s)
+currentVariables s = maybe Seq.empty (view variables) (currentEnvironment s)
 
 instance FromJSON EnvironmentKey
 

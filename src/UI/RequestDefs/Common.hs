@@ -26,7 +26,7 @@ import UI.Forms.RequestBody (requestBodyForm)
 import UI.Url (colorizedUrl)
 
 -- The forms for adding and editing are the same
-makeRequestDefForm :: Seq Variable -> RequestDefFormState a -> AppForm (RequestDefFormState a)
+makeRequestDefForm :: Seq Variable -> RequestDefFormState -> AppForm RequestDefFormState
 makeRequestDefForm vars fs =
   AppForm $ setFormConcat spacedConcat $
     newForm
@@ -40,8 +40,8 @@ makeRequestDefForm vars fs =
 
 urlField ::
   Seq Variable ->
-  RequestDefFormState a ->
-  FormFieldState (RequestDefFormState a) CustomEvent Name
+  RequestDefFormState ->
+  FormFieldState RequestDefFormState CustomEvent Name
 urlField vars s =
   let validate :: [T.Text] -> Maybe Url
       validate ts = headMay ts >>= \u -> if T.null u then Nothing else Just (Url u)

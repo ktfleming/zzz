@@ -1,7 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RebindableSyntax #-}
 
 module UI.Modal
   ( renderModal,
@@ -11,97 +10,55 @@ module UI.Modal
 where
 
 import Brick
-  ( Widget,
-    hLimitPercent,
-    txtWrap,
-    vLimitPercent,
-  )
 import Brick.Widgets.Border (border)
 import Brick.Widgets.Center
   ( center,
     centerLayer,
   )
 import Control.Lens
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-    iput,
-  )
-import Data.Singletons (withSingI)
 import qualified Data.Text as T
-import Language.Haskell.DoNotation
 import Types.AppState
   ( AnyAppState (..),
     AppState,
-    screen,
   )
 import Types.Brick.Name (Name)
 import Types.Classes.Fields
 import Types.Modal
 import Types.Models.Project (ProjectContext (..))
 import Types.Models.RequestDef (RequestDefContext (..))
-import Types.Models.Screen (Screen (..))
 import Types.Monads
 import UI.Environments.Delete
-  ( deleteEnvironment,
-    deleteEnvironmentWarning,
-  )
 import UI.Environments.List (showEnvironmentListScreen)
+import UI.Events.Environments (refreshIfNecessary)
 import UI.Projects.Delete
-  ( deleteProject,
-    deleteProjectWarning,
-  )
 import UI.Projects.Details (showProjectDetails)
 import UI.Projects.List (showProjectListScreen)
 import UI.RequestDefs.Delete
-  ( deleteRequestDef,
-    deleteRequestDefWarning,
-  )
-import UI.RequestDefs.Details (refreshResponseList)
 import UI.Responses.Delete
-  ( deleteResponse,
-    deleteResponseWarning,
-  )
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-  )
 
 renderModalText :: T.Text -> Widget Name
-renderModalText t =
-  (centerLayer . border . hLimitPercent 50 . vLimitPercent 30 . center) $ txtWrap t
+renderModalText = centerLayer . border . hLimitPercent 50 . vLimitPercent 30 . center . txtWrap
 
 renderModal :: AppState a -> Modal -> Widget Name
-renderModal s m = case m of
-  DeleteProjectModal c -> renderModalText $ deleteProjectWarning s c
-  DeleteRequestDefModal c -> renderModalText $ deleteRequestDefWarning s c
-  DeleteEnvironmentModal c -> renderModalText $ deleteEnvironmentWarning s c
-  DeleteResponseModal _ _ -> renderModalText deleteResponseWarning
+renderModal s m = renderModalText $ case m of
+  DeleteProjectModal c -> deleteProjectWarning s c
+  DeleteRequestDefModal c -> deleteRequestDefWarning s c
+  DeleteEnvironmentModal c -> deleteEnvironmentWarning s c
+  DeleteResponseModal _ _ -> deleteResponseWarning
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
-handleConfirm :: IxMonadState m => Modal -> m AnyAppState AnyAppState ()
-handleConfirm m = do
-  (AnyAppState tag s) <- iget
-  iput s
+handleConfirm :: Modal -> AnyAppState -> AnyAppState
+handleConfirm m (AnyAppState tag s) =
   case m of
-    DeleteProjectModal c -> sm $ do
-      deleteProject c
-      showProjectListScreen
-    DeleteRequestDefModal c@(RequestDefContext pid _) -> sm $ do
-      deleteRequestDef c
-      showProjectDetails (ProjectContext pid)
-    DeleteEnvironmentModal c -> sm $ do
-      deleteEnvironment c
-      showEnvironmentListScreen
-    DeleteResponseModal c i -> withSingI tag sm $ do
-      deleteResponse c i
-      case s ^. screen of
-        -- Note: this `RequestDefDetailsScreen` branch should always be the case, but for
-        -- now it's necessary since this function runs in AnyAppState while `refreshResponseList`
-        -- runs in a tagged AppState.
-        RequestDefDetailsScreen {} -> refreshResponseList
-        _ -> return ()
+    DeleteProjectModal c ->
+      wrap . showProjectListScreen . deleteProject c
+    DeleteRequestDefModal c@(RequestDefContext pid _) ->
+      wrap . showProjectDetails (ProjectContext pid) . deleteRequestDef c
+    DeleteEnvironmentModal c ->
+      wrap . showEnvironmentListScreen . deleteEnvironment c
+    DeleteResponseModal c i ->
+      refreshIfNecessary . AnyAppState tag . deleteResponse c i
+    $ s
 
-dismissModal :: (IxMonadState m, HasModal a (Maybe Modal)) => m a a ()
-dismissModal = imodify $ modal .~ Nothing
+dismissModal :: (HasModal a (Maybe Modal)) => a -> a
+dismissModal = modal .~ Nothing

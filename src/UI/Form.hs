@@ -1,6 +1,6 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 
 module UI.Form where
 
@@ -31,7 +31,7 @@ renderText = txt . T.intercalate "\n"
 -- Custom concat function for rendering forms so that each field
 -- has a blank line after it
 spacedConcat :: [Widget Name] -> Widget Name
-spacedConcat ws = vBox $ padBottom (Pad 1) <$> ws
+spacedConcat = vBox . fmap (padBottom (Pad 1))
 
 -- Text field with an included validation function that ensures the text is non-empty
 nonEmptyTextField :: Lens' a T.Text -> Name -> a -> FormFieldState a CustomEvent Name
@@ -53,5 +53,5 @@ renderAppForm form =
   let errorMessage =
         if allFieldsValid form
           then emptyWidget
-          else padBottom (Pad 1) $withAttr errorAttr $ hCenter $ txt "The form contains invalid fields."
+          else padBottom (Pad 1) . withAttr errorAttr . hCenter $ txt "The form contains invalid fields."
    in errorMessage <=> renderForm form

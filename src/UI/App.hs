@@ -1,19 +1,6 @@
 module UI.App where
 
 import Brick
-  ( (<=>),
-    App (..),
-    AttrMap,
-    BrickEvent (VtyEvent),
-    EventM,
-    Next,
-    Widget,
-    attrMap,
-    continue,
-    halt,
-    padBottom,
-    showFirstCursor,
-  )
 import Brick.BChan (BChan)
 import Brick.Forms
   ( focusedFormInputAttr,
@@ -28,7 +15,6 @@ import Brick.Widgets.Border (hBorder)
 import Brick.Widgets.Edit (editFocusedAttr)
 import Brick.Widgets.List (listSelectedFocusedAttr)
 import Control.Lens
-import Control.Monad.Indexed.State (runIxStateT)
 import Data.Maybe (maybeToList)
 import qualified Graphics.Vty as V
 import Graphics.Vty.Input.Events
@@ -37,8 +23,7 @@ import Types.Brick.CustomEvent
 import Types.Brick.Name
 import Types.Classes.Fields
 import Types.Monads
-  ( (>>>),
-    runAppM,
+  ( runAppM,
   )
 import UI.Attr
 import UI.Events.Handler
@@ -70,7 +55,7 @@ drawUI wrapper@(AnyAppState _ s) =
    in modalWidget ++ [everything]
 
 startEvent :: AnyAppState -> EventM Name AnyAppState
-startEvent = return
+startEvent = pure
 
 -- This is the function that's provided to Brick's `App` and must have this exact signature
 -- (note AnyAppState instead of AppState; since the input and output state must have the same type,
@@ -85,8 +70,7 @@ handleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
 -- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
 -- with every event.
 handleEvent chan s ev =
-  ((runIxStateT . runAppM) $ handleEventInState ev chan >>> updateCurrentTime) s
-    >>= (continue . snd)
+  runAppM (handleEventInState chan s ev >>= updateCurrentTime) >>= continue
 
 myMap :: AttrMap
 myMap =

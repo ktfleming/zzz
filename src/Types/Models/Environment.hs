@@ -37,7 +37,6 @@ import Types.Classes.Displayable
     display,
   )
 import Types.Classes.Fields
-import Types.Forms (FormMode)
 import Types.Models.Id (EnvironmentId)
 import Types.Models.KeyValue
   ( KeyValue (..),
@@ -66,7 +65,7 @@ newtype EnvironmentContext = EnvironmentContext EnvironmentId deriving (FromJSON
 
 data EnvironmentListItem = NoEnvironment | AnEnvironment EnvironmentContext EnvironmentName deriving (Show, Eq)
 
-data EnvironmentFormState (a :: FormMode)
+data EnvironmentFormState
   = EnvironmentFormState
       { environmentFormStateName :: EnvironmentName,
         environmentFormStateVariables :: Seq Variable

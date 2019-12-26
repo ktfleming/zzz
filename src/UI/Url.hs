@@ -1,5 +1,4 @@
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Url
   ( colorizedUrl,
@@ -7,12 +6,6 @@ module UI.Url
 where
 
 import Brick
-  ( (<+>),
-    Widget,
-    emptyWidget,
-    txt,
-    withAttr,
-  )
 import Control.Lens
 import Data.Either.Combinators (rightToMaybe)
 import Data.Foldable (find)
@@ -37,7 +30,7 @@ import UI.Attr (templatedVariableAttr)
 colorizedUrl :: Seq Variable -> Url -> Widget Name
 colorizedUrl vars (Url t) = fromMaybe (txt t) $ do
   parsed <- rightToMaybe $ runParser parseTemplatedText "Templated URL" t
-  return $ addColors vars parsed
+  pure $ addColors vars parsed
 
 addColors :: Seq Variable -> TemplatedText -> Widget Name
 addColors vars (TemplatedText urlParts) =

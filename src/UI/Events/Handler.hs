@@ -1,8 +1,6 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RebindableSyntax #-}
 
 module UI.Events.Handler
   ( updateCurrentTime,
@@ -17,23 +15,16 @@ import Brick
   )
 import Brick.BChan (BChan)
 import Control.Lens
-import Control.Monad.Indexed (ireturn)
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-    iput,
-  )
+import Control.Monad ((<=<))
+import Control.Monad.IO.Class
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (writeFile)
 import qualified Data.HashMap.Strict as Map
-import qualified Data.Sequence as S
+import qualified Data.Sequence as Seq
 import Data.Singletons (withSingI)
-import Data.String (fromString)
 import qualified Data.Text as T
 import Data.Time (getCurrentTime)
 import Graphics.Vty.Input.Events
-import Language.Haskell.DoNotation
 import Messages.Messages (logMessage)
 import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
@@ -64,112 +55,98 @@ import UI.Search
   ( handleEventSearch,
     showSearchScreen,
   )
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-    writeFile,
-  )
+import Prelude hiding (writeFile)
 
 -- Every event should also update the currentTime inside the AppState
-updateCurrentTime :: (IxMonadState m, IxMonadIO m) => m AnyAppState AnyAppState ()
-updateCurrentTime = do
-  time <- iliftIO getCurrentTime
-  imodify $ currentTime ?~ time
+updateCurrentTime :: MonadIO m => AnyAppState -> m AnyAppState
+updateCurrentTime s = do
+  time <- liftIO getCurrentTime
+  pure $ s & currentTime ?~ time
 
-handleCustomEvent :: (IxMonadState m, IxMonadIO m) => CustomEvent -> m (AppState a) (AppState a) ()
-handleCustomEvent Save = saveState
+handleCustomEvent :: MonadIO m => CustomEvent -> AppState a -> m (AppState a)
+handleCustomEvent Save s = saveState s
 -- Note: this is for errors that happen on the background thread that handles sending the
 -- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
 -- will short-circuit the ExceptT in `sendRequest'` and will not need to use a custom event.
-handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) = do
-  s <- iget
-  logMessage ("Error: " <> T.pack msg)
-  now <- iliftIO getCurrentTime
-  case s ^. screen of
-    RequestDefDetailsScreen {} -> imodify $ screen . lastError ?~ RequestFailed now (T.pack msg)
-    _ -> return ()
-  imodify $ activeRequests . at rid .~ Nothing
-  saveState
-handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) = do
-  s <- iget
+handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
+  -- Building a monadic pipeline via Kleisli composition that the initial state will be sent through.
+  -- The steps are...
+  let -- Append the error to the logs
+      doLog :: MonadIO m => AppState a -> m (AppState a)
+      doLog = logMessage $ "Error: " <> T.pack msg
+      -- If the current screen is the RequestDefDetailsScreen, need to update `lastError`
+      -- so the user will see the error message
+      updateError :: MonadIO m => AppState a -> m (AppState a)
+      updateError s' = case s' ^. screen of
+        RequestDefDetailsScreen {} -> do
+          now <- liftIO getCurrentTime
+          pure $ s' & screen . lastError ?~ RequestFailed now (T.pack msg)
+        _ -> pure s'
+      -- The request has completed, so clear its handle
+      clearRequest :: AppState a -> AppState a
+      clearRequest = activeRequests . at rid .~ Nothing
+   in saveState <=< (pure . clearRequest) <=< updateError <=< doLog $ s
+handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
   let ekey = currentEnvironmentKey s
-  logMessage "Received response"
-  imodify $ responses . at rid . non Map.empty . at ekey . non S.empty %~ (response <|)
-  imodify $ activeRequests . at rid .~ Nothing
-  saveState
-  case s ^. screen of
-    RequestDefDetailsScreen {} -> imodify (screen . lastError .~ Nothing) >> refreshResponseList -- Only need to refresh the list if they're looking at it
-    _ -> return ()
-handleCustomEvent RefreshResponseList = do
-  s <- iget
-  case s ^. screen of
-    RequestDefDetailsScreen {} -> refreshResponseList
-    _ -> return ()
+      doLog :: MonadIO m => AppState a -> m (AppState a)
+      doLog = logMessage "Received response"
+      -- Append the response to the list of responses for this RequestDef, and clear the request handler
+      updateState :: AppState a -> AppState a
+      updateState = (responses . at rid . non Map.empty . at ekey . non Seq.empty %~ (response <|)) . (activeRequests . at rid .~ Nothing)
+      -- If the RequestDefDetailsScreen is active, clear the last error (if there is one)
+      -- and refresh the response list
+      updateDetails :: AppState a -> AppState a
+      updateDetails s' = case s' ^. screen of
+        RequestDefDetailsScreen {} -> (screen . lastError .~ Nothing) . refreshResponseList $ s'
+        _ -> s'
+   in saveState <=< (pure . updateDetails) <=< (pure . updateState) <=< doLog $ s
 
-saveState :: (IxMonadState m, IxMonadIO m) => m (AppState a) (AppState a) ()
-saveState = do
-  s <- iget
-  logMessage "Saving..."
-  iliftIO $ writeFile mainSettingsFile (encodePretty s)
-  iliftIO $ writeFile responseHistoryFile (encodePretty (s ^. responses))
+saveState :: MonadIO m => AppState a -> m (AppState a)
+saveState s = do
+  updated <- logMessage "Saving..." s
+  liftIO $ writeFile mainSettingsFile (encodePretty updated)
+  liftIO $ writeFile responseHistoryFile (encodePretty (updated ^. responses))
+  pure updated
 
 -- This function does the actual event handling, inside the AppM monad
 handleEventInState ::
-  (IxMonadState m, IxMonadEvent m, IxMonadIO m) =>
-  BrickEvent Name CustomEvent ->
+  MonadEvent m =>
   BChan CustomEvent ->
-  m AnyAppState AnyAppState ()
-handleEventInState (AppEvent customEvent) _ = do
-  (AnyAppState tag s) <- iget
-  iput s
-  handleCustomEvent customEvent
-  withSingI tag submerge
-handleEventInState (VtyEvent (EvKey (KChar 'o') [MCtrl])) _ = do
-  (AnyAppState tag s) <- iget
-  iput s
+  AnyAppState ->
+  BrickEvent Name CustomEvent ->
+  m AnyAppState
+handleEventInState _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
+handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'o') [MCtrl])) =
   case s ^. screen of
-    MessagesScreen -> unstashScreen
-    _ -> sm $ do
-      withSingI tag stashScreen
-      imodify (screen .~ MessagesScreen)
-      iliftEvent () $ vScrollToEnd (viewportScroll MessagesViewport)
-handleEventInState (VtyEvent (EvKey (KChar 'p') [MCtrl])) _ = do
-  (AnyAppState tag s) <- iget
-  let updated = s & helpPanelVisible . coerced %~ not
-  iput $ AnyAppState tag updated
+    MessagesScreen -> pure . unstashScreen $ s
+    _ -> do
+      liftEvent () $ vScrollToEnd (viewportScroll MessagesViewport)
+      pure . wrap . withSingI tag stashScreen . (screen .~ MessagesScreen) $ s
+handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
+  pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
 -- Have to stash the screen before giving the user the chance to select an Environment (either via the
 -- global search or the environment list screen) since that necessitates a screen unstash.
-handleEventInState (VtyEvent (EvKey (KChar 'f') [MCtrl])) _ = sm $ do
-  (AnyAppState tag s) <- iget
-  iput s
-  withSingI tag stashScreen
-  showSearchScreen
-handleEventInState (VtyEvent (EvKey (KChar 'e') [MCtrl])) _ = sm $ do
-  (AnyAppState tag s) <- iget
-  iput s
-  withSingI tag stashScreen
-  showEnvironmentListScreen
-handleEventInState (VtyEvent (EvKey key mods)) chan = do
-  (AnyAppState _ s) <- iget
+handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'f') [MCtrl])) =
+  pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
+handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
+  pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
+handleEventInState chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
   case (s ^. modal, key) of
-    (Just _, KChar 'n') -> dismissModal
-    (Just m, KChar 'y') -> do
-      handleConfirm m
-      sendEvent Save chan
-      dismissModal
-    (Just _, _) -> ireturn ()
+    (Just _, KChar 'n') -> pure . dismissModal $ outer
+    (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
+    (Just _, _) -> pure outer
     (Nothing, _) -> case s ^. screen of
-      ProjectAddScreen {} -> handleEventProjectAdd key mods chan |$| s
-      ProjectEditScreen {} -> handleEventProjectEdit key mods chan |$| s
-      ProjectListScreen {} -> handleEventProjectList key mods chan |$| s
-      ProjectDetailsScreen {} -> handleEventProjectDetails key mods chan |$| s
-      RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan |$| s
-      RequestDefEditScreen {} -> handleEventRequestEdit key mods chan |$| s
-      RequestDefAddScreen {} -> handleEventRequestAdd key mods chan |$| s
-      EnvironmentListScreen {} -> handleEventEnvironmentList key mods chan |$| s
-      EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan |$| s
-      EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan |$| s
-      SearchScreen {} -> handleEventSearch key mods chan |$| s
-      MessagesScreen -> handleEventMessages key mods |$| s
-      HelpScreen -> ireturn ()
-handleEventInState _ _ = ireturn ()
+      ProjectAddScreen {} -> handleEventProjectAdd key mods chan s
+      ProjectEditScreen {} -> handleEventProjectEdit key mods chan s
+      ProjectListScreen {} -> handleEventProjectList key mods chan s
+      ProjectDetailsScreen {} -> handleEventProjectDetails key mods s
+      RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan s
+      RequestDefEditScreen {} -> handleEventRequestEdit key mods chan s
+      RequestDefAddScreen {} -> handleEventRequestAdd key mods chan s
+      EnvironmentListScreen {} -> handleEventEnvironmentList key mods chan s
+      EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan s
+      EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
+      SearchScreen {} -> handleEventSearch key mods chan s
+      MessagesScreen -> handleEventMessages key mods s
+      HelpScreen -> pure outer
+handleEventInState _ s _ = pure s

@@ -1,10 +1,6 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
-{-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Environments.Add
   ( finishAddingEnvironment,
@@ -14,14 +10,7 @@ where
 
 import Brick.Forms
 import Control.Lens
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-  )
-import qualified Data.Sequence as S
-import Data.String (fromString)
-import Language.Haskell.DoNotation
+import qualified Data.Sequence as Seq
 import Types.AppState
 import Types.Classes.Fields
 import Types.Models.Environment
@@ -33,28 +22,23 @@ import Types.Models.Id (EnvironmentId (..))
 import Types.Models.Screen
 import UI.Environments.Common (makeEnvironmentForm)
 import UI.Form
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-  )
 
 finishAddingEnvironment ::
-  IxMonadState m =>
   EnvironmentId ->
-  m (AppState 'EnvironmentAddTag) (AppState 'EnvironmentAddTag) ()
-finishAddingEnvironment eid = do
-  s <- iget
+  AppState 'EnvironmentAddTag ->
+  AppState 'EnvironmentAddTag
+finishAddingEnvironment eid s =
   let EnvironmentAddScreen (AppForm form) = s ^. screen
-  let e = Environment
+      e = Environment
         { environmentName = formState form ^. name,
           environmentVariables = formState form ^. variables
         }
-  imodify $ environments . at eid ?~ e
+   in s & environments . at eid ?~ e
 
-showEnvironmentAddScreen :: IxMonadState m => m (AppState a) (AppState 'EnvironmentAddTag) ()
-showEnvironmentAddScreen =
+showEnvironmentAddScreen :: AppState a -> AppState 'EnvironmentAddTag
+showEnvironmentAddScreen s =
   let fs = EnvironmentFormState
         { environmentFormStateName = EnvironmentName "New Environment",
-          environmentFormStateVariables = S.empty
+          environmentFormStateVariables = Seq.empty
         }
-   in imodify $ screen .~ EnvironmentAddScreen (makeEnvironmentForm fs)
+   in s & screen .~ EnvironmentAddScreen (makeEnvironmentForm fs)

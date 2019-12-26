@@ -9,42 +9,38 @@ extra-source-files:
   - README.md
 description: 'Please see the README on GitHub at <https://github.com/kvnflm/zzz#readme>'
 dependencies:
-  - base
-  - brick == 0.50.1
-  - vty
-  - lens
-  - generic-lens
-  - text
   - aeson
   - aeson-pretty
-  - bytestring
-  - directory
-  - mtl
-  - transformers
-  - uuid
-  - containers
-  - unordered-containers
-  - req
-  - safe
-  - errors
-  - time
-  - iso8601-time
-  - hashable
-  - string-conversions
-  - indexed
-  - indexed-extras == 0.2
-  - do-notation
-  - text-zipper
-  - megaparsec
-  - either
   - async
+  - base
+  - brick == 0.50.1
+  - bytestring
+  - containers
+  - directory
+  - either
+  - errors
   - friendly-time
-  - singletons
+  - hashable
   - hedgehog
   - hspec
+  - iso8601-time
+  - lens
+  - megaparsec
+  - mtl
+  - req
+  - safe
+  - singletons
+  - string-conversions
   - tasty
   - tasty-hedgehog
   - tasty-hspec
+  - text
+  - text-zipper
+  - time
+  - transformers
+  - unordered-containers
+  - uuid
+  - vty
 library:
   source-dirs:
     - src

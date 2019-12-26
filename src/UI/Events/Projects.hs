@@ -1,32 +1,24 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE RebindableSyntax #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 
 module UI.Events.Projects where
 
 import Brick.BChan (BChan)
 import Brick.Widgets.List (listSelectedElement)
 import Control.Lens
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-  )
+import Control.Monad ((<=<))
+import Control.Monad.IO.Class (liftIO)
+import Data.UUID.V4 (nextRandom)
 import Graphics.Vty.Input.Events
-import Language.Haskell.DoNotation
 import Types.AppState
-import Types.Brick.CustomEvent (CustomEvent (Save))
+import Types.Brick.CustomEvent (CustomEvent)
 import Types.Classes.Fields
 import Types.Modal (Modal (..))
+import Types.Models.Id
 import Types.Models.Project (ProjectListItem (..))
 import Types.Models.RequestDef (RequestDefListItem (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
-  ( ifValid,
-    updateBrickForm,
-    updateBrickList,
-  )
 import Types.Monads
 import UI.List (AppList (..))
 import UI.Projects.Add
@@ -41,93 +33,76 @@ import UI.Projects.Edit
 import UI.Projects.List (showProjectListScreen)
 import UI.RequestDefs.Add (showAddRequestDefScreen)
 import UI.RequestDefs.Details (showRequestDefDetails)
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-  )
 
 -- Since each branch of the case expression can lead to a different phantom type
 -- parameterizing the state, we can only say that the ultimate output type will be
 -- `AnyAppState` (as expected by `handleEventInState`, which calls all of these functions),
--- and we have to apply `submerge` on every branch to ensure the output type is `AnyAppState`.
+-- and we have to apply `wrap` on every branch to ensure the output type is `AnyAppState`.
 handleEventProjectAdd ::
-  (IxMonadState m, IxMonadIO m, IxMonadEvent m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
-  m (AppState 'ProjectAddTag) AnyAppState ()
-handleEventProjectAdd key mods chan = do
-  s <- iget
-  case (key, mods) of
-    (KChar 's', [MCtrl]) ->
-      ifValid $ sm $ do
-        finishAddingProject
-        sendEvent Save chan
-        showProjectListScreen
-    (KEsc, []) -> sm showProjectListScreen
-    _ -> sm $ do
-      extractScreen
-      updateBrickForm key
-      wrapScreen s
+  AppState 'ProjectAddTag ->
+  m AnyAppState
+handleEventProjectAdd key mods chan =
+  let doAdd s = do
+        pid <- liftIO $ ProjectId <$> nextRandom
+        saveAfter chan . pure . wrap . showProjectListScreen . finishAddingProject pid $ s
+   in case (key, mods) of
+        (KChar 's', [MCtrl]) -> ifValid doAdd
+        (KEsc, []) -> pure . wrap . showProjectListScreen
+        _ -> pure . wrap <=< updateBrickForm key
 
 handleEventProjectEdit ::
-  (IxMonadState m, IxMonadIO m, IxMonadEvent m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
-  m (AppState 'ProjectEditTag) AnyAppState ()
-handleEventProjectEdit key mods chan = do
-  s <- iget
-  let ProjectEditScreen c _ = s ^. screen
-  case (key, mods) of
-    (KChar 's', [MCtrl]) ->
-      ifValid $ sm $ do
-        finishEditingProject
-        sendEvent Save chan
-        showProjectDetails c
-    (KEsc, []) -> sm $ showProjectDetails c
-    _ -> sm $ do
-      extractScreen
-      updateBrickForm key
-      wrapScreen s
+  AppState 'ProjectEditTag ->
+  m AnyAppState
+handleEventProjectEdit key mods chan s =
+  let c = s ^. screen ^. context
+      doEdit = saveAfter chan . pure . wrap . showProjectDetails c . finishEditingProject
+   in case (key, mods) of
+        (KChar 's', [MCtrl]) -> ifValid doEdit
+        (KEsc, []) -> pure . wrap . showProjectDetails c
+        _ -> pure . wrap <=< updateBrickForm key
+        $ s
 
 handleEventProjectDetails ::
-  (IxMonadState m, IxMonadEvent m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
-  BChan CustomEvent -> -- TODO: unnecessary
-  m (AppState 'ProjectDetailsTag) AnyAppState ()
-handleEventProjectDetails key mods _ = do
-  s <- iget
-  let ProjectDetailsScreen c (AppList list) = s ^. screen
-  case (key, mods) of
-    (KRight, []) -> case listSelectedElement list of
-      Just (_, RequestDefListItem reqContext _) -> sm $ showRequestDefDetails reqContext
-      Nothing -> submerge
-    (KChar 'e', []) -> sm $ showEditProjectScreen c
-    (KChar 'a', []) -> sm $ showAddRequestDefScreen c
-    (KChar 'd', []) -> sm $ imodify (modal ?~ DeleteProjectModal c)
-    (KLeft, []) -> sm showProjectListScreen
-    _ -> sm $ do
-      extractScreen
-      updateBrickList key
-      wrapScreen s
+  AppState 'ProjectDetailsTag ->
+  m AnyAppState
+handleEventProjectDetails key mods s =
+  let c = s ^. screen ^. context
+      AppList list = s ^. screen ^. listLens
+   in case (key, mods) of
+        (KRight, []) -> case listSelectedElement list of
+          Just (_, RequestDefListItem reqContext _) -> pure . wrap . showRequestDefDetails reqContext
+          Nothing -> pure . wrap
+        (KChar 'e', []) -> pure . wrap . showEditProjectScreen c
+        (KChar 'a', []) -> pure . wrap . showAddRequestDefScreen c
+        (KChar 'd', []) -> pure . wrap . (modal ?~ DeleteProjectModal c)
+        (KLeft, []) -> pure . wrap . showProjectListScreen
+        _ -> pure . wrap <=< updateBrickList key
+        $ s
 
 handleEventProjectList ::
-  (IxMonadState m, IxMonadEvent m) =>
+  MonadEvent m =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
-  m (AppState 'ProjectListTag) AnyAppState ()
-handleEventProjectList key mods _ = do
-  s <- iget
-  let ProjectListScreen (AppList list) = s ^. screen
-  case (key, mods) of
-    (KRight, []) -> case listSelectedElement list of
-      Just (_, ProjectListItem context _) -> sm $ showProjectDetails context
-      Nothing -> submerge
-    (KChar 'a', []) -> sm showProjectAddScreen
-    _ -> sm $ do
-      extractScreen
-      updateBrickList key
-      wrapScreen s
+  AppState 'ProjectListTag ->
+  m AnyAppState
+handleEventProjectList key mods _ s =
+  let AppList list = s ^. screen ^. listLens
+   in case (key, mods) of
+        (KRight, []) -> case listSelectedElement list of
+          Just (_, ProjectListItem c _) -> pure . wrap . showProjectDetails c
+          Nothing -> pure . wrap
+        (KChar 'a', []) -> pure . wrap . showProjectAddScreen
+        _ -> pure . wrap <=< updateBrickList key
+        $ s

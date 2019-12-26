@@ -1,17 +1,12 @@
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE GADTs #-}
 
 module UI.Environments.List where
 
 import Brick.Widgets.List (list)
 import Control.Lens
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    imodify,
-  )
 import Data.HashMap.Strict (HashMap)
 import qualified Data.HashMap.Strict as Map
-import qualified Data.Sequence as S
+import qualified Data.Sequence as Seq
 import Types.AppState
 import Types.Brick.Name
 import Types.Classes.Fields
@@ -26,10 +21,10 @@ makeEnvironmentList em =
       listItems =
         foldr
           (\(eid, e) items -> items |> AnEnvironment (EnvironmentContext eid) (e ^. name))
-          S.empty
+          Seq.empty
           tuples
    in AppList $ list EnvironmentList (NoEnvironment <| listItems) 1
 
-showEnvironmentListScreen :: IxMonadState m => m (AppState a) (AppState 'EnvironmentListTag) ()
-showEnvironmentListScreen =
-  imodify $ \s -> s & screen .~ EnvironmentListScreen (makeEnvironmentList (s ^. environments))
+showEnvironmentListScreen :: AppState a -> AppState 'EnvironmentListTag
+showEnvironmentListScreen s =
+  s & screen .~ EnvironmentListScreen (makeEnvironmentList (s ^. environments))

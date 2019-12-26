@@ -11,13 +11,15 @@ import Types.Models.Id
 import Types.Models.Project
 import Types.Models.RequestDef
 
+-- A type for a model that has an internal ID, as well as a "context", which is
+-- the set of IDs necessary to traverse the state and obtain the model
 class HasId a where
 
   -- All these type families are injective, so that, for example, only one type can have an ID of type `ProjectId`
   -- (in this case, `Project`)
   type ID a = b | b -> a
 
-  type Context a = b | b -> a -- The set of IDs necessary to traverse the state and obtain the specified `a`
+  type Context a = b | b -> a
 
   model :: AppState x -> Context a -> a
 

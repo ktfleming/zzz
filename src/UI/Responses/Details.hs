@@ -10,7 +10,7 @@ import Brick
 import Brick.Widgets.Center (hCenterWith)
 import Control.Lens
 import Data.Sequence (Seq)
-import qualified Data.Sequence as S
+import qualified Data.Sequence as Seq
 import Data.Text as T
 import Data.Time.ISO8601 (formatISO8601)
 import Numeric (showFFloat)
@@ -46,8 +46,8 @@ responseDetails r =
               (str $ "Received: " <> formatISO8601 (r ^. dateTime), True),
               (txt "Elapsed:  " <+> elapsedWidget, True),
               (padBottom (Pad 1) $ txt "Status:   " <+> display (r ^. statusCode), True),
-              (centerSection "Headers", not (S.null keyValues)),
-              (readOnlyKeyValues keyValues, not (S.null keyValues)),
+              (centerSection "Headers", not (Seq.null keyValues)),
+              (readOnlyKeyValues keyValues, not (Seq.null keyValues)),
               (centerSection "Request Body", not (T.null sentBody)),
               (readOnlyJson sentBody, not (T.null sentBody)),
               (centerSection "Response Body", True),

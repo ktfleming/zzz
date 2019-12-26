@@ -1,7 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
-{-# LANGUAGE RebindableSyntax #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -12,57 +12,42 @@ module Types.Models.Screen.Optics
     listLens,
     formLens,
     lastError,
-    FormMode (..),
     ifValid,
+    context,
   )
 where
 
 import Brick (BrickEvent (..))
 import Brick.Forms (allFieldsValid, handleFormEvent)
 import Brick.Widgets.List (handleListEvent)
-import Control.Lens hiding (imap)
-import Control.Monad.Indexed (imap)
-import Control.Monad.Indexed.State
-  ( IxMonadState,
-    iget,
-    imodify,
-  )
+import Control.Lens
 import Data.Singletons (SingI)
 import Graphics.Vty.Input.Events
   ( Event (..),
     Key,
   )
-import Language.Haskell.DoNotation
 import Types.AppState (AnyAppState (..), AppState, screen)
-import Types.Forms (FormMode (..))
 import Types.Models.Environment
   ( EnvironmentFormState,
     EnvironmentListItem,
   )
 import Types.Models.Project
-  ( ProjectFormState,
+  ( ProjectContext,
+    ProjectFormState,
     ProjectListItem,
   )
 import Types.Models.RequestDef
-  ( RequestDefFormState,
+  ( RequestDefContext,
+    RequestDefFormState,
     RequestDefListItem,
     RequestError,
   )
 import Types.Models.Response (Response)
 import Types.Models.Screen
 import Types.Monads
-  ( IxMonadEvent,
-    iliftEvent,
-    submerge,
-  )
 import Types.Search (SearchListItem)
 import UI.Form (AppForm (..))
 import UI.List (AppList (..))
-import Utils.IfThenElse
-import Prelude hiding
-  ( Monad ((>>), (>>=), return),
-    pure,
-  )
 
 class HasBrickForm a where
 
@@ -72,13 +57,13 @@ class HasBrickForm a where
 
 instance HasBrickForm (Screen 'ProjectAddTag) where
 
-  type FormState (Screen 'ProjectAddTag) = ProjectFormState 'Adding
+  type FormState (Screen 'ProjectAddTag) = ProjectFormState
 
   formLens = lens (\(ProjectAddScreen form) -> form) (\_ f -> ProjectAddScreen f)
 
 instance HasBrickForm (Screen 'ProjectEditTag) where
 
-  type FormState (Screen 'ProjectEditTag) = ProjectFormState 'Editing
+  type FormState (Screen 'ProjectEditTag) = ProjectFormState
 
   formLens =
     lens
@@ -87,7 +72,7 @@ instance HasBrickForm (Screen 'ProjectEditTag) where
 
 instance HasBrickForm (Screen 'RequestDefAddTag) where
 
-  type FormState (Screen 'RequestDefAddTag) = RequestDefFormState 'Adding
+  type FormState (Screen 'RequestDefAddTag) = RequestDefFormState
 
   formLens =
     lens
@@ -96,7 +81,7 @@ instance HasBrickForm (Screen 'RequestDefAddTag) where
 
 instance HasBrickForm (Screen 'RequestDefEditTag) where
 
-  type FormState (Screen 'RequestDefEditTag) = RequestDefFormState 'Editing
+  type FormState (Screen 'RequestDefEditTag) = RequestDefFormState
 
   formLens =
     lens
@@ -105,7 +90,7 @@ instance HasBrickForm (Screen 'RequestDefEditTag) where
 
 instance HasBrickForm (Screen 'EnvironmentEditTag) where
 
-  type FormState (Screen 'EnvironmentEditTag) = EnvironmentFormState 'Editing
+  type FormState (Screen 'EnvironmentEditTag) = EnvironmentFormState
 
   formLens =
     lens
@@ -114,7 +99,7 @@ instance HasBrickForm (Screen 'EnvironmentEditTag) where
 
 instance HasBrickForm (Screen 'EnvironmentAddTag) where
 
-  type FormState (Screen 'EnvironmentAddTag) = EnvironmentFormState 'Adding
+  type FormState (Screen 'EnvironmentAddTag) = EnvironmentFormState
 
   formLens = lens (\(EnvironmentAddScreen form) -> form) (\_ f -> EnvironmentAddScreen f)
 
@@ -129,12 +114,11 @@ instance HasBrickForm (Screen a) => HasBrickForm (AppState a) where
       (\s form -> s & screen . formLens .~ form)
 
 updateBrickForm ::
-  (IxMonadState m, IxMonadEvent m, HasBrickForm (Screen a)) => Key -> m (Screen a) (Screen a) ()
-updateBrickForm key = do
-  scr <- iget
-  let AppForm form = scr ^. formLens
-  updatedForm <- imap AppForm $ iliftEvent form $ handleFormEvent (VtyEvent (EvKey key [])) form
-  imodify $ formLens .~ updatedForm
+  (MonadEvent m, HasBrickForm a) => Key -> a -> m a
+updateBrickForm key model = do
+  let AppForm form = model ^. formLens
+  updatedForm <- AppForm <$> liftEvent form (handleFormEvent (VtyEvent (EvKey key [])) form)
+  pure $ model & formLens .~ updatedForm
 
 class HasBrickList a where
 
@@ -188,13 +172,14 @@ instance HasBrickList (Screen a) => HasBrickList (AppState a) where
       (view (screen . listLens))
       (\s list -> s & screen . listLens .~ list)
 
+-- Use Brick's `handleListEvent` to handle a key input and update the list
+-- contained in the given model (Screen or AppState)
 updateBrickList ::
-  (IxMonadState m, IxMonadEvent m, HasBrickList (Screen a)) => Key -> m (Screen a) (Screen a) ()
-updateBrickList key = do
-  scr <- iget
-  let AppList l = scr ^. listLens
-  updatedList <- imap AppList $ iliftEvent l (handleListEvent (EvKey key []) l)
-  imodify $ listLens .~ updatedList
+  (MonadEvent m, HasBrickList a) => Key -> a -> m a
+updateBrickList key model = do
+  let AppList l = model ^. listLens
+  updatedList <- AppList <$> liftEvent l (handleListEvent (EvKey key []) l)
+  pure $ model & listLens .~ updatedList
 
 -- lens to update the error inside of the RequestDefDetailsScreen
 lastError :: Lens' (Screen 'RequestDefDetailsTag) (Maybe RequestError)
@@ -203,9 +188,26 @@ lastError =
     (\(RequestDefDetailsScreen _ _ _ e) -> e)
     (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)
 
--- Starting with an AppState that has a form, check if the form is valid. If so, run the provided action; if not, just submerge the state.
-ifValid :: (IxMonadState m, SingI i, HasBrickForm (AppState i)) => m (AppState i) AnyAppState () -> m (AppState i) AnyAppState ()
-ifValid onValid = do
-  model <- iget
-  let AppForm form = model ^. formLens
-  if allFieldsValid form then onValid else submerge
+-- Starting with an AppState that has a form, check if the form is valid. If so, run the provided action; if not, just wrap the state.
+ifValid :: (Monad m, SingI i, HasBrickForm (AppState i)) => (AppState i -> m AnyAppState) -> AppState i -> m AnyAppState
+ifValid onValid s =
+  let AppForm form = s ^. formLens
+   in if allFieldsValid form then onValid s else pure $ wrap s
+
+class HasContext s a | s -> a where
+  context :: Getter s a
+
+instance HasContext (Screen 'ProjectEditTag) ProjectContext where
+  context = to $ \(ProjectEditScreen c _) -> c
+
+instance HasContext (Screen 'ProjectDetailsTag) ProjectContext where
+  context = to $ \(ProjectDetailsScreen c _) -> c
+
+instance HasContext (Screen 'RequestDefAddTag) ProjectContext where
+  context = to $ \(RequestDefAddScreen c _) -> c
+
+instance HasContext (Screen 'RequestDefEditTag) RequestDefContext where
+  context = to $ \(RequestDefEditScreen c _) -> c
+
+instance HasContext (Screen 'RequestDefDetailsTag) RequestDefContext where
+  context = to $ \(RequestDefDetailsScreen c _ _ _) -> c

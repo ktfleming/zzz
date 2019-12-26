@@ -9,7 +9,7 @@ import Brick
 import Control.Lens
 import Data.Coerce (coerce)
 import Data.Sequence (Seq)
-import qualified Data.Sequence as S
+import qualified Data.Sequence as Seq
 import qualified Data.Text as T
 import Types.Classes.Displayable
 import Types.Models.Environment
@@ -68,7 +68,7 @@ type PartitionedResults = (Seq SearchResult, Seq SearchResult, Seq SearchResult)
 
 -- Filters on just one piece of the partitioned results (only environments, or only projects, etc)
 filterResults' :: T.Text -> Seq SearchResult -> Seq SearchResult
-filterResults' t = S.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . searchResultToText)
+filterResults' t = Seq.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . searchResultToText)
 
 -- Filters on the entire tuple of of partitioned results, retaining the partitioning
 filterResults :: T.Text -> PartitionedResults -> PartitionedResults

@@ -14,7 +14,7 @@ import Types.Models.Environment
 import UI.Form
 import UI.Forms.KeyValueList (makeKeyValueForm)
 
-makeEnvironmentForm :: EnvironmentFormState a -> AppForm (EnvironmentFormState a)
+makeEnvironmentForm :: EnvironmentFormState -> AppForm EnvironmentFormState
 makeEnvironmentForm fs =
   AppForm $ setFormConcat spacedConcat $
     newForm
