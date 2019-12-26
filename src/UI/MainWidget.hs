@@ -21,14 +21,12 @@ import qualified Data.Text as T
 import Types.AppState
 import Types.Brick.Name (Name (..))
 import Types.Classes.Displayable (Displayable)
-import Types.Classes.Fields
 import Types.Models.Screen
 import UI.Form
 import UI.List
   ( AppList,
     renderGenericList,
   )
-import UI.Messages (messageWidget)
 import UI.RequestDefs.Details (requestDefDetailsWidget)
 import UI.Search (searchWidget)
 
@@ -60,4 +58,3 @@ mainWidget (AnyAppState _ s) = case s ^. screen of
   EnvironmentEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
   EnvironmentAddScreen (AppForm form) -> renderAppForm form
   SearchScreen edt resultList _ -> searchWidget edt resultList
-  MessagesScreen -> messageWidget $ s ^. messages

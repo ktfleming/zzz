@@ -88,8 +88,10 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
       vars :: [Variable] = maybe [] (toList . view variables) e
       finalUrl :: Url = substitute vars (r ^. url)
       -- Handling an error means logging it and updating the `lastError` field on the Screen
-      errorHandler er =
-        logMessage (errorDescription er) . (screen . lastError ?~ er) $ s
+      errorHandler :: MonadIO m => RequestError -> m (AppState 'RequestDefDetailsTag)
+      errorHandler er = do
+        logMessage (errorDescription er)
+        pure $ s & screen . lastError ?~ er
   now <- liftIO getCurrentTime
   -- Doing this kind of error handling instead of trying to use ExceptT / MonadError at least for now,
   -- since the two validations are independent so it's only one level of indentation. Could

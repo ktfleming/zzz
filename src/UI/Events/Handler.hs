@@ -9,10 +9,6 @@ module UI.Events.Handler
 where
 
 import Brick
-  ( BrickEvent (..),
-    vScrollToEnd,
-    viewportScroll,
-  )
 import Brick.BChan (BChan)
 import Control.Lens
 import Control.Monad ((<=<))
@@ -43,7 +39,6 @@ import Types.Models.Screen.Optics (lastError)
 import Types.Monads
 import UI.Environments.List (showEnvironmentListScreen)
 import UI.Events.Environments
-import UI.Events.Messages (handleEventMessages)
 import UI.Events.Projects
 import UI.Events.RequestDefs
 import UI.Modal
@@ -71,10 +66,7 @@ handleCustomEvent Save s = saveState s
 handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
   -- Building a monadic pipeline via Kleisli composition that the initial state will be sent through.
   -- The steps are...
-  let -- Append the error to the logs
-      doLog :: MonadIO m => AppState a -> m (AppState a)
-      doLog = logMessage $ "Error: " <> T.pack msg
-      -- If the current screen is the RequestDefDetailsScreen, need to update `lastError`
+  let -- If the current screen is the RequestDefDetailsScreen, need to update `lastError`
       -- so the user will see the error message
       updateError :: MonadIO m => AppState a -> m (AppState a)
       updateError s' = case s' ^. screen of
@@ -85,11 +77,11 @@ handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
       -- The request has completed, so clear its handle
       clearRequest :: AppState a -> AppState a
       clearRequest = activeRequests . at rid .~ Nothing
-   in saveState <=< (pure . clearRequest) <=< updateError <=< doLog $ s
+   in do
+        logMessage $ "Error: " <> T.pack msg
+        saveState <=< (pure . clearRequest) <=< updateError $ s
 handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
   let ekey = currentEnvironmentKey s
-      doLog :: MonadIO m => AppState a -> m (AppState a)
-      doLog = logMessage "Received response"
       -- Append the response to the list of responses for this RequestDef, and clear the request handler
       updateState :: AppState a -> AppState a
       updateState = (responses . at rid . non Map.empty . at ekey . non Seq.empty %~ (response <|)) . (activeRequests . at rid .~ Nothing)
@@ -99,16 +91,19 @@ handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
       updateDetails s' = case s' ^. screen of
         RequestDefDetailsScreen {} -> (screen . lastError .~ Nothing) . refreshResponseList $ s'
         _ -> s'
-   in saveState <=< (pure . updateDetails) <=< (pure . updateState) <=< doLog $ s
+   in do
+        logMessage "Received response"
+        saveState <=< (pure . updateDetails) <=< (pure . updateState) $ s
 
 saveState :: MonadIO m => AppState a -> m (AppState a)
 saveState s = do
-  updated <- logMessage "Saving..." s
-  liftIO $ writeFile mainSettingsFile (encodePretty updated)
-  liftIO $ writeFile responseHistoryFile (encodePretty (updated ^. responses))
-  pure updated
+  logMessage "Saving..."
+  liftIO $ writeFile mainSettingsFile (encodePretty s)
+  liftIO $ writeFile responseHistoryFile (encodePretty (s ^. responses))
+  pure s
 
 -- This function does the actual event handling, inside the AppM monad
+-- TODO: rename
 handleEventInState ::
   MonadEvent m =>
   BChan CustomEvent ->
@@ -116,12 +111,6 @@ handleEventInState ::
   BrickEvent Name CustomEvent ->
   m AnyAppState
 handleEventInState _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
-handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'o') [MCtrl])) =
-  case s ^. screen of
-    MessagesScreen -> pure . unstashScreen $ s
-    _ -> do
-      liftEvent () $ vScrollToEnd (viewportScroll MessagesViewport)
-      pure . wrap . withSingI tag stashScreen . (screen .~ MessagesScreen) $ s
 handleEventInState _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
   pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
 -- Have to stash the screen before giving the user the chance to select an Environment (either via the
@@ -147,6 +136,5 @@ handleEventInState chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
       EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan s
       EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
       SearchScreen {} -> handleEventSearch key mods chan s
-      MessagesScreen -> handleEventMessages key mods s
       HelpScreen -> pure outer
 handleEventInState _ s _ = pure s

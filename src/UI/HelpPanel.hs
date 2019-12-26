@@ -29,7 +29,6 @@ helpText s = case s of
   EnvironmentAddScreen {} -> "todo"
   HelpScreen -> "todo"
   SearchScreen {} -> "todo"
-  MessagesScreen -> "todo"
 
 helpPanel :: Screen a -> Widget Name
 helpPanel s = txt $ helpText s

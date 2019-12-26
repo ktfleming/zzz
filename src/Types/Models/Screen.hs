@@ -48,7 +48,6 @@ data ScreenTag
   | EnvironmentAddTag
   | SearchTag
   | HelpTag
-  | MessagesTag
   deriving (Show, Eq)
 
 genSingletons [''ScreenTag]
@@ -101,7 +100,6 @@ data Screen (a :: ScreenTag) where
     PartitionedResults ->
     Screen 'SearchTag
   HelpScreen :: Screen 'HelpTag
-  MessagesScreen :: Screen 'MessagesTag
 
 deriving instance Eq (Screen a)
 

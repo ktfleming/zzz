@@ -31,6 +31,4 @@ data Name
   | -- Search screen
     SearchField
   | SearchResultsList
-  | -- Messages screen
-    MessagesViewport
   deriving (Eq, Ord, Show)

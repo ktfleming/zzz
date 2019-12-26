@@ -46,7 +46,6 @@ import Data.Singletons.Decide
   ( (%~),
     Decision (..),
   )
-import qualified Data.Text as T
 import Data.Time (UTCTime)
 import Data.Type.Equality
 import GHC.Generics
@@ -62,10 +61,6 @@ import Types.Models.Project
 import Types.Models.RequestDef
 import Types.Models.Response (Response)
 import Types.Models.Screen
-
-data Message = Message {messageDateTime :: UTCTime, messageText :: T.Text} deriving (Eq, Show)
-
-makeFields ''Message
 
 newtype HelpPanelVisible = HelpPanelVisible Bool deriving (Show, Eq)
 
@@ -87,7 +82,6 @@ data AppState (a :: ScreenTag)
         _appStateEnvironments :: HashMap EnvironmentId Environment,
         _appStateEnvironmentContext :: Maybe EnvironmentContext, -- the currently selected environment
         _appStateModal :: Maybe Modal,
-        _appStateMessages :: Seq Message,
         _appStateResponses :: Responses,
         _appStateHelpPanelVisible :: HelpPanelVisible,
         _appStateActiveRequests :: HashMap RequestDefId AppAsync,
@@ -113,7 +107,6 @@ emptyAppState = AppState
     _appStateEnvironments = Map.empty,
     _appStateEnvironmentContext = Nothing,
     _appStateModal = Nothing,
-    _appStateMessages = Seq.empty,
     _appStateResponses = Map.empty,
     _appStateHelpPanelVisible = HelpPanelVisible False,
     _appStateActiveRequests = Map.empty,

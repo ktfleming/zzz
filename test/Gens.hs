@@ -257,7 +257,6 @@ genAppState tag = do
         _appStateEnvironments = envs,
         _appStateEnvironmentContext = envContext,
         _appStateModal = Nothing,
-        _appStateMessages = Seq.empty,
         _appStateResponses = responses,
         _appStateHelpPanelVisible = HelpPanelVisible False,
         _appStateActiveRequests = Map.empty,
