@@ -19,6 +19,7 @@ import Brick.Widgets.List (listSelected)
 import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.IO.Class (liftIO)
+import Control.Monad.Reader
 import qualified Data.HashMap.Strict as Map
 import Data.Maybe (isNothing)
 import Data.UUID.V4 (nextRandom)
@@ -31,6 +32,7 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name
 import Types.Classes.Fields
+import Types.Config.Config
 import Types.Modal (Modal (..))
 import Types.Models.Id (RequestDefId (..))
 import Types.Models.Project (ProjectContext (..))
@@ -84,7 +86,7 @@ handleEventRequestEdit key mods chan s =
         $ s
 
 handleEventRequestDetails ::
-  MonadEvent m =>
+  (MonadReader Config m, MonadEvent m) =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->

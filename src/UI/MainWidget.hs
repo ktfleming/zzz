@@ -21,6 +21,7 @@ import qualified Data.Text as T
 import Types.AppState
 import Types.Brick.Name (Name (..))
 import Types.Classes.Displayable (Displayable)
+import Types.Config.Config
 import Types.Models.Screen
 import UI.Form
 import UI.List
@@ -41,8 +42,8 @@ padForm = padTop (Pad 1) . padLeft (Pad 2)
 listWithExplanation :: Displayable a => AppList a -> T.Text -> Widget Name
 listWithExplanation list e = txtWrap e <=> padTop (Pad 1) (renderGenericList True True list)
 
-mainWidget :: AnyAppState -> Widget Name
-mainWidget (AnyAppState _ s) = case s ^. screen of
+mainWidget :: Config -> AnyAppState -> Widget Name
+mainWidget config (AnyAppState _ s) = case s ^. screen of
   HelpScreen -> txt "Todo"
   ProjectAddScreen (AppForm form) -> renderAppForm form
   ProjectListScreen list ->
@@ -51,7 +52,7 @@ mainWidget (AnyAppState _ s) = case s ^. screen of
   ProjectDetailsScreen _ list ->
     listWithExplanation list "Select a request definition to view its details and send a request."
   RequestDefAddScreen _ (AppForm form) -> renderAppForm form
-  RequestDefDetailsScreen {} -> requestDefDetailsWidget s
+  RequestDefDetailsScreen {} -> requestDefDetailsWidget (config ^. timeZone) s
   RequestDefEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
   EnvironmentListScreen list ->
     listWithExplanation list "Select an environment to view its details."

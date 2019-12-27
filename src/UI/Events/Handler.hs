@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 
@@ -12,20 +13,21 @@ import Brick
 import Brick.BChan (BChan)
 import Control.Lens
 import Control.Monad ((<=<))
-import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (writeFile)
 import qualified Data.HashMap.Strict as Map
 import qualified Data.Sequence as Seq
 import Data.Singletons (withSingI)
 import qualified Data.Text as T
-import Data.Time (getCurrentTime)
+import Data.Time
 import Graphics.Vty.Input.Events
 import Messages.Messages (logMessage)
 import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name (Name (..))
 import Types.Classes.Fields
+import Types.Config.Config
 import Types.Constants
   ( mainSettingsFile,
     responseHistoryFile,
@@ -37,6 +39,7 @@ import Types.Models.RequestDef
 import Types.Models.Screen
 import Types.Models.Screen.Optics (lastError)
 import Types.Monads
+import Types.Time
 import UI.Environments.List (showEnvironmentListScreen)
 import UI.Events.Environments
 import UI.Events.Projects
@@ -58,7 +61,7 @@ updateCurrentTime s = do
   time <- liftIO getCurrentTime
   pure $ s & currentTime .~ time
 
-handleCustomEvent :: MonadIO m => CustomEvent -> AppState a -> m (AppState a)
+handleCustomEvent :: (MonadReader Config m, MonadIO m) => CustomEvent -> AppState a -> m (AppState a)
 handleCustomEvent Save s = saveState s
 -- Note: this is for errors that happen on the background thread that handles sending the
 -- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
@@ -68,11 +71,12 @@ handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
   -- The steps are...
   let -- If the current screen is the RequestDefDetailsScreen, need to update `lastError`
       -- so the user will see the error message
-      updateError :: MonadIO m => AppState a -> m (AppState a)
+      updateError :: (MonadReader Config m, MonadIO m) => AppState a -> m (AppState a)
       updateError s' = case s' ^. screen of
         RequestDefDetailsScreen {} -> do
           now <- liftIO getCurrentTime
-          pure $ s' & screen . lastError ?~ RequestFailed now (T.pack msg)
+          tz <- asks (view timeZone)
+          pure $ s' & screen . lastError ?~ RequestFailed (AppTime (utcToZonedTime tz now)) (T.pack msg)
         _ -> pure s'
       -- The request has completed, so clear its handle
       clearRequest :: AppState a -> AppState a
@@ -95,7 +99,7 @@ handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
         logMessage "Received response"
         saveState <=< (pure . updateDetails) <=< (pure . updateState) $ s
 
-saveState :: MonadIO m => AppState a -> m (AppState a)
+saveState :: (MonadReader Config m, MonadIO m) => AppState a -> m (AppState a)
 saveState s = do
   logMessage "Saving..."
   liftIO $ writeFile mainSettingsFile (encodePretty s)
@@ -104,7 +108,7 @@ saveState s = do
 
 -- This function does the actual event handling, inside the AppM monad
 handleEvent ::
-  MonadEvent m =>
+  (MonadEvent m, MonadReader Config m) =>
   BChan CustomEvent ->
   AnyAppState ->
   BrickEvent Name CustomEvent ->

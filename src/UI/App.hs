@@ -1,3 +1,5 @@
+{-# LANGUAGE ScopedTypeVariables #-}
+
 module UI.App where
 
 import Brick
@@ -15,6 +17,7 @@ import Brick.Widgets.Border (hBorder)
 import Brick.Widgets.Edit (editFocusedAttr)
 import Brick.Widgets.List (listSelectedFocusedAttr)
 import Control.Lens
+import Control.Monad.Reader
 import Data.Maybe (maybeToList)
 import qualified Graphics.Vty as V
 import Graphics.Vty.Input.Events
@@ -22,9 +25,8 @@ import Types.AppState
 import Types.Brick.CustomEvent
 import Types.Brick.Name
 import Types.Classes.Fields
+import Types.Config.Config
 import Types.Monads
-  ( runAppM,
-  )
 import UI.Attr
 import UI.Events.Handler
   ( handleEvent,
@@ -35,18 +37,18 @@ import UI.MainWidget (mainWidget)
 import UI.Modal (renderModal)
 import UI.StatusBar (statusBar)
 
-uiApp :: BChan CustomEvent -> App AnyAppState CustomEvent Name
-uiApp chan = App
-  { appDraw = drawUI,
+uiApp :: Config -> BChan CustomEvent -> App AnyAppState CustomEvent Name
+uiApp config chan = App
+  { appDraw = drawUI config,
     appChooseCursor = showFirstCursor,
-    appHandleEvent = brickHandleEvent chan,
+    appHandleEvent = brickHandleEvent config chan,
     appStartEvent = startEvent,
     appAttrMap = const myMap
   }
 
-drawUI :: AnyAppState -> [Widget Name]
-drawUI wrapper@(AnyAppState _ s) =
-  let main = statusBar s <=> padBottom Max (mainWidget wrapper)
+drawUI :: Config -> AnyAppState -> [Widget Name]
+drawUI config wrapper@(AnyAppState _ s) =
+  let main = statusBar s <=> padBottom Max (mainWidget config wrapper)
       everything =
         if s ^. helpPanelVisible . coerced
           then main <=> hBorder <=> helpPanel (s ^. screen)
@@ -61,16 +63,18 @@ startEvent = pure
 -- (note AnyAppState instead of AppState; since the input and output state must have the same type,
 -- we can't use AppState which is parameterized by a ScreenTag)
 brickHandleEvent ::
+  Config ->
   BChan CustomEvent ->
   AnyAppState ->
   BrickEvent Name CustomEvent ->
   EventM Name (Next AnyAppState)
 -- Ctrl-C always exits immediately
-brickHandleEvent _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
+brickHandleEvent _ _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
 -- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
 -- with every event.
-brickHandleEvent chan s ev =
-  runAppM (handleEvent chan s ev >>= updateCurrentTime) >>= continue
+brickHandleEvent config chan s ev =
+  let doHandle :: AppM AnyAppState = handleEvent chan s ev >>= updateCurrentTime
+   in runReaderT (runAppM doHandle) config >>= continue
 
 myMap :: AttrMap
 myMap =

@@ -28,8 +28,7 @@ import Data.Foldable (toList)
 import Data.Maybe (catMaybes)
 import Data.Sequence (Seq)
 import qualified Data.Text as T
-import Data.Time (UTCTime)
-import Data.Time.ISO8601 (formatISO8601)
+import Data.Time.Format.ISO8601
 import Parsing.TemplatedTextParser
   ( TemplatedText (..),
     TemplatedTextPart (..),
@@ -46,19 +45,20 @@ import Types.Models.Id
     RequestDefId,
   )
 import Types.Models.Url (Url (..))
+import Types.Time
 
 newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 
 newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
 
 data RequestError
-  = RequestFailed UTCTime T.Text -- tried to sent request, but failed (could not parse URL, etc)
+  = RequestFailed AppTime T.Text -- tried to sent request, but failed (could not parse URL, etc)
   | UnmatchedVariables [VariableName] -- URL/headers/body contains {{variables}} that aren't defined in the current environment
   deriving (Show, Eq)
 
 errorDescription :: RequestError -> T.Text
-errorDescription (RequestFailed errorTime msg) =
-  "The request sent at " <> (T.pack . formatISO8601) errorTime <> " failed: " <> msg
+errorDescription (RequestFailed (AppTime errorTime) msg) =
+  "The request sent at " <> (T.pack . iso8601Show) errorTime <> " failed: " <> msg
 errorDescription (UnmatchedVariables vars) =
   "The following variables are not defined in the current environment: "
     <> T.intercalate ", " (coerce vars)

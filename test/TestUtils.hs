@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 
 module TestUtils where
@@ -8,6 +9,7 @@ import Brick.Types (BrickEvent (VtyEvent))
 import Brick.Widgets.List (listSelected)
 import Control.Lens
 import Control.Monad.IO.Class (MonadIO, liftIO)
+import Control.Monad.Reader
 import qualified Data.HashMap.Strict as Map
 import Data.Maybe (isJust)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
@@ -20,6 +22,7 @@ import Test.Tasty.Hedgehog (testProperty)
 import TestMonad (runTestM)
 import Types.AppState (AnyAppState (..), AppState)
 import Types.Classes.Fields
+import Types.Config.Config
 import Types.Models.Project (Project, requestDefs)
 import Types.Models.RequestDef
 import Types.Models.Screen (ScreenTag (..))
@@ -43,7 +46,7 @@ getNextState s = getNextState' (AnyAppState sing s)
 getNextState' :: MonadIO m => AnyAppState -> Key -> [Modifier] -> m AnyAppState
 getNextState' s key mods =
   let testM = liftIO (newBChan 5) >>= \chan -> handleEvent chan s (VtyEvent (EvKey key mods))
-   in liftIO $ runTestM testM
+   in liftIO $ runReaderT (runTestM testM) defaultConfig
 
 -- Given a key (and modifiers) to press, an expected ScreenTag, and an initial AppState,
 -- assert that handling the keypress event will result in the expected screen being placed in the state

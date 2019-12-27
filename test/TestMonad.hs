@@ -1,11 +1,15 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module TestMonad where
 
 import Control.Monad.IO.Class
   ( MonadIO,
   )
+import Control.Monad.Reader
+import Types.Config.Config
 import Types.Monads
 
 -- A monad to run the tests in -- similar to the "real" app monad AppM,
@@ -15,7 +19,7 @@ import Types.Monads
 -- lists and forms.
 newtype TestM a
   = TestM
-      { runTestM :: IO a
+      { runTestM :: ReaderT Config IO a
       }
   deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -24,3 +28,5 @@ newtype TestM a
 -- of the form/list. This means that our forms/lists will not be modified.
 instance MonadEvent TestM where
   liftEvent x _ = pure x
+
+deriving instance MonadReader Config TestM

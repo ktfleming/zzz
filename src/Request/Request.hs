@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -20,7 +21,7 @@ import Control.Concurrent.Async
   )
 import Control.Error
 import Control.Lens
-import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Control.Monad.Trans.Class (lift)
 import Data.Coerce (coerce)
 import Data.Foldable (toList)
@@ -34,9 +35,6 @@ import Data.Text.Encoding
     encodeUtf8,
   )
 import Data.Time
-  ( diffUTCTime,
-    getCurrentTime,
-  )
 import Data.Time.Clock (UTCTime)
 import Messages.Messages (logMessage)
 import qualified Network.HTTP.Req as Req
@@ -44,6 +42,7 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Classes.Fields
 import Types.Classes.HasId (model)
+import Types.Config.Config
 import Types.Methods (Method (..))
 import Types.Models.Environment
   ( Environment,
@@ -57,6 +56,7 @@ import Types.Models.Response
 import Types.Models.Screen
 import Types.Models.Screen.Optics (lastError)
 import Types.Models.Url (Url (..))
+import Types.Time
 import Utils.Text
 
 data AnyReq where
@@ -77,7 +77,7 @@ eitherReqToAnyReq (Right (u, opts)) = AnyReq u opts
 -- result of the request will be sent back into the event loop via a BChan so that the global AppState
 -- can be updated appropriately.
 sendRequest ::
-  MonadIO m =>
+  (MonadReader Config m, MonadIO m) =>
   RequestDefContext ->
   BChan CustomEvent ->
   AppState 'RequestDefDetailsTag ->
@@ -88,7 +88,7 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
       vars :: [Variable] = maybe [] (toList . view variables) e
       finalUrl :: Url = substitute vars (r ^. url)
       -- Handling an error means logging it and updating the `lastError` field on the Screen
-      errorHandler :: MonadIO m => RequestError -> m (AppState 'RequestDefDetailsTag)
+      errorHandler :: (MonadReader Config m, MonadIO m) => RequestError -> m (AppState 'RequestDefDetailsTag)
       errorHandler er = do
         logMessage (errorDescription er)
         pure $ s & screen . lastError ?~ er
@@ -98,7 +98,9 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
   -- revisit this at some point.
   case (validateVariables s r, (Req.parseUrl . encodeUtf8 . coerce) finalUrl) of
     (Left er, _) -> errorHandler er
-    (_, Nothing) -> errorHandler $ RequestFailed now "Error parsing URL"
+    (_, Nothing) -> do
+      tz <- asks (view timeZone)
+      errorHandler $ RequestFailed (AppTime (utcToZonedTime tz now)) "Error parsing URL"
     (Right _, Just validatedUrl) -> do
       let asyncRequest :: IO (Async ()) =
             async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r finalUrl chan now vars

@@ -29,6 +29,7 @@ import qualified Data.HashMap.Strict as Map
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
+import Data.Time
 import Types.AppState
 import Types.Brick.Name (Name (..))
 import Types.Classes.Displayable (display)
@@ -110,7 +111,7 @@ topWidget s c@(RequestDefContext _ rid) focused =
 errorWidget :: Maybe RequestError -> Widget Name
 errorWidget = maybe emptyWidget (padBottom (Pad 1) . withAttr errorAttr . hCenter . txtWrap . errorDescription)
 
-responseHistoryWidget :: AppList ResponseWithCurrentTime -> Bool -> Bool -> Widget Name
+responseHistoryWidget :: AppList ResponseHistoryListItem -> Bool -> Bool -> Widget Name
 responseHistoryWidget appList@(AppList innerList) focused showSelection =
   let elems = listElements innerList
    in if null elems
@@ -121,16 +122,16 @@ responseHistoryWidget appList@(AppList innerList) focused showSelection =
               vLimit (min 10 (length elems)) (renderGenericList focused showSelection appList)
             ]
 
-requestDefDetailsWidget :: AppState 'RequestDefDetailsTag -> Widget Name
-requestDefDetailsWidget s =
+requestDefDetailsWidget :: TimeZone -> AppState 'RequestDefDetailsTag -> Widget Name
+requestDefDetailsWidget tz s =
   let (RequestDefDetailsScreen c (AppList zl) (AppFocusRing ring) maybeError) = s ^. screen
       focused = focusGetCurrent ring
       showResponse = focused == Just ResponseBodyDetails || focused == Just ResponseList
       bodyWidget = case (showResponse, listSelectedElement zl) of
-        (True, Just (_, r)) -> borderOrPad (focused == Just ResponseBodyDetails) $ responseDetails r
+        (True, Just (_, r)) -> borderOrPad (focused == Just ResponseBodyDetails) $ responseDetails tz r
         _ -> emptyWidget
-      listWithTime :: AppList ResponseWithCurrentTime
-      listWithTime = coerce $ ResponseWithCurrentTime (s ^. currentTime) <$> zl
+      listWithTime :: AppList ResponseHistoryListItem
+      listWithTime = coerce $ ResponseHistoryListItem tz (s ^. currentTime) <$> zl
    in overrideAttr borderAttr focusedBorderAttr $
         vBox
           [ topWidget s c (focused == Just RequestDetails),

@@ -19,6 +19,7 @@ import Graphics.Vty
 import System.Directory (doesFileExist)
 import Types.AppState
 import Types.Classes.Fields
+import qualified Types.Config.Config as Config
 import Types.Constants
   ( mainSettingsFile,
     responseHistoryFile,
@@ -52,13 +53,14 @@ main = do
             .~ time
     eventChannel <- liftIO $ newBChan 5
     let buildVty = mkVty defaultConfig
+        config = Config.defaultConfig
     initialVty <- liftIO buildVty
     liftIO $
       customMain
         initialVty
         buildVty
         (Just eventChannel)
-        (uiApp eventChannel)
+        (uiApp config eventChannel)
         (AnyAppState SProjectListTag updatedState)
   case runOrError of
     Left e -> putStrLn e

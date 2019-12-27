@@ -12,7 +12,8 @@ import Control.Lens
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Text as T
-import Data.Time.ISO8601 (formatISO8601)
+import Data.Time
+import Data.Time.Format.ISO8601
 import Numeric (showFFloat)
 import Types.Brick.Name (Name (..))
 import Types.Classes.Displayable (display)
@@ -31,8 +32,8 @@ centerSection :: T.Text -> Widget Name
 centerSection t = hCenterWith (Just '-') (txt (" " <> t <> " "))
 
 -- Response body plus URL, request body, and headers
-responseDetails :: Response -> Widget Name
-responseDetails r =
+responseDetails :: TimeZone -> Response -> Widget Name
+responseDetails tz r =
   let u :: T.Text = r ^. url . coerced
       sentBody :: T.Text = r ^. requestBody . coerced
       keyValues :: Seq KeyValue = fmap (view keyValueIso) (r ^. headers)
@@ -43,7 +44,7 @@ responseDetails r =
           <$> Prelude.filter
             snd
             [ (txt "Request:  " <+> display (r ^. method) <+> txt (" " <> u), True),
-              (str $ "Received: " <> formatISO8601 (r ^. dateTime), True),
+              (str $ "Received: " <> iso8601Show (utcToZonedTime tz (r ^. dateTime)), True),
               (txt "Elapsed:  " <+> elapsedWidget, True),
               (padBottom (Pad 1) $ txt "Status:   " <+> display (r ^. statusCode), True),
               (centerSection "Headers", not (Seq.null keyValues)),

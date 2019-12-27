@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE OverloadedStrings #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Types.Models.Response where
@@ -32,11 +33,8 @@ import Data.Aeson
 import Data.Sequence (Seq)
 import qualified Data.Text as T
 import Data.Time
-  ( NominalDiffTime,
-    UTCTime,
-  )
-import Data.Time.Format.Human (humanReadableTime')
-import Data.Time.ISO8601 (formatISO8601)
+import Formatting
+import Formatting.Time
 import Numeric (showInt)
 import Types.Classes.Displayable
   ( Displayable,
@@ -109,12 +107,16 @@ instance Displayable StatusCode where
       w = str $ showInt code ""
 
 -- When displaying the response history list, we also need to have the current time
--- in order to calculate the relative time ("X days ago", etc).
-data ResponseWithCurrentTime = ResponseWithCurrentTime UTCTime Response
+-- in order to calculate the relative time ("X days ago", etc), as well as the TimeZone
+-- to use when formatting.
+data ResponseHistoryListItem = ResponseHistoryListItem TimeZone UTCTime Response
 
-instance Displayable ResponseWithCurrentTime where
-  display (ResponseWithCurrentTime time r) =
+instance Displayable ResponseHistoryListItem where
+  display (ResponseHistoryListItem timeZone utcTime r) =
     let sc = display (r ^. statusCode)
-        relativeTime = " (" <> humanReadableTime' time (r ^. dateTime) <> ")"
-        timestamp = txt $ T.pack $ formatISO8601 (r ^. dateTime) <> relativeTime
+        diffTime = diffUTCTime (r ^. dateTime) utcTime
+        relativeTime = sformat (diff True) diffTime -- "a day ago", etc
+        zonedTime = utcToZonedTime timeZone (r ^. dateTime)
+        absoluteTime = T.pack $ formatTime defaultTimeLocale "%F %T" zonedTime
+        timestamp = txt $ absoluteTime <> " (" <> relativeTime <> ")"
      in sc <+> padLeft (Pad 1) timestamp

@@ -131,7 +131,7 @@ instance Eq AnyAppState where
 -- due to the existential appearing in positive position (at least I think that's why)
 -- so we have to jump over the `AppState a` for each individual lens.
 
-instance HasCurrentTime AnyAppState (UTCTime) where
+instance HasCurrentTime AnyAppState UTCTime where
   currentTime = lens getter setter
     where
       getter (AnyAppState _ s) = s ^. currentTime

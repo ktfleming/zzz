@@ -2,7 +2,9 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE StandaloneDeriving #-}
 
 module Types.Monads where
 
@@ -16,6 +18,7 @@ import Control.Monad.IO.Class
   ( MonadIO,
     liftIO,
   )
+import Control.Monad.Reader
 import Data.Singletons
   ( SingI,
     sing,
@@ -28,13 +31,14 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name (Name)
 import Types.Classes.Fields
+import Types.Config.Config
 import Types.Models.Screen
   ( AnyScreen (..),
   )
 
 newtype AppM a
   = AppM
-      { runAppM :: (EventM Name) a
+      { runAppM :: ReaderT Config (EventM Name) a
       }
   deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -44,7 +48,9 @@ class MonadIO m => MonadEvent m where
   liftEvent :: a -> EventM Name a -> m a
 
 instance MonadEvent AppM where
-  liftEvent _ = AppM
+  liftEvent _ = AppM . lift
+
+deriving instance MonadReader Config AppM
 
 -- Wraps the tagged output state into an AnyAppState. This is necessary for
 -- interacting with Brick's top-level event handler.
