@@ -49,10 +49,8 @@ import UI.Modal
     handleConfirm,
   )
 import UI.RequestDefs.Details (refreshResponseList)
-import UI.Search
-  ( handleEventSearch,
-    showSearchScreen,
-  )
+import UI.Search.Common
+import UI.Search.SearchScreen
 import Prelude hiding (writeFile)
 
 -- Every event should also update the currentTime inside the AppState
@@ -120,7 +118,7 @@ handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
 -- global search or the environment list screen) since that necessitates a screen unstash.
 handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'f') [MCtrl])) =
   pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
-handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'e') [MCtrl])) =
+handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'i') [MCtrl])) =
   pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
 handleEvent chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
   case (s ^. modal, key) of
@@ -131,7 +129,7 @@ handleEvent chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
       ProjectAddScreen {} -> handleEventProjectAdd key mods chan s
       ProjectEditScreen {} -> handleEventProjectEdit key mods chan s
       ProjectListScreen {} -> handleEventProjectList key mods chan s
-      ProjectDetailsScreen {} -> handleEventProjectDetails key mods s
+      ProjectDetailsScreen {} -> handleEventProjectDetails key mods chan s
       RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan s
       RequestDefEditScreen {} -> handleEventRequestEdit key mods chan s
       RequestDefAddScreen {} -> handleEventRequestAdd key mods chan s

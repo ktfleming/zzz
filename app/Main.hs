@@ -26,7 +26,7 @@ import Types.Constants
   )
 import Types.Models.Screen
 import UI.App (uiApp)
-import UI.Projects.List (makeProjectList)
+import UI.Projects.List (showProjectListScreen)
 import Prelude hiding (readFile)
 
 getDataFromFile :: FromJSON a => String -> ExceptT String IO a
@@ -45,8 +45,6 @@ main = do
     -- ProjectListScreen here, and insert the Responses read from a separate file
     let updatedState =
           s
-            & screen
-            .~ ProjectListScreen (makeProjectList (s ^. projects))
             & responses
             .~ rs
             & currentTime
@@ -61,7 +59,7 @@ main = do
         buildVty
         (Just eventChannel)
         (uiApp config eventChannel)
-        (AnyAppState SProjectListTag updatedState)
+        (AnyAppState SProjectListTag (showProjectListScreen updatedState))
   case runOrError of
     Left e -> putStrLn e
     Right _ -> putStrLn "Done!"

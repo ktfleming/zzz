@@ -37,34 +37,34 @@ projectNavTestTree =
     "Project Navigation"
     [ testGroup
         "ProjectListScreen"
-        [ propN 1 "Pressing the 'a' key" $
-            with ProjectListTag >>= check (KChar 'a') [] ProjectAddTag,
-          prop "the right arrow key" $ do
+        [ propN 1 "Pressing CTRL+a" $
+            with ProjectListTag >>= check (KChar 'a') [MCtrl] ProjectAddTag,
+          prop "the enter key" $ do
             s <- with ProjectListTag
             let expected =
                   if hasProject s
                     then ProjectDetailsTag
                     else ProjectListTag
-            check KRight [] expected s
+            check KEnter [] expected s
         ],
       testGroup
         "ProjectDetailsScreen"
-        [ prop "Pressing the right arrow key" $ do
+        [ prop "Pressing the enter key" $ do
             i@(AnyAppState SProjectDetailsTag initial) <- with ProjectDetailsTag
             let expected =
                   if requestDefSelected initial
                     then RequestDefDetailsTag
                     else ProjectDetailsTag
-            check KRight [] expected i,
-          propN 1 "Pressing the left arrow key" $
-            with ProjectDetailsTag >>= check KLeft [] ProjectListTag,
-          propN 1 "Pressing the 'e' key" $
-            with ProjectDetailsTag >>= check (KChar 'e') [] ProjectEditTag,
-          propN 1 "Pressing the 'a' key" $
-            with ProjectDetailsTag >>= check (KChar 'a') [] RequestDefAddTag,
-          prop "Pressing the 'd' key" $ do
+            check KEnter [] expected i,
+          propN 1 "Pressing the escape key" $
+            with ProjectDetailsTag >>= check KEsc [] ProjectListTag,
+          propN 1 "Pressing CTRL+e" $
+            with ProjectDetailsTag >>= check (KChar 'e') [MCtrl] ProjectEditTag,
+          propN 1 "Pressing CTRL+a" $
+            with ProjectDetailsTag >>= check (KChar 'a') [MCtrl] RequestDefAddTag,
+          prop "Pressing CTRL+d" $ do
             i@(AnyAppState SProjectDetailsTag AppState {appStateScreen = ProjectDetailsScreen c _}) <- with ProjectDetailsTag
-            n <- getNextState' i (KChar 'd') []
+            n <- getNextState' i (KChar 'd') [MCtrl]
             n ^. modal === Just (DeleteProjectModal c)
         ],
       testGroup

@@ -39,11 +39,11 @@ import Types.Models.Response
 import Types.Models.Screen
 import Types.Models.Url (Url (..))
 import UI.Environments.Common (makeEnvironmentForm)
-import UI.Environments.List (makeEnvironmentList)
+import UI.Environments.List
 import UI.FocusRing (AppFocusRing (..))
 import UI.Projects.Common (makeProjectForm)
-import UI.Projects.Details (makeRequestDefList)
-import UI.Projects.List (makeProjectList)
+import UI.Projects.Details
+import UI.Projects.List
 import UI.RequestDefs.Common (makeRequestDefForm)
 import UI.RequestDefs.Details (makeResponseList)
 
@@ -173,11 +173,11 @@ genScreen tag projects env envs stashedScreen responses =
         NoEnvironmentKey -> Seq.empty
         IdKey eid -> maybe Seq.empty (view variables) (Map.lookup eid envs)
    in case tag of
-        ProjectListTag -> pure $ AnyScreen sing $ ProjectListScreen (makeProjectList projects)
+        ProjectListTag -> pure $ AnyScreen sing $ ProjectListScreen (projectListSearchTools projects)
         ProjectDetailsTag -> do
           (pid, p) <- requireProject
           let c = ProjectContext pid
-          pure $ AnyScreen sing $ ProjectDetailsScreen c (makeRequestDefList c p)
+          pure $ AnyScreen sing $ ProjectDetailsScreen c (projectDetailsSearchTools c p)
         ProjectAddTag -> AnyScreen sing . ProjectAddScreen . makeProjectForm <$> genProjectFormState
         ProjectEditTag -> do
           (pid, _) <- requireProject
@@ -204,7 +204,7 @@ genScreen tag projects env envs stashedScreen responses =
         EnvironmentAddTag ->
           AnyScreen sing . EnvironmentAddScreen . makeEnvironmentForm <$> genEnvironmentFormState
         EnvironmentListTag ->
-          if isNothing stashedScreen then Gen.discard else pure $ AnyScreen sing $ EnvironmentListScreen (makeEnvironmentList envs)
+          if isNothing stashedScreen then Gen.discard else pure $ AnyScreen sing $ EnvironmentListScreen (environmentListSearchTools envs)
         EnvironmentEditTag -> do
           (eid, _) <- requireEnvironment
           AnyScreen sing . EnvironmentEditScreen (EnvironmentContext eid) . makeEnvironmentForm <$> genEnvironmentFormState

@@ -106,15 +106,15 @@ handleEventRequestDetails key mods chan s =
         liftEvent () $ vScrollToBeginning (viewportScroll ResponseBodyViewport)
         pure $ s' & screen . ringLens %~ (\(AppFocusRing r) -> AppFocusRing (f r))
    in case (key, mods) of
-        (KLeft, []) ->
+        (KEsc, []) ->
           let (RequestDefContext pid _) = c
            in pure . wrap . showProjectDetails (ProjectContext pid)
-        (KChar 'x', []) ->
+        (KChar 'x', [MCtrl]) ->
           case activeRequest of
             Just toCancel -> fmap wrap . cancelRequest c toCancel
             Nothing -> pure . wrap
-        (KChar 'e', []) -> pure . wrap . showEditRequestDefScreen c
-        (KChar 'd', []) -> case (focused, selectedResponse) of
+        (KChar 'e', [MCtrl]) -> pure . wrap . showEditRequestDefScreen c
+        (KChar 'd', [MCtrl]) -> case (focused, selectedResponse) of
           (Just ResponseList, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i)
           (Just ResponseBodyDetails, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i)
           _ -> pure . wrap . (modal ?~ DeleteRequestDefModal c)

@@ -6,16 +6,7 @@
 {-# LANGUAGE TypeFamilyDependencies #-}
 {-# LANGUAGE UndecidableInstances #-}
 
-module Types.Models.Screen.Optics
-  ( updateBrickForm,
-    updateBrickList,
-    listLens,
-    formLens,
-    lastError,
-    ifValid,
-    context,
-  )
-where
+module Types.Models.Screen.Optics where
 
 import Brick (BrickEvent (..))
 import Brick.Forms (allFieldsValid, handleFormEvent)
@@ -28,24 +19,12 @@ import Graphics.Vty.Input.Events
   )
 import Types.AppState (AnyAppState (..), AppState, screen)
 import Types.Models.Environment
-  ( EnvironmentFormState,
-    EnvironmentListItem,
-  )
 import Types.Models.Project
-  ( ProjectContext,
-    ProjectFormState,
-    ProjectListItem,
-  )
 import Types.Models.RequestDef
-  ( RequestDefContext,
-    RequestDefFormState,
-    RequestDefListItem,
-    RequestError,
-  )
 import Types.Models.Response (Response)
 import Types.Models.Screen
 import Types.Monads
-import Types.Search (SearchListItem)
+import Types.Search
 import UI.Form (AppForm (..))
 import UI.List (AppList (..))
 
@@ -126,21 +105,6 @@ class HasBrickList a where
 
   listLens :: Lens' a (AppList (ListItem a))
 
-instance HasBrickList (Screen 'ProjectListTag) where
-
-  type ListItem (Screen 'ProjectListTag) = ProjectListItem
-
-  listLens = lens (\(ProjectListScreen l) -> l) (\_ l -> ProjectListScreen l)
-
-instance HasBrickList (Screen 'ProjectDetailsTag) where
-
-  type ListItem (Screen 'ProjectDetailsTag) = RequestDefListItem
-
-  listLens =
-    lens
-      (\(ProjectDetailsScreen _ l) -> l)
-      (\(ProjectDetailsScreen c _) l -> ProjectDetailsScreen c l)
-
 instance HasBrickList (Screen 'RequestDefDetailsTag) where
 
   type ListItem (Screen 'RequestDefDetailsTag) = Response
@@ -149,18 +113,6 @@ instance HasBrickList (Screen 'RequestDefDetailsTag) where
     lens
       (\(RequestDefDetailsScreen _ l _ _) -> l)
       (\(RequestDefDetailsScreen c _ ring e) l -> RequestDefDetailsScreen c l ring e)
-
-instance HasBrickList (Screen 'EnvironmentListTag) where
-
-  type ListItem (Screen 'EnvironmentListTag) = EnvironmentListItem
-
-  listLens = lens (\(EnvironmentListScreen l) -> l) (\_ l -> EnvironmentListScreen l)
-
-instance HasBrickList (Screen 'SearchTag) where
-
-  type ListItem (Screen 'SearchTag) = SearchListItem
-
-  listLens = lens (\(SearchScreen _ l _) -> l) (\(SearchScreen e _ rs) l -> SearchScreen e l rs)
 
 -- For getting a list out of an AppState that contains a Screen that contains a list
 instance HasBrickList (Screen a) => HasBrickList (AppState a) where
@@ -211,3 +163,18 @@ instance HasContext (Screen 'RequestDefEditTag) RequestDefContext where
 
 instance HasContext (Screen 'RequestDefDetailsTag) RequestDefContext where
   context = to $ \(RequestDefDetailsScreen c _ _ _) -> c
+
+class HasSearchTools a where
+  searchTools :: Lens' a SearchTools
+
+instance HasSearchTools (Screen 'SearchTag) where
+  searchTools = lens (\(SearchScreen t) -> t) (\_ t -> SearchScreen t)
+
+instance HasSearchTools (Screen 'ProjectListTag) where
+  searchTools = lens (\(ProjectListScreen t) -> t) (\_ t -> ProjectListScreen t)
+
+instance HasSearchTools (Screen 'ProjectDetailsTag) where
+  searchTools = lens (\(ProjectDetailsScreen _ t) -> t) (\(ProjectDetailsScreen c _) t -> ProjectDetailsScreen c t)
+
+instance HasSearchTools (Screen 'EnvironmentListTag) where
+  searchTools = lens (\(EnvironmentListScreen t) -> t) (\_ t -> EnvironmentListScreen t)

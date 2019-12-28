@@ -1,5 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE EmptyCase #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
@@ -26,10 +28,6 @@ import Types.Models.Project
 import Types.Models.RequestDef
 import Types.Models.Response
 import Types.Search
-  ( PartitionedResults,
-    SearchListItem,
-  )
-import UI.Editor (ZZZEditor)
 import UI.FocusRing (AppFocusRing)
 import UI.Form (AppForm)
 import UI.List (AppList)
@@ -64,11 +62,11 @@ data Screen (a :: ScreenTag) where
     AppForm ProjectFormState ->
     Screen 'ProjectEditTag
   ProjectListScreen ::
-    AppList ProjectListItem ->
+    SearchTools ->
     Screen 'ProjectListTag
   ProjectDetailsScreen ::
     ProjectContext ->
-    AppList RequestDefListItem ->
+    SearchTools ->
     Screen 'ProjectDetailsTag
   RequestDefEditScreen ::
     RequestDefContext ->
@@ -85,7 +83,7 @@ data Screen (a :: ScreenTag) where
     Maybe RequestError ->
     Screen 'RequestDefDetailsTag
   EnvironmentListScreen ::
-    AppList EnvironmentListItem ->
+    SearchTools ->
     Screen 'EnvironmentListTag
   EnvironmentEditScreen ::
     EnvironmentContext ->
@@ -95,9 +93,7 @@ data Screen (a :: ScreenTag) where
     AppForm EnvironmentFormState ->
     Screen 'EnvironmentAddTag
   SearchScreen ::
-    ZZZEditor ->
-    AppList SearchListItem ->
-    PartitionedResults ->
+    SearchTools ->
     Screen 'SearchTag
   HelpScreen :: Screen 'HelpTag
 

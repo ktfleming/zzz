@@ -20,13 +20,14 @@ import Hedgehog
 import Test.Tasty (TestTree)
 import Test.Tasty.Hedgehog (testProperty)
 import TestMonad (runTestM)
-import Types.AppState (AnyAppState (..), AppState)
+import Types.AppState
 import Types.Classes.Fields
 import Types.Config.Config
 import Types.Models.Project (Project, requestDefs)
 import Types.Models.RequestDef
 import Types.Models.Screen (ScreenTag (..))
 import Types.Models.Screen.Optics
+import Types.Search
 import UI.Events.Handler (handleEvent)
 import UI.List (AppList (..))
 
@@ -71,7 +72,7 @@ hasProject s = (not . Map.null) $ s ^. projects
 -- Whether or not the currently displayed Project has at least one RequestDef
 requestDefSelected :: AppState 'ProjectDetailsTag -> Bool
 requestDefSelected s =
-  let AppList list = s ^. listLens
+  let AppList list = s ^. screen ^. searchTools ^. appList
    in isJust $ listSelected list
 
 -- Just a shortcut since so many specs start with this kind of `forAll`

@@ -9,7 +9,6 @@
 
 module Types.Models.Environment where
 
-import Brick (txt)
 import Control.Lens
   ( (^.),
     coerced,
@@ -28,14 +27,9 @@ import Data.Aeson
     toJSON,
     withObject,
   )
-import Data.Coerce (coerce)
 import Data.Hashable (Hashable)
 import Data.Sequence (Seq)
 import qualified Data.Text as T
-import Types.Classes.Displayable
-  ( Displayable,
-    display,
-  )
 import Types.Classes.Fields
 import Types.Models.Id (EnvironmentId)
 import Types.Models.KeyValue
@@ -63,8 +57,6 @@ data Environment
 
 newtype EnvironmentContext = EnvironmentContext EnvironmentId deriving (FromJSON, ToJSON, Show, Eq)
 
-data EnvironmentListItem = NoEnvironment | AnEnvironment EnvironmentContext EnvironmentName deriving (Show, Eq)
-
 data EnvironmentFormState
   = EnvironmentFormState
       { environmentFormStateName :: EnvironmentName,
@@ -87,10 +79,6 @@ instance ToJSON Environment where
 
 instance FromJSON Environment where
   parseJSON = withObject "Environment" $ \o -> Environment <$> (o .: "name") <*> (o .: "variables")
-
-instance Displayable EnvironmentListItem where
-  display NoEnvironment = txt "(No environment)"
-  display (AnEnvironment _ n) = txt $ coerce n
 
 instance ToJSON Variable where
   toJSON = toJSON . view keyValueIso

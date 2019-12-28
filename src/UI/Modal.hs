@@ -28,8 +28,7 @@ import Types.Models.Project (ProjectContext (..))
 import Types.Models.RequestDef (RequestDefContext (..))
 import Types.Monads
 import UI.Environments.Delete
-import UI.Environments.List (showEnvironmentListScreen)
-import UI.Events.Environments (refreshIfNecessary)
+import UI.Environments.List (refreshIfNecessary, showEnvironmentListScreen)
 import UI.Projects.Delete
 import UI.Projects.Details (showProjectDetails)
 import UI.Projects.List (showProjectListScreen)

@@ -6,7 +6,6 @@
 
 module Types.Models.RequestDef where
 
-import Brick (txt)
 import Control.Lens
   ( (^.),
     coerced,
@@ -35,7 +34,6 @@ import Parsing.TemplatedTextParser
     parseTemplatedText,
   )
 import Text.Megaparsec (runParser)
-import Types.Classes.Displayable
 import Types.Classes.Fields
 import Types.Methods (Method)
 import Types.Models.Environment (VariableName (..))
@@ -85,8 +83,6 @@ data RequestDefFormState
 
 data RequestDefContext = RequestDefContext ProjectId RequestDefId deriving (Show, Eq)
 
-data RequestDefListItem = RequestDefListItem RequestDefContext RequestDefName deriving (Show, Eq)
-
 makeFields ''RequestDef
 
 makeFields ''RequestDefFormState
@@ -109,9 +105,6 @@ allVariables r =
       bodyVariables = extractVariables $ r ^. body . coerced
       headerVariables = toList (r ^. headers) >>= (\(Header n v) -> join [extractVariables (coerce n), extractVariables (coerce v)])
    in join [urlVariables, bodyVariables, headerVariables]
-
-instance Displayable RequestDefListItem where
-  display (RequestDefListItem _ n) = txt $ coerce n
 
 instance ToJSON RequestDef where
   toJSON r =

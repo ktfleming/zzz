@@ -27,6 +27,7 @@ import Types.Modal
 import Types.Models.Environment
 import Types.Models.Screen
 import Types.Models.Screen.Optics
+import Types.Search
 import UI.Form (AppForm (..))
 import UI.List (AppList (..))
 import UI.RequestDefs.Details (makeResponseList)
@@ -65,18 +66,18 @@ environmentNavTree =
             ( AnyAppState
                 SEnvironmentListTag
                 initial@AppState
-                  { appStateScreen = EnvironmentListScreen (AppList list),
-                    _appStateStashedScreen = Just (AnyScreen initialStashedTag initialStashedScreen)
+                  { _appStateStashedScreen = Just (AnyScreen initialStashedTag initialStashedScreen)
                   }
               ) <-
               with EnvironmentListTag
             (AnyAppState newTag newState) <- getNextState initial KEnter []
             -- Selecting an environment should unstash the stashed screen, leaving nothing stashed
             newState ^. stashedScreen === Nothing
+            let AppList list = initial ^. screen ^. searchTools ^. appList
             selectedEnv <- case listSelectedElement list of
-              Just (_, NoEnvironment) -> pure Nothing
-              Just (_, (AnEnvironment ec _)) -> pure $ Just ec
-              Nothing -> failure -- there should always be an item selected in the list
+              Just (_, SelectableResult NoEnvironmentResult) -> pure Nothing
+              Just (_, (SelectableResult (AnEnvironmentResult ec _))) -> pure $ Just ec
+              _ -> failure -- there should always be an item selected in the list
 
             -- The environment that was selected should be reflected in the new state
             newState ^. environmentContext === selectedEnv
@@ -92,27 +93,29 @@ environmentNavTree =
                      in RequestDefDetailsScreen c (makeResponseList newResponses) ring err
                   _ -> initialStashedScreen
             newScreen === AnyScreen initialStashedTag expectedScreen,
-          prop "Pressing 'd'" $ do
-            i@(AnyAppState SEnvironmentListTag initial@AppState {appStateScreen = EnvironmentListScreen (AppList list)}) <- with EnvironmentListTag
-            n <- getNextState initial (KChar 'd') []
+          prop "Pressing CTRL+d" $ do
+            i@(AnyAppState SEnvironmentListTag initial) <- with EnvironmentListTag
+            n <- getNextState initial (KChar 'd') [MCtrl]
+            let AppList list = initial ^. screen ^. searchTools ^. appList
             case listSelectedElement list of
-              Just (_, NoEnvironment) -> i === n -- nothing selected, so no modal appears
-              Just (_, (AnEnvironment ec _)) -> n ^. modal === Just (DeleteEnvironmentModal ec)
-              Nothing -> failure,
-          prop "Pressing 'e'" $ do
-            i@(AnyAppState SEnvironmentListTag initial@AppState {appStateScreen = EnvironmentListScreen (AppList list)}) <- with EnvironmentListTag
-            n@(AnyAppState newTag newState) <- getNextState initial (KChar 'e') []
+              Just (_, SelectableResult NoEnvironmentResult) -> i === n -- nothing selected, so no modal appears
+              Just (_, SelectableResult (AnEnvironmentResult ec _)) -> n ^. modal === Just (DeleteEnvironmentModal ec)
+              _ -> failure,
+          prop "Pressing CTRL+e" $ do
+            i@(AnyAppState SEnvironmentListTag initial) <- with EnvironmentListTag
+            n@(AnyAppState newTag newState) <- getNextState initial (KChar 'e') [MCtrl]
+            let AppList list = initial ^. screen ^. searchTools ^. appList
             case listSelectedElement list of
-              Just (_, NoEnvironment) -> i === n -- nothing selected, so nothing happens
-              Just (_, (AnEnvironment ec _)) -> do
+              Just (_, (SelectableResult NoEnvironmentResult)) -> i === n -- nothing selected, so nothing happens
+              Just (_, (SelectableResult (AnEnvironmentResult ec _))) -> do
                 fromSing newTag === EnvironmentEditTag
                 case newState ^. screen of
                   EnvironmentEditScreen ec' _ -> ec' === ec
                   _ -> failure
-              Nothing -> failure,
-          propN 1 "Pressing 'a'" $ do
+              _ -> failure,
+          propN 1 "Pressing CTRL+a" $ do
             i <- with EnvironmentListTag
-            check (KChar 'a') [] EnvironmentAddTag i
+            check (KChar 'a') [MCtrl] EnvironmentAddTag i
         ],
       testGroup
         "Environment edit screen"

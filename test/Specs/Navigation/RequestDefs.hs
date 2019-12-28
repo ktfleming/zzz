@@ -101,26 +101,26 @@ requestDefNavTree =
         ],
       testGroup
         "RequestDefDetailsScreen"
-        [ prop "Pressing the 'e' key" $ do
+        [ prop "Pressing CTRL+e" $ do
             i@(AnyAppState SRequestDefDetailsTag initial@AppState {appStateScreen = RequestDefDetailsScreen c _ _ _}) <- with RequestDefDetailsTag
-            n@(AnyAppState SRequestDefEditTag AppState {appStateScreen = RequestDefEditScreen newC _}) <- getNextState initial (KChar 'e') []
+            n@(AnyAppState SRequestDefEditTag AppState {appStateScreen = RequestDefEditScreen newC _}) <- getNextState initial (KChar 'e') [MCtrl]
             newC === c
             n ^. projects === i ^. projects,
-          prop "Pressing the 'd' key" $ do
+          prop "Pressing CTRL+d" $ do
             i@(AnyAppState SRequestDefDetailsTag AppState {appStateScreen = RequestDefDetailsScreen c (AppList list) (AppFocusRing ring) _}) <- with RequestDefDetailsTag
             cover 10 "RequestDetails selected" $ focusGetCurrent ring == Just RequestDetails
             cover 10 "ResponseList selected" $ focusGetCurrent ring == Just ResponseList
             cover 10 "ResponseBodyDetails selected" $ focusGetCurrent ring == Just ResponseBodyDetails
-            n <- getNextState' i (KChar 'd') []
+            n <- getNextState' i (KChar 'd') [MCtrl]
             case (focusGetCurrent ring, listSelected list) of
               (Just RequestDetails, _) -> n ^. modal === Just (DeleteRequestDefModal c)
               (Just ResponseList, Just idx) -> n ^. modal === Just (DeleteResponseModal c (ResponseIndex idx))
               (Just ResponseBodyDetails, Just idx) -> n ^. modal === Just (DeleteResponseModal c (ResponseIndex idx))
               _ -> failure
             n ^. projects === i ^. projects,
-          prop "Pressing the left arrow" $ do
+          prop "Pressing the escape key" $ do
             i@(AnyAppState SRequestDefDetailsTag initial@AppState {appStateScreen = RequestDefDetailsScreen (RequestDefContext pid _) _ _ _}) <- with RequestDefDetailsTag
-            n@(AnyAppState SProjectDetailsTag AppState {appStateScreen = ProjectDetailsScreen (ProjectContext newPid) _}) <- getNextState initial KLeft []
+            n@(AnyAppState SProjectDetailsTag AppState {appStateScreen = ProjectDetailsScreen (ProjectContext newPid) _}) <- getNextState initial KEsc []
             pid === newPid
             n ^. projects === i ^. projects
         ]

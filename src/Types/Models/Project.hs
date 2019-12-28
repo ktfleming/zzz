@@ -6,7 +6,6 @@
 
 module Types.Models.Project where
 
-import Brick (txt)
 import Control.Lens
   ( (^.),
     coerced,
@@ -22,13 +21,8 @@ import Data.Aeson
     toJSON,
     withObject,
   )
-import Data.Coerce (coerce)
 import Data.HashMap.Strict (HashMap)
 import qualified Data.Text as T
-import Types.Classes.Displayable
-  ( Displayable,
-    display,
-  )
 import Types.Classes.Fields
 import Types.Models.Id
   ( ProjectId,
@@ -47,8 +41,6 @@ data Project
 
 newtype ProjectContext = ProjectContext ProjectId deriving (Show, Eq)
 
-data ProjectListItem = ProjectListItem ProjectContext ProjectName deriving (Show, Eq)
-
 newtype ProjectFormState = ProjectFormState {projectFormStateName :: ProjectName} deriving (Eq, Show)
 
 makeFields ''Project
@@ -62,6 +54,3 @@ instance ToJSON Project where
 instance FromJSON Project where
   parseJSON =
     withObject "Project" $ \o -> Project <$> (o .: "name") <*> (o .: "request_definitions")
-
-instance Displayable ProjectListItem where
-  display (ProjectListItem _ n) = txt $ coerce n

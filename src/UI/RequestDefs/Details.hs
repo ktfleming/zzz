@@ -102,7 +102,7 @@ topWidget s c@(RequestDefContext _ rid) focused =
         (True, _) ->
           [ explanationWithAttr
               importantExplanationAttr
-              "Currently sending request -- press x to cancel."
+              "Currently sending request -- press CTRL+x to cancel."
           ]
         _ -> []
       mainBox = vBox $ explanation <> [titleWidget, headersWidget, bodyWidget]
@@ -112,14 +112,14 @@ errorWidget :: Maybe RequestError -> Widget Name
 errorWidget = maybe emptyWidget (padBottom (Pad 1) . withAttr errorAttr . hCenter . txtWrap . errorDescription)
 
 responseHistoryWidget :: AppList ResponseHistoryListItem -> Bool -> Bool -> Widget Name
-responseHistoryWidget appList@(AppList innerList) focused showSelection =
+responseHistoryWidget outerList@(AppList innerList) focused showSelection =
   let elems = listElements innerList
    in if null elems
         then emptyWidget
         else
           borderOrPad focused . vBox $
             [ padLeft (Pad 2) $ txtWrap "Response history:",
-              vLimit (min 10 (length elems)) (renderGenericList focused showSelection appList)
+              vLimit (min 10 (length elems)) (renderGenericList focused showSelection outerList)
             ]
 
 requestDefDetailsWidget :: TimeZone -> AppState 'RequestDefDetailsTag -> Widget Name

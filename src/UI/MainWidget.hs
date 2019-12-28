@@ -17,19 +17,13 @@ import Brick
   )
 import Brick.Types (Padding (Pad))
 import Control.Lens
-import qualified Data.Text as T
 import Types.AppState
 import Types.Brick.Name (Name (..))
-import Types.Classes.Displayable (Displayable)
 import Types.Config.Config
 import Types.Models.Screen
 import UI.Form
-import UI.List
-  ( AppList,
-    renderGenericList,
-  )
 import UI.RequestDefs.Details (requestDefDetailsWidget)
-import UI.Search (searchWidget)
+import UI.Search.SearchScreen
 
 formHelpText :: Widget Name
 formHelpText =
@@ -39,23 +33,17 @@ formHelpText =
 padForm :: Widget Name -> Widget Name
 padForm = padTop (Pad 1) . padLeft (Pad 2)
 
-listWithExplanation :: Displayable a => AppList a -> T.Text -> Widget Name
-listWithExplanation list e = txtWrap e <=> padTop (Pad 1) (renderGenericList True True list)
-
 mainWidget :: Config -> AnyAppState -> Widget Name
 mainWidget config (AnyAppState _ s) = case s ^. screen of
   HelpScreen -> txt "Todo"
   ProjectAddScreen (AppForm form) -> renderAppForm form
-  ProjectListScreen list ->
-    listWithExplanation list "Select a project to view its details and request definitions."
+  ProjectListScreen tools -> searchWidget tools
   ProjectEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
-  ProjectDetailsScreen _ list ->
-    listWithExplanation list "Select a request definition to view its details and send a request."
+  ProjectDetailsScreen _ tools -> searchWidget tools
   RequestDefAddScreen _ (AppForm form) -> renderAppForm form
   RequestDefDetailsScreen {} -> requestDefDetailsWidget (config ^. timeZone) s
   RequestDefEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
-  EnvironmentListScreen list ->
-    listWithExplanation list "Select an environment to view its details."
+  EnvironmentListScreen tools -> searchWidget tools
   EnvironmentEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
   EnvironmentAddScreen (AppForm form) -> renderAppForm form
-  SearchScreen edt resultList _ -> searchWidget edt resultList
+  SearchScreen tools -> searchWidget tools

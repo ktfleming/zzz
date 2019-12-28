@@ -4,7 +4,6 @@
 module UI.Events.Projects where
 
 import Brick.BChan (BChan)
-import Brick.Widgets.List (listSelectedElement)
 import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.IO.Class (liftIO)
@@ -15,12 +14,9 @@ import Types.Brick.CustomEvent (CustomEvent)
 import Types.Classes.Fields
 import Types.Modal (Modal (..))
 import Types.Models.Id
-import Types.Models.Project (ProjectListItem (..))
-import Types.Models.RequestDef (RequestDefListItem (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
 import Types.Monads
-import UI.List (AppList (..))
 import UI.Projects.Add
   ( finishAddingProject,
     showProjectAddScreen,
@@ -32,7 +28,7 @@ import UI.Projects.Edit
   )
 import UI.Projects.List (showProjectListScreen)
 import UI.RequestDefs.Add (showAddRequestDefScreen)
-import UI.RequestDefs.Details (showRequestDefDetails)
+import UI.Search.Common
 
 -- Since each branch of the case expression can lead to a different phantom type
 -- parameterizing the state, we can only say that the ultimate output type will be
@@ -74,20 +70,17 @@ handleEventProjectDetails ::
   MonadEvent m =>
   Key ->
   [Modifier] ->
+  BChan CustomEvent ->
   AppState 'ProjectDetailsTag ->
   m AnyAppState
-handleEventProjectDetails key mods s =
+handleEventProjectDetails key mods chan s =
   let c = s ^. screen ^. context
-      AppList list = s ^. screen ^. listLens
    in case (key, mods) of
-        (KRight, []) -> case listSelectedElement list of
-          Just (_, RequestDefListItem reqContext _) -> pure . wrap . showRequestDefDetails reqContext
-          Nothing -> pure . wrap
-        (KChar 'e', []) -> pure . wrap . showEditProjectScreen c
-        (KChar 'a', []) -> pure . wrap . showAddRequestDefScreen c
-        (KChar 'd', []) -> pure . wrap . (modal ?~ DeleteProjectModal c)
-        (KLeft, []) -> pure . wrap . showProjectListScreen
-        _ -> pure . wrap <=< updateBrickList key
+        (KChar 'e', [MCtrl]) -> pure . wrap . showEditProjectScreen c
+        (KChar 'a', [MCtrl]) -> pure . wrap . showAddRequestDefScreen c
+        (KChar 'd', [MCtrl]) -> pure . wrap . (modal ?~ DeleteProjectModal c)
+        (KEsc, []) -> pure . wrap . showProjectListScreen
+        _ -> handleEventSearch key mods chan
         $ s
 
 handleEventProjectList ::
@@ -97,12 +90,7 @@ handleEventProjectList ::
   BChan CustomEvent ->
   AppState 'ProjectListTag ->
   m AnyAppState
-handleEventProjectList key mods _ s =
-  let AppList list = s ^. screen ^. listLens
-   in case (key, mods) of
-        (KRight, []) -> case listSelectedElement list of
-          Just (_, ProjectListItem c _) -> pure . wrap . showProjectDetails c
-          Nothing -> pure . wrap
-        (KChar 'a', []) -> pure . wrap . showProjectAddScreen
-        _ -> pure . wrap <=< updateBrickList key
-        $ s
+handleEventProjectList key mods chan =
+  case (key, mods) of
+    (KChar 'a', [MCtrl]) -> pure . wrap . showProjectAddScreen
+    _ -> handleEventSearch key mods chan

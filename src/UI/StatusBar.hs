@@ -61,7 +61,7 @@ environmentBaseTitle s c = model s c ^. name . coerced
 title :: AppState a -> T.Text
 title s = case s ^. screen of
   ProjectAddScreen _ -> "New Project"
-  ProjectListScreen _ -> "All Projects"
+  ProjectListScreen {} -> "All Projects"
   ProjectDetailsScreen c _ -> projectBaseTitle s c
   ProjectEditScreen c _ -> projectBaseTitle s c <> " (Editing)"
   RequestDefAddScreen _ _ -> "New Request Definition"
