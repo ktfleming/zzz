@@ -16,6 +16,7 @@ dependencies:
   - brick == 0.50.1
   - bytestring
   - containers
+  - dhall == 1.28.0
   - directory
   - either
   - errors
@@ -39,6 +40,7 @@ dependencies:
   - transformers
   - unordered-containers
   - uuid
+  - validation
   - vty
 library:
   source-dirs:

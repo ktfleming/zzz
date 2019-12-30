@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 
@@ -18,8 +19,10 @@ import Brick.Types
 import Brick.Widgets.Core
 import Brick.Widgets.Edit
 import Brick.Widgets.List
+import qualified Config
 import Control.Lens
 import Control.Monad.IO.Class
+import Control.Monad.Reader
 import Data.HashMap.Strict (HashMap)
 import Data.Maybe (fromMaybe)
 import Data.Sequence (Seq)
@@ -44,6 +47,7 @@ import Types.Search
 import UI.Attr (searchPlaceholderAttr)
 import UI.Editor (ZZZEditor (..))
 import UI.Environments.List (selectEnvironment)
+import UI.Events.Keys (matchKey)
 import UI.Form (renderText)
 import UI.List
   ( AppList (..),
@@ -118,25 +122,26 @@ makeResultList cands =
 -- ENTER selects
 -- All other keys are forwarded to the editor
 handleEventSearch ::
-  (SingI s, MonadEvent m, HasSearchTools (Screen s)) =>
+  (SingI s, MonadEvent m, MonadReader Config.AppConfig m, HasSearchTools (Screen s)) =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
   AppState s ->
   m AnyAppState
 handleEventSearch key mods chan s = do
+  km <- asks (view keymap)
   let st@(SearchTools (ZZZEditor edt) (AppList resultList) allResults) = s ^. screen ^. searchTools
       forwardToList key' direction = do
         updatedList <- AppList <$> liftEvent resultList (handleListEvent (EvKey key' []) resultList)
         let updatedScreen = (s ^. screen) & searchTools . appList .~ updatedList
         pure . wrap . (screen .~ scrollPastSection direction updatedScreen) $ s
-  case key of
-    KUp -> forwardToList key Up
-    KDown -> forwardToList key Down
-    KEnter -> case listSelectedElement resultList of
+  if
+    | matchKey (km ^. scrollUp) key mods -> forwardToList key Up
+    | matchKey (km ^. scrollDown) key mods -> forwardToList key Down
+    | matchKey (km ^. submit) key mods -> case listSelectedElement resultList of
       Just (_, SelectableResult selected) -> searchSelect selected chan s
       _ -> pure . wrap $ s
-    _ -> do
+    | otherwise -> do
       updatedEditor <- liftEvent edt $ handleEditorEvent (EvKey key mods) edt
       let contents = getEditContents updatedEditor
           searchString = fromMaybe "" (headMay contents)

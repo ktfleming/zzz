@@ -16,6 +16,7 @@ import Brick.Util
 import Brick.Widgets.Border (hBorder)
 import Brick.Widgets.Edit (editFocusedAttr)
 import Brick.Widgets.List (listSelectedFocusedAttr)
+import qualified Config
 import Control.Lens
 import Control.Monad.Reader
 import Data.Maybe (maybeToList)
@@ -25,7 +26,6 @@ import Types.AppState
 import Types.Brick.CustomEvent
 import Types.Brick.Name
 import Types.Classes.Fields
-import Types.Config.Config
 import Types.Monads
 import UI.Attr
 import UI.Events.Handler
@@ -37,7 +37,7 @@ import UI.MainWidget (mainWidget)
 import UI.Modal (renderModal)
 import UI.StatusBar (statusBar)
 
-uiApp :: Config -> BChan CustomEvent -> App AnyAppState CustomEvent Name
+uiApp :: Config.AppConfig -> BChan CustomEvent -> App AnyAppState CustomEvent Name
 uiApp config chan = App
   { appDraw = drawUI config,
     appChooseCursor = showFirstCursor,
@@ -46,7 +46,7 @@ uiApp config chan = App
     appAttrMap = const myMap
   }
 
-drawUI :: Config -> AnyAppState -> [Widget Name]
+drawUI :: Config.AppConfig -> AnyAppState -> [Widget Name]
 drawUI config wrapper@(AnyAppState _ s) =
   let main = statusBar s <=> padBottom Max (mainWidget config wrapper)
       everything =
@@ -63,18 +63,20 @@ startEvent = pure
 -- (note AnyAppState instead of AppState; since the input and output state must have the same type,
 -- we can't use AppState which is parameterized by a ScreenTag)
 brickHandleEvent ::
-  Config ->
+  Config.AppConfig ->
   BChan CustomEvent ->
   AnyAppState ->
   BrickEvent Name CustomEvent ->
   EventM Name (Next AnyAppState)
--- Ctrl-C always exits immediately
-brickHandleEvent _ _ s (VtyEvent (EvKey (KChar 'c') [MCtrl])) = halt s
--- Otherwise, delegate the handling to our own function. Note that want to update the currentTime
+-- Intercept the "quit" event at the top level in order to make sure that it halts the program immediately.
+-- Otherwise, delegate the handling to our own function. Note that we want to update the currentTime
 -- with every event.
 brickHandleEvent config chan s ev =
   let doHandle :: AppM AnyAppState = handleEvent chan s ev >>= updateCurrentTime
-   in runReaderT (runAppM doHandle) config >>= continue
+      Config.AppKey quitKey quitMods = config ^. keymap ^. quit
+   in if ev == VtyEvent (EvKey quitKey quitMods)
+        then halt s
+        else runReaderT (runAppM doHandle) config >>= continue
 
 myMap :: AttrMap
 myMap =

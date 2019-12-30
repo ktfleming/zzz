@@ -13,6 +13,7 @@ import Brick.BChan
   ( BChan,
     writeBChan,
   )
+import Config
 import Control.Lens
 import Control.Monad.IO.Class
   ( MonadIO,
@@ -31,14 +32,13 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name (Name)
 import Types.Classes.Fields
-import Types.Config.Config
 import Types.Models.Screen
   ( AnyScreen (..),
   )
 
 newtype AppM a
   = AppM
-      { runAppM :: ReaderT Config (EventM Name) a
+      { runAppM :: ReaderT AppConfig (EventM Name) a
       }
   deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -50,7 +50,7 @@ class MonadIO m => MonadEvent m where
 instance MonadEvent AppM where
   liftEvent _ = AppM . lift
 
-deriving instance MonadReader Config AppM
+deriving instance MonadReader AppConfig AppM
 
 -- Wraps the tagged output state into an AnyAppState. This is necessary for
 -- interacting with Brick's top-level event handler.

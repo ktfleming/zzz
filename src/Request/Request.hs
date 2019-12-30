@@ -14,11 +14,9 @@ import Brick.BChan
   ( BChan,
     writeBChan,
   )
-import Control.Concurrent.Async
-  ( Async,
-    async,
-    cancel,
-  )
+import qualified Config
+import Control.Concurrent.Async (Async)
+import qualified Control.Concurrent.Async as Async
 import Control.Error
 import Control.Lens
 import Control.Monad.Reader
@@ -42,7 +40,6 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Classes.Fields
 import Types.Classes.HasId (model)
-import Types.Config.Config
 import Types.Methods (Method (..))
 import Types.Models.Environment
   ( Environment,
@@ -77,7 +74,7 @@ eitherReqToAnyReq (Right (u, opts)) = AnyReq u opts
 -- result of the request will be sent back into the event loop via a BChan so that the global AppState
 -- can be updated appropriately.
 sendRequest ::
-  (MonadReader Config m, MonadIO m) =>
+  (MonadReader Config.AppConfig m, MonadIO m) =>
   RequestDefContext ->
   BChan CustomEvent ->
   AppState 'RequestDefDetailsTag ->
@@ -88,7 +85,7 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
       vars :: [Variable] = maybe [] (toList . view variables) e
       finalUrl :: Url = substitute vars (r ^. url)
       -- Handling an error means logging it and updating the `lastError` field on the Screen
-      errorHandler :: (MonadReader Config m, MonadIO m) => RequestError -> m (AppState 'RequestDefDetailsTag)
+      errorHandler :: (MonadReader Config.AppConfig m, MonadIO m) => RequestError -> m (AppState 'RequestDefDetailsTag)
       errorHandler er = do
         logMessage (errorDescription er)
         pure $ s & screen . lastError ?~ er
@@ -99,11 +96,11 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
   case (validateVariables s r, (Req.parseUrl . encodeUtf8 . coerce) finalUrl) of
     (Left er, _) -> errorHandler er
     (_, Nothing) -> do
-      tz <- asks (view timeZone)
+      tz <- asks (view Config.timeZone)
       errorHandler $ RequestFailed (AppTime (utcToZonedTime tz now)) "Error parsing URL"
     (Right _, Just validatedUrl) -> do
       let asyncRequest :: IO (Async ()) =
-            async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r finalUrl chan now vars
+            Async.async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r finalUrl chan now vars
       asyncResult <- liftIO $ AppAsync <$> asyncRequest
       pure $ s & activeRequests . at rid ?~ asyncResult
 
@@ -161,7 +158,7 @@ cancelRequest ::
   AppState a ->
   m (AppState a)
 cancelRequest (RequestDefContext _ rid) target s = do
-  liftIO $ cancel target
+  liftIO $ Async.cancel target
   pure $ s & activeRequests . at rid .~ Nothing
 
 -- `Req`'s default config, but without throwing an exception on non-2xx status codes,

@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiWayIf #-}
 {-# LANGUAGE OverloadedStrings #-}
 
 module UI.Events.Handler
@@ -11,6 +12,7 @@ where
 
 import Brick
 import Brick.BChan (BChan)
+import qualified Config
 import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.Reader
@@ -27,7 +29,6 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name (Name (..))
 import Types.Classes.Fields
-import Types.Config.Config
 import Types.Constants
   ( mainSettingsFile,
     responseHistoryFile,
@@ -42,6 +43,7 @@ import Types.Monads
 import Types.Time
 import UI.Environments.List (showEnvironmentListScreen)
 import UI.Events.Environments
+import UI.Events.Keys (matchKey)
 import UI.Events.Projects
 import UI.Events.RequestDefs
 import UI.Modal
@@ -59,7 +61,7 @@ updateCurrentTime s = do
   time <- liftIO getCurrentTime
   pure $ s & currentTime .~ time
 
-handleCustomEvent :: (MonadReader Config m, MonadIO m) => CustomEvent -> AppState a -> m (AppState a)
+handleCustomEvent :: (MonadReader Config.AppConfig m, MonadIO m) => CustomEvent -> AppState a -> m (AppState a)
 handleCustomEvent Save s = saveState s
 -- Note: this is for errors that happen on the background thread that handles sending the
 -- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
@@ -69,11 +71,11 @@ handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
   -- The steps are...
   let -- If the current screen is the RequestDefDetailsScreen, need to update `lastError`
       -- so the user will see the error message
-      updateError :: (MonadReader Config m, MonadIO m) => AppState a -> m (AppState a)
+      updateError :: (MonadReader Config.AppConfig m, MonadIO m) => AppState a -> m (AppState a)
       updateError s' = case s' ^. screen of
         RequestDefDetailsScreen {} -> do
           now <- liftIO getCurrentTime
-          tz <- asks (view timeZone)
+          tz <- asks (view Config.timeZone)
           pure $ s' & screen . lastError ?~ RequestFailed (AppTime (utcToZonedTime tz now)) (T.pack msg)
         _ -> pure s'
       -- The request has completed, so clear its handle
@@ -97,7 +99,7 @@ handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
         logMessage "Received response"
         saveState <=< (pure . updateDetails) <=< (pure . updateState) $ s
 
-saveState :: (MonadReader Config m, MonadIO m) => AppState a -> m (AppState a)
+saveState :: (MonadReader Config.AppConfig m, MonadIO m) => AppState a -> m (AppState a)
 saveState s = do
   logMessage "Saving..."
   liftIO $ writeFile mainSettingsFile (encodePretty s)
@@ -106,36 +108,38 @@ saveState s = do
 
 -- This function does the actual event handling, inside the AppM monad
 handleEvent ::
-  (MonadEvent m, MonadReader Config m) =>
+  (MonadEvent m, MonadReader Config.AppConfig m) =>
   BChan CustomEvent ->
   AnyAppState ->
   BrickEvent Name CustomEvent ->
   m AnyAppState
 handleEvent _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
-handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'p') [MCtrl])) =
-  pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
--- Have to stash the screen before giving the user the chance to select an Environment (either via the
--- global search or the environment list screen) since that necessitates a screen unstash.
-handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'f') [MCtrl])) =
-  pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
-handleEvent _ (AnyAppState tag s) (VtyEvent (EvKey (KChar 'i') [MCtrl])) =
-  pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
-handleEvent chan outer@(AnyAppState _ s) (VtyEvent (EvKey key mods)) =
-  case (s ^. modal, key) of
-    (Just _, KChar 'n') -> pure . dismissModal $ outer
-    (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
-    (Just _, _) -> pure outer
-    (Nothing, _) -> case s ^. screen of
-      ProjectAddScreen {} -> handleEventProjectAdd key mods chan s
-      ProjectEditScreen {} -> handleEventProjectEdit key mods chan s
-      ProjectListScreen {} -> handleEventProjectList key mods chan s
-      ProjectDetailsScreen {} -> handleEventProjectDetails key mods chan s
-      RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan s
-      RequestDefEditScreen {} -> handleEventRequestEdit key mods chan s
-      RequestDefAddScreen {} -> handleEventRequestAdd key mods chan s
-      EnvironmentListScreen {} -> handleEventEnvironmentList key mods chan s
-      EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan s
-      EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
-      SearchScreen {} -> handleEventSearch key mods chan s
-      HelpScreen -> pure outer
+handleEvent chan outer@(AnyAppState tag s) (VtyEvent (EvKey key mods)) = do
+  km <- asks (view keymap)
+  if
+    | matchKey (km ^. showHelp) key mods ->
+      pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
+    | matchKey (km ^. searchAll) key mods ->
+      -- Have to stash the screen before giving the user the chance to select an Environment (either via the
+      -- global search or the environment list screen) since that necessitates a screen unstash.
+      pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
+    | matchKey (km ^. showEnvironments) key mods ->
+      pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
+    | otherwise -> case (s ^. modal, key) of
+      (Just _, KChar 'n') -> pure . dismissModal $ outer
+      (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
+      (Just _, _) -> pure outer
+      (Nothing, _) -> case s ^. screen of
+        ProjectAddScreen {} -> handleEventProjectAdd key mods chan s
+        ProjectEditScreen {} -> handleEventProjectEdit key mods chan s
+        ProjectListScreen {} -> handleEventProjectList key mods chan s
+        ProjectDetailsScreen {} -> handleEventProjectDetails key mods chan s
+        RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan s
+        RequestDefEditScreen {} -> handleEventRequestEdit key mods chan s
+        RequestDefAddScreen {} -> handleEventRequestAdd key mods chan s
+        EnvironmentListScreen {} -> handleEventEnvironmentList key mods chan s
+        EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan s
+        EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
+        SearchScreen {} -> handleEventSearch key mods chan s
+        HelpScreen -> pure outer
 handleEvent _ s _ = pure s

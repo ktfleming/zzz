@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module UI.Events.RequestDefs where
 
@@ -16,6 +17,7 @@ import Brick.Focus
     focusPrev,
   )
 import Brick.Widgets.List (listSelected)
+import qualified Config
 import Control.Lens
 import Control.Monad ((<=<))
 import Control.Monad.IO.Class (liftIO)
@@ -32,7 +34,6 @@ import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name
 import Types.Classes.Fields
-import Types.Config.Config
 import Types.Modal (Modal (..))
 import Types.Models.Id (RequestDefId (..))
 import Types.Models.Project (ProjectContext (..))
@@ -41,6 +42,7 @@ import Types.Models.Response (ResponseIndex (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
 import Types.Monads
+import UI.Events.Keys (matchKey)
 import UI.FocusRing (AppFocusRing (..))
 import UI.List (AppList (..))
 import UI.Projects.Details (showProjectDetails)
@@ -52,47 +54,48 @@ import UI.RequestDefs.Edit
   )
 
 handleEventRequestAdd ::
-  MonadEvent m =>
+  (MonadEvent m, MonadReader Config.AppConfig m) =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
   AppState 'RequestDefAddTag ->
   m AnyAppState
-handleEventRequestAdd key mods chan s =
+handleEventRequestAdd key mods chan s = do
+  km <- asks (view keymap)
   let c = s ^. screen ^. context
       doAdd s' = do
         rid <- liftIO $ RequestDefId <$> nextRandom
         saveAfter chan $ pure . wrap . showProjectDetails c . finishAddingRequestDef rid $ s'
-   in case (key, mods) of
-        (KChar 's', [MCtrl]) -> ifValid doAdd
-        (KEsc, []) -> pure . wrap . showProjectDetails c
-        _ -> pure . wrap <=< updateBrickForm key
-        $ s
+  if
+    | matchKey (km ^. save) key mods -> ifValid doAdd s
+    | matchKey (km ^. back) key mods -> pure . wrap . showProjectDetails c $ s
+    | otherwise -> pure . wrap <=< updateBrickForm key $ s
 
 handleEventRequestEdit ::
-  MonadEvent m =>
+  (MonadEvent m, MonadReader Config.AppConfig m) =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
   AppState 'RequestDefEditTag ->
   m AnyAppState
-handleEventRequestEdit key mods chan s =
+handleEventRequestEdit key mods chan s = do
+  km <- asks (view keymap)
   let c = s ^. screen ^. context
       doEdit = saveAfter chan . pure . wrap . showRequestDefDetails c . finishEditingRequestDef
-   in case (key, mods) of
-        (KChar 's', [MCtrl]) -> ifValid doEdit
-        (KEsc, []) -> pure . wrap . showRequestDefDetails c
-        _ -> pure . wrap <=< updateBrickForm key
-        $ s
+  if
+    | matchKey (km ^. save) key mods -> ifValid doEdit s
+    | matchKey (km ^. back) key mods -> pure . wrap . showRequestDefDetails c $ s
+    | otherwise -> pure . wrap <=< updateBrickForm key $ s
 
 handleEventRequestDetails ::
-  (MonadReader Config m, MonadEvent m) =>
+  (MonadReader Config.AppConfig m, MonadEvent m) =>
   Key ->
   [Modifier] ->
   BChan CustomEvent ->
   AppState 'RequestDefDetailsTag ->
   m AnyAppState
-handleEventRequestDetails key mods chan s =
+handleEventRequestDetails key mods chan s = do
+  km <- asks (view keymap)
   let RequestDefDetailsScreen c@(RequestDefContext _ rid) (AppList list) (AppFocusRing ring) _ = s ^. screen
       focused = focusGetCurrent ring
       activeRequest = Map.lookup rid (s ^. activeRequests . coerced)
@@ -105,32 +108,35 @@ handleEventRequestDetails key mods chan s =
       modifyFocus f s' = do
         liftEvent () $ vScrollToBeginning (viewportScroll ResponseBodyViewport)
         pure $ s' & screen . ringLens %~ (\(AppFocusRing r) -> AppFocusRing (f r))
-   in case (key, mods) of
-        (KEsc, []) ->
-          let (RequestDefContext pid _) = c
-           in pure . wrap . showProjectDetails (ProjectContext pid)
-        (KChar 'x', [MCtrl]) ->
-          case activeRequest of
-            Just toCancel -> fmap wrap . cancelRequest c toCancel
-            Nothing -> pure . wrap
-        (KChar 'e', [MCtrl]) -> pure . wrap . showEditRequestDefScreen c
-        (KChar 'd', [MCtrl]) -> case (focused, selectedResponse) of
-          (Just ResponseList, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i)
-          (Just ResponseBodyDetails, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i)
-          _ -> pure . wrap . (modal ?~ DeleteRequestDefModal c)
-        (KEnter, []) ->
-          if focused == Just RequestDetails && isNothing activeRequest
-            then fmap wrap . sendRequest c chan
-            else pure . wrap
-        (KChar '\t', []) -> fmap wrap . modifyFocus focusNext
-        (KBackTab, []) -> fmap wrap . modifyFocus focusPrev
-        _ -> case focused of
-          Just ResponseList -> pure . wrap <=< updateBrickList key
-          Just ResponseBodyDetails ->
-            let vp = viewportScroll ResponseBodyViewport
-             in case key of
-                  KUp -> \s' -> liftEvent () (vScrollBy vp (-5)) >> pure (wrap s')
-                  KDown -> \s' -> liftEvent () (vScrollBy vp 5) >> pure (wrap s')
-                  _ -> pure . wrap
-          _ -> pure . wrap
-        $ s
+  if
+    | matchKey (km ^. back) key mods ->
+      let (RequestDefContext pid _) = c
+       in pure . wrap . showProjectDetails (ProjectContext pid) $ s
+    | matchKey (km ^. cancel) key mods ->
+      case activeRequest of
+        Just toCancel -> fmap wrap . cancelRequest c toCancel $ s
+        Nothing -> pure . wrap $ s
+    | matchKey (km ^. edit) key mods -> pure . wrap . showEditRequestDefScreen c $ s
+    | matchKey (km ^. delete) key mods -> case (focused, selectedResponse) of
+      (Just ResponseList, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i) $ s
+      (Just ResponseBodyDetails, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i) $ s
+      _ -> pure . wrap . (modal ?~ DeleteRequestDefModal c) $ s
+    | matchKey (km ^. submit) key mods ->
+      if focused == Just RequestDetails && isNothing activeRequest
+        then fmap wrap . sendRequest c chan $ s
+        else pure . wrap $ s
+    | matchKey (km ^. Types.Classes.Fields.focusNext) key mods ->
+      fmap wrap . modifyFocus Brick.Focus.focusNext $ s
+    | matchKey (km ^. Types.Classes.Fields.focusPrev) key mods ->
+      fmap wrap . modifyFocus Brick.Focus.focusPrev $ s
+    | otherwise -> case focused of
+      Just ResponseList -> pure . wrap <=< updateBrickList key $ s
+      Just ResponseBodyDetails ->
+        let vp = viewportScroll ResponseBodyViewport
+         in if
+              | matchKey (km ^. scrollUp) key mods ->
+                liftEvent () (vScrollBy vp (-5)) >> pure (wrap s)
+              | matchKey (km ^. scrollDown) key mods ->
+                liftEvent () (vScrollBy vp 5) >> pure (wrap s)
+              | otherwise -> pure . wrap $ s
+      _ -> pure . wrap $ s

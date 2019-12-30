@@ -5,11 +5,11 @@
 
 module TestMonad where
 
+import Config
 import Control.Monad.IO.Class
   ( MonadIO,
   )
 import Control.Monad.Reader
-import Types.Config.Config
 import Types.Monads
 
 -- A monad to run the tests in -- similar to the "real" app monad AppM,
@@ -19,7 +19,7 @@ import Types.Monads
 -- lists and forms.
 newtype TestM a
   = TestM
-      { runTestM :: ReaderT Config IO a
+      { runTestM :: ReaderT AppConfig IO a
       }
   deriving (Functor, Applicative, Monad, MonadIO)
 
@@ -29,4 +29,4 @@ newtype TestM a
 instance MonadEvent TestM where
   liftEvent x _ = pure x
 
-deriving instance MonadReader Config TestM
+deriving instance MonadReader AppConfig TestM

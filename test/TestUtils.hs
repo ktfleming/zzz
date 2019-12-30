@@ -7,12 +7,16 @@ module TestUtils where
 import Brick.BChan (newBChan)
 import Brick.Types (BrickEvent (VtyEvent))
 import Brick.Widgets.List (listSelected)
+import qualified Config
 import Control.Lens
 import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader
+import Data.Either.Combinators (fromRight')
 import qualified Data.HashMap.Strict as Map
 import Data.Maybe (isJust)
 import Data.Singletons (SingI, fromSing, sing, withSingI)
+import qualified Data.Validation as Validation
+import Dhall
 import Gens
 import Graphics.Vty (Key, Modifier)
 import Graphics.Vty.Input.Events
@@ -22,7 +26,7 @@ import Test.Tasty.Hedgehog (testProperty)
 import TestMonad (runTestM)
 import Types.AppState
 import Types.Classes.Fields
-import Types.Config.Config
+import Types.Constants
 import Types.Models.Project (Project, requestDefs)
 import Types.Models.RequestDef
 import Types.Models.Screen (ScreenTag (..))
@@ -45,9 +49,11 @@ getNextState s = getNextState' (AnyAppState sing s)
 
 -- Same as getNextState but accepts AnyAppState to start with
 getNextState' :: MonadIO m => AnyAppState -> Key -> [Modifier] -> m AnyAppState
-getNextState' s key mods =
-  let testM = liftIO (newBChan 5) >>= \chan -> handleEvent chan s (VtyEvent (EvKey key mods))
-   in liftIO $ runReaderT (runTestM testM) defaultConfig
+getNextState' s key mods = do
+  dhallConfig <- liftIO $ input auto configFile
+  let appConfig = fromRight' . Validation.toEither . Config.fromDhallConfig $ dhallConfig
+      testM = liftIO (newBChan 5) >>= \chan -> handleEvent chan s (VtyEvent (EvKey key mods))
+   in liftIO $ runReaderT (runTestM testM) appConfig
 
 -- Given a key (and modifiers) to press, an expected ScreenTag, and an initial AppState,
 -- assert that handling the keypress event will result in the expected screen being placed in the state

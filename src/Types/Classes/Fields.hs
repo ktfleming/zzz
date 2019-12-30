@@ -49,3 +49,51 @@ class HasEnvironments s a | s -> a where
 
 class HasStashedScreen s a | s -> a where
   stashedScreen :: Lens' s a
+
+class HasQuit s a | s -> a where
+  quit :: Lens' s a
+
+class HasSave s a | s -> a where
+  save :: Lens' s a
+
+class HasBack s a | s -> a where
+  back :: Lens' s a
+
+class HasAdd s a | s -> a where
+  add :: Lens' s a
+
+class HasDelete s a | s -> a where
+  delete :: Lens' s a
+
+class HasEdit s a | s -> a where
+  edit :: Lens' s a
+
+class HasCancel s a | s -> a where
+  cancel :: Lens' s a
+
+class HasSubmit s a | s -> a where
+  submit :: Lens' s a
+
+class HasFocusPrev s a | s -> a where
+  focusPrev :: Lens' s a
+
+class HasFocusNext s a | s -> a where
+  focusNext :: Lens' s a
+
+class HasScrollUp s a | s -> a where
+  scrollUp :: Lens' s a
+
+class HasScrollDown s a | s -> a where
+  scrollDown :: Lens' s a
+
+class HasShowHelp s a | s -> a where
+  showHelp :: Lens' s a
+
+class HasSearchAll s a | s -> a where
+  searchAll :: Lens' s a
+
+class HasShowEnvironments s a | s -> a where
+  showEnvironments :: Lens' s a
+
+class HasKeymap s a | s -> a where
+  keymap :: Lens' s a
