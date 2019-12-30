@@ -24,7 +24,6 @@ import TestUtils
 import Types.AppState
 import Types.Classes.Fields
 import Types.Modal
-import Types.Models.Environment
 import Types.Models.Screen
 import Types.Models.Screen.Optics
 import Types.Search
