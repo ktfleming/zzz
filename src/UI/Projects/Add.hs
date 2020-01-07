@@ -28,5 +28,5 @@ finishAddingProject pid s = do
 
 showProjectAddScreen :: AppState a -> AppState 'ProjectAddTag
 showProjectAddScreen s =
-  let fs = ProjectFormState {projectFormStateName = ProjectName "New Project"}
+  let fs = ProjectFormState {projectFormStateName = ProjectName ""}
    in s & screen .~ ProjectAddScreen (makeProjectForm fs)

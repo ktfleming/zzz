@@ -40,8 +40,8 @@ showAddRequestDefScreen ::
   ProjectContext -> AppState a -> AppState 'RequestDefAddTag
 showAddRequestDefScreen c s =
   let fs = RequestDefFormState
-        { requestDefFormStateName = RequestDefName "New Request Definition",
-          requestDefFormStateUrl = Url "http://example.com",
+        { requestDefFormStateName = RequestDefName "",
+          requestDefFormStateUrl = Url "",
           requestDefFormStateMethod = Get,
           requestDefFormStateBody = RequestBody "",
           requestDefFormStateHeaders = Seq.empty
