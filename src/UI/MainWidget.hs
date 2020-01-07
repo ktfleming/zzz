@@ -37,13 +37,13 @@ mainWidget :: AppConfig -> AnyAppState -> Widget Name
 mainWidget config (AnyAppState _ s) = case s ^. screen of
   HelpScreen -> txt "Todo"
   ProjectAddScreen (AppForm form) -> renderAppForm form
-  ProjectListScreen tools -> searchWidget tools
+  ProjectListScreen tools -> searchWidget tools "(No projects found)"
   ProjectEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
-  ProjectDetailsScreen _ tools -> searchWidget tools
+  ProjectDetailsScreen _ tools -> searchWidget tools "(No request definitions found)"
   RequestDefAddScreen _ (AppForm form) -> renderAppForm form
   RequestDefDetailsScreen {} -> requestDefDetailsWidget (config ^. timeZone) s
   RequestDefEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
-  EnvironmentListScreen tools -> searchWidget tools
+  EnvironmentListScreen tools -> searchWidget tools "(No environments found)"
   EnvironmentEditScreen _ (AppForm form) -> formHelpText <=> padForm (renderAppForm form)
   EnvironmentAddScreen (AppForm form) -> renderAppForm form
-  SearchScreen tools -> searchWidget tools
+  SearchScreen tools -> searchWidget tools "(No results found)"

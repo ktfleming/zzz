@@ -78,8 +78,8 @@ hasProject s = (not . Map.null) $ s ^. projects
 -- Whether or not the currently displayed Project has at least one RequestDef
 requestDefSelected :: AppState 'ProjectDetailsTag -> Bool
 requestDefSelected s =
-  let AppList list = s ^. screen ^. searchTools ^. appList
-   in isJust $ listSelected list
+  let AppList l = s ^. screen ^. searchTools ^. appList
+   in isJust $ listSelected l
 
 -- Just a shortcut since so many specs start with this kind of `forAll`
 with :: Monad m => ScreenTag -> PropertyT m AnyAppState

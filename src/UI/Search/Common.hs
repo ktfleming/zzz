@@ -157,8 +157,8 @@ handleEventSearch key mods chan s = do
           updatedList = if hasHeaders st then listMoveDown zl else zl
       pure . wrap . (screen . searchTools .~ SearchTools (ZZZEditor updatedEditor) (AppList updatedList) allResults) $ s
 
-searchWidget :: SearchTools -> Widget Name
-searchWidget st@(SearchTools (ZZZEditor edt) (AppList results) _) =
+searchWidget :: SearchTools -> T.Text -> Widget Name
+searchWidget st@(SearchTools (ZZZEditor edt) (AppList results) _) emptyMessage =
   let contents :: T.Text = fromMaybe "" (headMay (getEditContents edt))
       fieldWidget =
         withAttr searchPlaceholderAttr (txt "> ")
@@ -167,5 +167,6 @@ searchWidget st@(SearchTools (ZZZEditor edt) (AppList results) _) =
             else renderEditor renderText False edt
       renderFunction :: Bool -> SearchListItem -> Widget Name
       renderFunction _ item = padRight Max $ displaySearchListItem (hasHeaders st) item
-      allWidgets = fieldWidget <=> (renderList renderFunction True results)
+      emptyNotification = if (Seq.null . listElements) results then txt emptyMessage else emptyWidget
+      allWidgets = fieldWidget <=> emptyNotification <=> renderList renderFunction True results
    in Widget Fixed Fixed $ render allWidgets
