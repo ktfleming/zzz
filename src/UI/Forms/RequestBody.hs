@@ -28,7 +28,7 @@ requestBodyForm s =
       validate :: [T.Text] -> Maybe RequestBody
       validate = Just . RequestBody . T.intercalate "\n"
       readOnlyRender :: [T.Text] -> Widget Name
-      readOnlyRender = readOnlyJson . T.intercalate "\n"
+      readOnlyRender = vLimit 20 . readOnlyJson . T.intercalate "\n"
       augment :: Widget Name -> Widget Name
       augment = vLimit 20 . withBorderStyle unicodeRounded . border
    in focusAwareEditField

@@ -67,7 +67,7 @@ makeKeyValueForm modelLens n s =
                     else Just $ KeyValue left right
          in (sequence . Seq.fromList . fmap textToKeyValue) (Prelude.filter (not . T.null) ts)
       readOnlyRender :: [T.Text] -> Widget name
-      readOnlyRender = vBox . fmap readOnlyRenderOneLine
+      readOnlyRender = vLimit 10 . vBox . fmap readOnlyRenderOneLine
       readOnlyRenderOneLine :: T.Text -> Widget name
       readOnlyRenderOneLine t
         | (not . isTextEnabled) t = withAttr disabledAttr $ txt (t <> " (disabled)")
