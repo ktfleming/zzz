@@ -81,3 +81,6 @@ unstashScreen :: SingI a => AppState a -> AnyAppState
 unstashScreen s = case s ^. stashedScreen of
   Nothing -> wrap s
   Just (AnyScreen tag stashed) -> AnyAppState tag $ s & (screen .~ stashed) . (stashedScreen .~ Nothing)
+
+clearStash :: AppState a -> AppState a
+clearStash = stashedScreen .~ Nothing

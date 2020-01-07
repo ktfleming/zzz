@@ -60,14 +60,17 @@ import Utils.Containers (mapToSeq)
 sortModels :: (Ord b, HasName a b) => HashMap (ID a) a -> Seq (ID a, a)
 sortModels = Seq.sortOn (view name . snd) . mapToSeq
 
+-- Run the appropriate action when a given result is selected. Note that
+-- selectEnvironment includes a call to unstashScreen, so it's not necessary
+-- to add clearStash to that branch.
 searchSelect ::
   (SingI a, MonadIO m) =>
   SearchResult ->
   BChan CustomEvent ->
   AppState a ->
   m AnyAppState
-searchSelect (ProjectResult c _) _ = pure . wrap . showProjectDetails c
-searchSelect (RequestDefResult c _ _) _ = pure . wrap . showRequestDefDetails c
+searchSelect (ProjectResult c _) _ = pure . wrap . clearStash . showProjectDetails c
+searchSelect (RequestDefResult c _ _) _ = pure . wrap . clearStash . showRequestDefDetails c
 searchSelect (AnEnvironmentResult c _) chan = selectEnvironment (Just c) chan
 searchSelect NoEnvironmentResult chan = selectEnvironment Nothing chan
 
@@ -141,6 +144,7 @@ handleEventSearch key mods chan s = do
     | matchKey (km ^. submit) key mods -> case listSelectedElement resultList of
       Just (_, SelectableResult selected) -> searchSelect selected chan s
       _ -> pure . wrap $ s
+    | matchKey (km ^. back) key mods -> pure . unstashScreen $ s
     | otherwise -> do
       updatedEditor <- liftEvent edt $ handleEditorEvent (EvKey key mods) edt
       let contents = getEditContents updatedEditor
