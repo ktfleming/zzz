@@ -2,6 +2,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE OverloadedStrings #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Config where
@@ -9,6 +10,7 @@ module Config where
 import Control.Lens
 import Data.Char (toLower)
 import Data.Coerce
+import qualified Data.Text as T
 import Data.Time
 import Data.Validation
 import Dhall
@@ -144,7 +146,7 @@ validateAppKey path DhallKey {key, modifiers} = AppKey <$> validateKey path key 
 validateAppKeymap :: DhallKeymap -> Validation [String] AppKeymap
 validateAppKeymap dkm =
   -- helper function to cut down on duplication
-  let val path getter = validateAppKey ((ConfigPath "keymap.") <> (ConfigPath path)) (getter dkm)
+  let val path getter = validateAppKey (ConfigPath "keymap." <> ConfigPath path) (getter dkm)
    in AppKeymap <$> val "quit" Config.quit
         <*> val "save" Config.save
         <*> val "back" Config.back
@@ -167,3 +169,42 @@ fromDhallConfig dc =
       keymap' = Config.keymap dc
       tz = TimeZone (fromIntegral (minutes offset')) (summerOnly offset') ""
    in AppConfig <$> pure tz <*> validateAppKeymap keymap'
+
+modLabel :: Modifier -> Text
+modLabel MShift = "Shift"
+modLabel MCtrl = "Ctrl"
+modLabel MMeta = "Meta"
+modLabel MAlt = "Alt"
+
+keyLabel :: Key -> Text
+keyLabel KEsc = "Esc"
+keyLabel KEnter = "Enter"
+keyLabel (KChar '\t') = "Tab"
+keyLabel (KChar c) = T.singleton c
+keyLabel KBackTab = "Backtab"
+keyLabel KUp = "Up"
+keyLabel KDown = "Down"
+keyLabel KLeft = "Left"
+keyLabel KRight = "Right"
+keyLabel KBS = "Backspace"
+keyLabel KPrtScr = "Printscreen"
+keyLabel KPause = "Pause"
+keyLabel KIns = "Insert"
+keyLabel KHome = "Home"
+keyLabel KPageUp = "PageUp"
+keyLabel KPageDown = "PageDown"
+keyLabel KDel = "Delete"
+keyLabel KEnd = "End"
+keyLabel KBegin = "Begin"
+keyLabel KMenu = "Menu"
+keyLabel (KFun i) = "F" <> T.pack (show i)
+keyLabel KUpLeft = "UpLeft"
+keyLabel KUpRight = "UpRight"
+keyLabel KDownLeft = "DownLeft"
+keyLabel KDownRight = "DownRight"
+keyLabel KCenter = "Center"
+
+describeKey :: AppKey -> Text
+describeKey (AppKey key mods) =
+  let labels = (modLabel <$> mods) <> [keyLabel key]
+   in T.intercalate "+" labels

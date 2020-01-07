@@ -19,6 +19,7 @@ import qualified Config
 import Control.Lens
 import Control.Monad.Reader
 import Data.Maybe (maybeToList)
+import Data.Singletons (fromSing)
 import qualified Graphics.Vty as V
 import Graphics.Vty.Input.Events
 import Types.AppState
@@ -46,11 +47,11 @@ uiApp config chan = App
   }
 
 drawUI :: Config.AppConfig -> AnyAppState -> [Widget Name]
-drawUI config wrapper@(AnyAppState _ s) =
+drawUI config wrapper@(AnyAppState tag s) =
   let main = statusBar s <=> padBottom Max (mainWidget config wrapper)
       everything =
         if s ^. helpPanelVisible . coerced
-          then main <=> hBorder <=> helpPanel (s ^. screen)
+          then main <=> hBorder <=> helpPanel (config ^. keymap) (fromSing tag)
           else main
       modalWidget = maybeToList $ renderModal s <$> (s ^. modal)
    in modalWidget ++ [everything]

@@ -75,7 +75,7 @@ environmentNavTree =
             let AppList list = initial ^. screen ^. searchTools ^. appList
             selectedEnv <- case listSelectedElement list of
               Just (_, SelectableResult NoEnvironmentResult) -> pure Nothing
-              Just (_, (SelectableResult (AnEnvironmentResult ec _))) -> pure $ Just ec
+              Just (_, SelectableResult (AnEnvironmentResult ec _)) -> pure $ Just ec
               _ -> failure -- there should always be an item selected in the list
 
             -- The environment that was selected should be reflected in the new state
@@ -105,8 +105,8 @@ environmentNavTree =
             n@(AnyAppState newTag newState) <- getNextState initial (KChar 'e') [MCtrl]
             let AppList list = initial ^. screen ^. searchTools ^. appList
             case listSelectedElement list of
-              Just (_, (SelectableResult NoEnvironmentResult)) -> i === n -- nothing selected, so nothing happens
-              Just (_, (SelectableResult (AnEnvironmentResult ec _))) -> do
+              Just (_, SelectableResult NoEnvironmentResult) -> i === n -- nothing selected, so nothing happens
+              Just (_, SelectableResult (AnEnvironmentResult ec _)) -> do
                 fromSing newTag === EnvironmentEditTag
                 case newState ^. screen of
                   EnvironmentEditScreen ec' _ -> ec' === ec

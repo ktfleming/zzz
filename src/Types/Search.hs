@@ -84,8 +84,8 @@ matchSearchText = matchAll . T.words
 
 searchResultToText :: Bool -> SearchResult -> T.Text
 searchResultToText _ (ProjectResult _ n) = coerce n
-searchResultToText fullName (RequestDefResult _ pn rn) = if fullName then (coerce pn) <> " > " <> (coerce rn) else coerce rn
-searchResultToText _ (NoEnvironmentResult) = "(No environment)"
+searchResultToText fullName (RequestDefResult _ pn rn) = if fullName then coerce pn <> " > " <> coerce rn else coerce rn
+searchResultToText _ NoEnvironmentResult = "(No environment)"
 searchResultToText _ (AnEnvironmentResult _ n) = coerce n
 
 -- Filters on just one piece of the partitioned results (only environments, or only projects, etc)
