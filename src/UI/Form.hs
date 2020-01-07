@@ -8,6 +8,7 @@ import Brick
 import Brick.Forms
 import Brick.Widgets.Center (hCenter)
 import Control.Lens (Lens')
+import Data.Maybe (mapMaybe)
 import qualified Data.Text as T
 import Safe (headMay)
 import Types.Brick.CustomEvent
@@ -53,5 +54,8 @@ renderAppForm form =
   let errorMessage =
         if allFieldsValid form
           then emptyWidget
-          else padBottom (Pad 1) . withAttr errorAttr . hCenter $ txt "The form contains invalid fields."
+          else
+            let fields = T.intercalate ", " . mapMaybe label $ invalidFields form
+                msg = "The form contains invalid fields: " <> fields
+             in padBottom (Pad 1) . withAttr errorAttr . hCenter $ txt msg
    in errorMessage <=> renderForm form

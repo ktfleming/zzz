@@ -1,4 +1,8 @@
+{-# LANGUAGE OverloadedStrings #-}
+
 module Types.Brick.Name where
+
+import Data.Text (Text)
 
 data Name
   = -- Project list screen
@@ -32,3 +36,13 @@ data Name
     SearchField
   | SearchResultsList
   deriving (Eq, Ord, Show)
+
+-- The label to display for a Name that's used as as form input
+-- (used to notify the user of which fields are invalid)
+label :: Name -> Maybe Text
+label ProjectFormNameField = Just "Project Name"
+label RequestDefFormNameField = Just "Name"
+label RequestDefFormUrlField = Just "URL"
+label HeadersField = Just "Headers"
+label RequestBodyField = Just "Body"
+label _ = Nothing

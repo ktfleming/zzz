@@ -6,7 +6,6 @@ import Brick
 import Brick.BChan (BChan)
 import Brick.Forms
   ( focusedFormInputAttr,
-    invalidFormInputAttr,
   )
 import Brick.Types (Padding (Max))
 import Brick.Util
@@ -84,7 +83,7 @@ myMap =
     V.defAttr
     [ (errorAttr, V.white `on` V.red),
       (listSelectedFocusedAttr, V.white `on` V.blue),
-      (invalidFormInputAttr, V.white `on` V.red),
+      -- (invalidFormInputAttr, V.white `on` V.red),
       (editFocusedAttr, V.black `on` V.cyan),
       (focusedFormInputAttr, V.black `on` V.cyan),
       (keyValueKeyAttr, fg V.blue),
