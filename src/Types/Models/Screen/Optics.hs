@@ -18,6 +18,7 @@ import Graphics.Vty.Input.Events
     Key,
   )
 import Types.AppState (AnyAppState (..), AppState, screen)
+import Types.Brick.Name
 import Types.Models.Environment
 import Types.Models.Project
 import Types.Models.RequestDef
@@ -25,6 +26,7 @@ import Types.Models.Response (Response)
 import Types.Models.Screen
 import Types.Monads
 import Types.Search
+import UI.FocusRing (AppFocusRing (..))
 import UI.Form (AppForm (..))
 import UI.List (AppList (..))
 
@@ -122,12 +124,18 @@ updateBrickList key model = do
   updatedList <- AppList <$> liftEvent l (handleListEvent (EvKey key []) l)
   pure $ model & listLens .~ updatedList
 
--- lens to update the error inside of the RequestDefDetailsScreen
+-- Some specialized lenses for RequestDefDetailsScreen
 lastError :: Lens' (Screen 'RequestDefDetailsTag) (Maybe RequestError)
 lastError =
   lens
     (\(RequestDefDetailsScreen _ _ _ e) -> e)
     (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)
+
+rdRing :: Lens' (Screen 'RequestDefDetailsTag) (AppFocusRing Name)
+rdRing =
+  lens
+    (\(RequestDefDetailsScreen _ _ ring _) -> ring)
+    (\(RequestDefDetailsScreen c l _ e) ring -> RequestDefDetailsScreen c l ring e)
 
 -- Starting with an AppState that has a form, check if the form is valid. If so, run the provided action; if not, just wrap the state.
 ifValid :: (Monad m, SingI i, HasBrickForm (AppState i)) => (AppState i -> m AnyAppState) -> AppState i -> m AnyAppState

@@ -37,6 +37,7 @@ import Types.Models.KeyValue
     KeyValueIso,
     keyValueIso,
   )
+import Types.SafetyLevel
 
 newtype EnvironmentName = EnvironmentName Text deriving (FromJSON, ToJSON, Eq, Ord, Show)
 
@@ -51,7 +52,8 @@ makeFields ''Variable
 data Environment
   = Environment
       { environmentName :: EnvironmentName,
-        environmentVariables :: Seq Variable
+        environmentVariables :: Seq Variable,
+        environmentSafetyLevel :: SafetyLevel
       }
   deriving (Eq, Show)
 
@@ -60,7 +62,8 @@ newtype EnvironmentContext = EnvironmentContext EnvironmentId deriving (FromJSON
 data EnvironmentFormState
   = EnvironmentFormState
       { environmentFormStateName :: EnvironmentName,
-        environmentFormStateVariables :: Seq Variable
+        environmentFormStateVariables :: Seq Variable,
+        environmentFormStateSafetyLevel :: SafetyLevel
       }
   deriving (Eq, Show)
 
@@ -75,10 +78,15 @@ instance KeyValueIso Variable where
       (\(KeyValue k v) -> Variable {variableName = VariableName k, variableValue = VariableValue v})
 
 instance ToJSON Environment where
-  toJSON e = object ["name" .= (e ^. name . coerced :: Text), "variables" .= (e ^. variables)]
+  toJSON e =
+    object
+      [ "name" .= (e ^. name . coerced :: Text),
+        "variables" .= (e ^. variables),
+        "safety_level" .= (e ^. safetyLevel)
+      ]
 
 instance FromJSON Environment where
-  parseJSON = withObject "Environment" $ \o -> Environment <$> (o .: "name") <*> (o .: "variables")
+  parseJSON = withObject "Environment" $ \o -> Environment <$> (o .: "name") <*> (o .: "variables") <*> (o .: "safety_level")
 
 instance ToJSON Variable where
   toJSON = toJSON . view keyValueIso

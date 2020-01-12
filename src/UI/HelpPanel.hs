@@ -31,20 +31,21 @@ searchHelp km =
   ]
 
 -- For now, these are not customizable and use Brick's defaults
-formHelp :: Config.AppKeymap -> [(Text, Text)]
-formHelp km =
-  [ (Config.describeKey (km ^. save), "Add project"),
+formHelp :: Config.AppKeymap -> Text -> [(Text, Text)]
+formHelp km modelName =
+  [ (Config.describeKey (km ^. save), "Add " <> modelName),
     (Config.describeKey (km ^. back), "Cancel"),
     ("Tab", "Next field"),
     ("Shift+Tab", "Previous field"),
     ("Left/Up", "Previous radio button"),
-    ("Right/Down", "Next radio button")
+    ("Right/Down", "Next radio button"),
+    ("Space", "Select radio button")
   ]
 
 helpText :: Config.AppKeymap -> ScreenTag -> [(Text, Text)]
 helpText km tag =
   case tag of
-    ProjectAddTag -> formHelp km
+    ProjectAddTag -> formHelp km "project"
     ProjectListTag ->
       [ (Config.describeKey (km ^. submit), "View the selected project")
       ]
@@ -65,9 +66,9 @@ helpText km tag =
         (Config.describeKey (km ^. focusNext), "Focus next section (main/history/response"),
         (Config.describeKey (km ^. focusPrev), "Focus previous section (main/history/response)")
       ]
-    ProjectEditTag -> formHelp km
-    RequestDefAddTag -> formHelp km
-    RequestDefEditTag -> formHelp km
+    ProjectEditTag -> formHelp km "project"
+    RequestDefAddTag -> formHelp km "request definition"
+    RequestDefEditTag -> formHelp km "request definition"
     EnvironmentListTag ->
       [ (Config.describeKey (km ^. submit), "Use environment"),
         (Config.describeKey (km ^. add), "Add environment"),
@@ -75,8 +76,8 @@ helpText km tag =
         (Config.describeKey (km ^. delete), "Delete selected environment")
       ]
         <> searchHelp km
-    EnvironmentEditTag -> formHelp km
-    EnvironmentAddTag -> formHelp km
+    EnvironmentEditTag -> formHelp km "environment"
+    EnvironmentAddTag -> formHelp km "environment"
     HelpTag -> []
     SearchTag ->
       [ (Config.describeKey (km ^. submit), "Use selected environment / view selected model")

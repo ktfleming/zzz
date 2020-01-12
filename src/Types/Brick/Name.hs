@@ -32,6 +32,9 @@ data Name
   | -- Environment add/edit screen
     EnvironmentFormNameField
   | VariablesField
+  | NeverPromptRadioField
+  | PromptForPossiblyUnsafeRadioField
+  | AlwaysPromptRadioField
   | -- Search screen
     SearchField
   | SearchResultsList

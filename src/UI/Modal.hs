@@ -1,6 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module UI.Modal
   ( renderModal,
@@ -10,17 +11,17 @@ module UI.Modal
 where
 
 import Brick
+import Brick.BChan
 import Brick.Widgets.Border (border)
 import Brick.Widgets.Center
   ( center,
     centerLayer,
   )
 import Control.Lens
+import Control.Monad.IO.Class
 import Data.Text (Text)
 import Types.AppState
-  ( AnyAppState (..),
-    AppState,
-  )
+import Types.Brick.CustomEvent
 import Types.Brick.Name (Name)
 import Types.Classes.Fields
 import Types.Modal
@@ -44,20 +45,22 @@ renderModal s m = renderModalText $ case m of
   DeleteRequestDefModal c -> deleteRequestDefWarning s c
   DeleteEnvironmentModal c -> deleteEnvironmentWarning s c
   DeleteResponseModal _ _ -> deleteResponseWarning
+  ConfirmRequestModal _ -> "Are you sure you want to send this request?"
 
 -- Note: right now modals only support one action (e.g. deleting a resource).
-handleConfirm :: Modal -> AnyAppState -> AnyAppState
-handleConfirm m (AnyAppState tag s) =
+handleConfirm :: MonadIO m => Modal -> BChan CustomEvent -> AnyAppState -> m AnyAppState
+handleConfirm m chan outer@(AnyAppState tag s) =
   case m of
     DeleteProjectModal c ->
-      wrap . showProjectListScreen . deleteProject c
+      pure . wrap . showProjectListScreen . deleteProject c $ s
     DeleteRequestDefModal c@(RequestDefContext pid _) ->
-      wrap . showProjectDetails (ProjectContext pid) . deleteRequestDef c
+      pure . wrap . showProjectDetails (ProjectContext pid) . deleteRequestDef c $ s
     DeleteEnvironmentModal c ->
-      wrap . showEnvironmentListScreen . deleteEnvironment c
+      pure . wrap . showEnvironmentListScreen . deleteEnvironment c $ s
     DeleteResponseModal c i ->
-      refreshIfNecessary . AnyAppState tag . deleteResponse c i
-    $ s
+      pure . refreshIfNecessary . AnyAppState tag . deleteResponse c i $ s
+    ConfirmRequestModal c ->
+      sendEvent (SendRequest c) chan >> pure outer
 
 dismissModal :: (HasModal a (Maybe Modal)) => a -> a
 dismissModal = modal .~ Nothing

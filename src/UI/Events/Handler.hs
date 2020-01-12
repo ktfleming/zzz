@@ -25,6 +25,7 @@ import qualified Data.Text as T
 import Data.Time
 import Graphics.Vty.Input.Events
 import Messages.Messages (logMessage)
+import Request.Request (sendRequest)
 import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name (Name (..))
@@ -38,7 +39,7 @@ import Types.Models.RequestDef
     RequestError (..),
   )
 import Types.Models.Screen
-import Types.Models.Screen.Optics (lastError)
+import Types.Models.Screen.Optics
 import Types.Monads
 import Types.Time
 import UI.Environments.List (showEnvironmentListScreen)
@@ -61,12 +62,12 @@ updateCurrentTime s = do
   time <- liftIO getCurrentTime
   pure $ s & currentTime .~ time
 
-handleCustomEvent :: (MonadReader Config.AppConfig m, MonadIO m) => CustomEvent -> AppState a -> m (AppState a)
-handleCustomEvent Save s = saveState s
+handleCustomEvent :: (MonadReader Config.AppConfig m, MonadIO m) => BChan CustomEvent -> CustomEvent -> AppState a -> m (AppState a)
+handleCustomEvent _ Save s = saveState s
 -- Note: this is for errors that happen on the background thread that handles sending the
 -- request. Errors that happen _prior_ to that (failure to parse URL, unmatched variable, etc)
 -- will short-circuit the ExceptT in `sendRequest'` and will not need to use a custom event.
-handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
+handleCustomEvent _ (ResponseError (RequestDefContext _ rid) msg) s =
   -- Building a monadic pipeline via Kleisli composition that the initial state will be sent through.
   -- The steps are...
   let -- If the current screen is the RequestDefDetailsScreen, need to update `lastError`
@@ -84,7 +85,7 @@ handleCustomEvent (ResponseError (RequestDefContext _ rid) msg) s =
    in do
         logMessage $ "Error: " <> T.pack msg
         saveState <=< (pure . clearRequest) <=< updateError $ s
-handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
+handleCustomEvent _ (ResponseSuccess (RequestDefContext _ rid) response) s =
   let ekey = currentEnvironmentKey s
       -- Append the response to the list of responses for this RequestDef, and clear the request handler
       updateState :: AppState a -> AppState a
@@ -98,6 +99,14 @@ handleCustomEvent (ResponseSuccess (RequestDefContext _ rid) response) s =
    in do
         logMessage "Received response"
         saveState <=< (pure . updateDetails) <=< (pure . updateState) $ s
+handleCustomEvent chan (SendRequest c) s =
+  -- This check should not be necessary since the SendRequest event is only dispatched
+  -- from the RequestDefDetailsScreen, and it should always be the next event processed
+  -- (no chance for the user to move to another screen first). Would like to figure out how
+  -- to make this check unnecessary.
+  case s ^. screen of
+    RequestDefDetailsScreen {} -> sendRequest c chan s
+    _ -> pure s
 
 saveState :: (MonadReader Config.AppConfig m, MonadIO m) => AppState a -> m (AppState a)
 saveState s = do
@@ -113,7 +122,7 @@ handleEvent ::
   AnyAppState ->
   BrickEvent Name CustomEvent ->
   m AnyAppState
-handleEvent _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
+handleEvent chan (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent chan customEvent s
 handleEvent chan outer@(AnyAppState tag s) (VtyEvent (EvKey key mods)) = do
   km <- asks (view keymap)
   if  | matchKey (km ^. showHelp) key mods ->
@@ -126,7 +135,7 @@ handleEvent chan outer@(AnyAppState tag s) (VtyEvent (EvKey key mods)) = do
         pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
       | otherwise -> case (s ^. modal, key) of
         (Just _, KChar 'n') -> pure . dismissModal $ outer
-        (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
+        (Just m, KChar 'y') -> saveAfter chan . fmap dismissModal . handleConfirm m chan $ outer
         (Just _, _) -> pure outer
         (Nothing, _) -> case s ^. screen of
           ProjectAddScreen {} -> handleEventProjectAdd key mods chan s

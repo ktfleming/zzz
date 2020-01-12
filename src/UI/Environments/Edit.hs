@@ -25,7 +25,10 @@ finishEditingEnvironment s =
    in s & environments . ix eid .~ newModel
 
 updateEnvironment :: EnvironmentFormState -> Environment -> Environment
-updateEnvironment form = (name .~ form ^. name) . (variables .~ form ^. variables)
+updateEnvironment form =
+  (name .~ form ^. name)
+    . (variables .~ form ^. variables)
+    . (safetyLevel .~ form ^. safetyLevel)
 
 showEnvironmentEditScreen ::
   EnvironmentContext -> AppState a -> AppState 'EnvironmentEditTag
@@ -34,6 +37,7 @@ showEnvironmentEditScreen c s =
       fs =
         EnvironmentFormState
           { environmentFormStateName = e ^. name,
-            environmentFormStateVariables = e ^. variables
+            environmentFormStateVariables = e ^. variables,
+            environmentFormStateSafetyLevel = e ^. safetyLevel
           }
    in s & screen .~ EnvironmentEditScreen c (makeEnvironmentForm fs)

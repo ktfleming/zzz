@@ -28,12 +28,12 @@ import Data.UUID.V4 (nextRandom)
 import Graphics.Vty.Input.Events
 import Request.Request
   ( cancelRequest,
-    sendRequest,
   )
 import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name
 import Types.Classes.Fields
+import Types.Classes.HasId
 import Types.Modal (Modal (..))
 import Types.Models.Id (RequestDefId (..))
 import Types.Models.Project (ProjectContext (..))
@@ -42,6 +42,7 @@ import Types.Models.Response (ResponseIndex (..))
 import Types.Models.Screen
 import Types.Models.Screen.Optics
 import Types.Monads
+import Types.SafetyLevel
 import UI.Events.Keys (matchKey)
 import UI.FocusRing (AppFocusRing (..))
 import UI.List (AppList (..))
@@ -93,19 +94,18 @@ handleEventRequestDetails ::
   AppState 'RequestDefDetailsTag ->
   m AnyAppState
 handleEventRequestDetails key mods chan s = do
+  globalSafetyLevel <- asks (view safetyLevel)
   km <- asks (view keymap)
   let RequestDefDetailsScreen c@(RequestDefContext _ rid) (AppList list) (AppFocusRing ring) _ = s ^. screen
       focused = focusGetCurrent ring
       activeRequest = Map.lookup rid (s ^. activeRequests . coerced)
-      ringLens :: Lens' (Screen 'RequestDefDetailsTag) (AppFocusRing Name)
-      ringLens =
-        lens
-          (\(RequestDefDetailsScreen _ _ target _) -> target)
-          (\(RequestDefDetailsScreen c' l' _ e') r' -> RequestDefDetailsScreen c' l' r' e')
       selectedResponse = ResponseIndex <$> listSelected list
       modifyFocus f s' = do
         liftEvent () $ vScrollToBeginning (viewportScroll ResponseBodyViewport)
-        pure $ s' & screen . ringLens %~ (\(AppFocusRing r) -> AppFocusRing (f r))
+        pure $ s' & screen . rdRing %~ (\(AppFocusRing r) -> AppFocusRing (f r))
+      activeEnv = currentEnvironment s
+      envSafetyLevel = maybe NeverPrompt (view safetyLevel) activeEnv
+      activeSafetyLevel = max envSafetyLevel globalSafetyLevel
   if  | matchKey (km ^. back) key mods ->
         let (RequestDefContext pid _) = c
          in pure . wrap . showProjectDetails (ProjectContext pid) $ s
@@ -119,9 +119,10 @@ handleEventRequestDetails key mods chan s = do
         (Just ResponseBodyDetails, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i) $ s
         _ -> pure . wrap . (modal ?~ DeleteRequestDefModal c) $ s
       | matchKey (km ^. submit) key mods ->
-        if focused == Just RequestDetails && isNothing activeRequest
-          then fmap wrap . sendRequest c chan $ s
-          else pure . wrap $ s
+        case (focused, isNothing activeRequest, shouldPrompt activeSafetyLevel (model s c ^. method)) of
+          (Just RequestDetails, True, True) -> pure . wrap . (modal ?~ ConfirmRequestModal c) $ s
+          (Just RequestDetails, True, False) -> sendEvent (SendRequest c) chan >> (pure . wrap) s
+          _ -> pure . wrap $ s
       | matchKey (km ^. Types.Classes.Fields.focusNext) key mods ->
         fmap wrap . modifyFocus Brick.Focus.focusNext $ s
       | matchKey (km ^. Types.Classes.Fields.focusPrev) key mods ->

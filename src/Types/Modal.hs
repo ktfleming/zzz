@@ -10,4 +10,5 @@ data Modal
   | DeleteRequestDefModal RequestDefContext
   | DeleteEnvironmentModal EnvironmentContext
   | DeleteResponseModal RequestDefContext ResponseIndex
+  | ConfirmRequestModal RequestDefContext
   deriving (Show, Eq)

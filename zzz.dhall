@@ -1,4 +1,5 @@
 {
+  safetyLevel = "never_prompt",
   offset = {
     minutes = +540 -- minutes from UTC (can be negative or positive)
   , summerOnly = False -- test

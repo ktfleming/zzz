@@ -38,6 +38,7 @@ import Types.Models.RequestDef
 import Types.Models.Response
 import Types.Models.Screen
 import Types.Models.Url (Url (..))
+import Types.SafetyLevel
 import UI.Environments.Common (makeEnvironmentForm)
 import UI.Environments.List
 import UI.FocusRing (AppFocusRing (..))
@@ -98,7 +99,8 @@ genEnvironment :: Gen Environment
 genEnvironment = do
   name <- EnvironmentName <$> Gen.text (Range.linear 1 20) Gen.alphaNum
   vars <- Gen.seq (Range.linear 0 10) genVariable
-  pure $ Environment name vars
+  sl <- Gen.element [NeverPrompt, PromptForPossiblyUnsafe, AlwaysPrompt]
+  pure $ Environment name vars sl
 
 -- Most of the time there will be 1-5 environments, occasionally no
 -- environments (to reduce discards on tests that require an environment)
@@ -132,7 +134,8 @@ genEnvironmentFormState :: Gen EnvironmentFormState
 genEnvironmentFormState = do
   name <- EnvironmentName <$> Gen.text (Range.linear 0 20) Gen.alphaNum
   vars <- Gen.seq (Range.linear 0 5) genVariable
-  pure $ EnvironmentFormState name vars
+  sl <- Gen.element [NeverPrompt, PromptForPossiblyUnsafe, AlwaysPrompt]
+  pure $ EnvironmentFormState name vars sl
 
 -- https://github.com/hedgehogqa/haskell-hedgehog/issues/215
 genUTCTime :: Gen UTCTime

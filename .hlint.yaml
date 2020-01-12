@@ -10,6 +10,7 @@
 - ignore: {name: "Reduce duplication"}
 - ignore: {name: "Use ."}
 - ignore: {name: "Eta reduce"}
+- ignore: {name: "Use infix"}
 
 
 # Specify additional command line arguments

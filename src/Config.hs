@@ -17,6 +17,7 @@ import Data.Validation
 import Dhall
 import Graphics.Vty.Input
 import Types.Classes.Fields
+import Types.SafetyLevel
 
 newtype ConfigPath = ConfigPath String deriving (Semigroup)
 
@@ -57,7 +58,8 @@ data DhallKeymap
 data DhallConfig
   = DhallConfig
       { offset :: DhallOffset,
-        keymap :: DhallKeymap
+        keymap :: DhallKeymap,
+        safetyLevel :: String
       }
   deriving (Generic)
 
@@ -93,7 +95,8 @@ data AppKeymap
 data AppConfig
   = AppConfig
       { _appConfigTimeZone :: TimeZone,
-        _appConfigKeymap :: AppKeymap
+        _appConfigKeymap :: AppKeymap,
+        _appConfigSafetyLevel :: SafetyLevel
       }
 
 makeFields ''AppKeymap
@@ -164,12 +167,19 @@ validateAppKeymap dkm =
         <*> val "searchAll" Config.searchAll
         <*> val "showEnvironments" Config.showEnvironments
 
+validateSafetyLevel :: String -> Validation [String] SafetyLevel
+validateSafetyLevel "never_prompt" = Success NeverPrompt
+validateSafetyLevel "prompt_for_possibly_unsafe" = Success PromptForPossiblyUnsafe
+validateSafetyLevel "always_prompt" = Success AlwaysPrompt
+validateSafetyLevel other = Failure ["Unrecognized safety level '" <> other <> "'"]
+
 fromDhallConfig :: DhallConfig -> Validation [String] AppConfig
 fromDhallConfig dc =
   let offset' = Config.offset dc
       keymap' = Config.keymap dc
       tz = TimeZone (fromIntegral (minutes offset')) (summerOnly offset') ""
-   in AppConfig <$> pure tz <*> validateAppKeymap keymap'
+      safetyLevel' = Config.safetyLevel dc
+   in AppConfig <$> pure tz <*> validateAppKeymap keymap' <*> validateSafetyLevel safetyLevel'
 
 modLabel :: Modifier -> Text
 modLabel MShift = "Shift"

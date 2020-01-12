@@ -97,3 +97,6 @@ class HasShowEnvironments s a | s -> a where
 
 class HasKeymap s a | s -> a where
   keymap :: Lens' s a
+
+class HasSafetyLevel s a | s -> a where
+  safetyLevel :: Lens' s a

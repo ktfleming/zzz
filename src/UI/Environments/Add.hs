@@ -20,6 +20,7 @@ import Types.Models.Environment
   )
 import Types.Models.Id (EnvironmentId (..))
 import Types.Models.Screen
+import Types.SafetyLevel
 import UI.Environments.Common (makeEnvironmentForm)
 import UI.Form
 
@@ -29,10 +30,12 @@ finishAddingEnvironment ::
   AppState 'EnvironmentAddTag
 finishAddingEnvironment eid s =
   let EnvironmentAddScreen (AppForm form) = s ^. screen
+      fs = formState form
       e =
         Environment
-          { environmentName = formState form ^. name,
-            environmentVariables = formState form ^. variables
+          { environmentName = fs ^. name,
+            environmentVariables = fs ^. variables,
+            environmentSafetyLevel = fs ^. safetyLevel
           }
    in s & environments . at eid ?~ e
 
@@ -41,6 +44,7 @@ showEnvironmentAddScreen s =
   let fs =
         EnvironmentFormState
           { environmentFormStateName = EnvironmentName "",
-            environmentFormStateVariables = Seq.empty
+            environmentFormStateVariables = Seq.empty,
+            environmentFormStateSafetyLevel = NeverPrompt
           }
    in s & screen .~ EnvironmentAddScreen (makeEnvironmentForm fs)
