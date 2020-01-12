@@ -9,6 +9,7 @@ where
 
 import Data.Functor (($>))
 import qualified Data.Text as T
+import Data.Text (Text)
 import Data.Void (Void)
 import Text.Megaparsec
   ( (<|>),
@@ -29,11 +30,11 @@ import Text.Megaparsec.Char
   )
 
 data TemplatedTextPart
-  = TemplateVariable T.Text -- {{variable}}
-  | TextPart T.Text -- everything else
+  = TemplateVariable Text -- {{variable}}
+  | TextPart Text -- everything else
   deriving (Show, Eq)
 
-type TemplatedTextParser = Parsec Void T.Text
+type TemplatedTextParser = Parsec Void Text
 
 newtype TemplatedText = TemplatedText [TemplatedTextPart] deriving (Show, Eq)
 

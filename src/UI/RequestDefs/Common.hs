@@ -11,6 +11,7 @@ import Control.Lens
 import Data.Coerce (coerce)
 import Data.Sequence (Seq)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Safe (headMay)
 import Types.Brick.CustomEvent (CustomEvent)
 import Types.Brick.Name
@@ -43,9 +44,9 @@ urlField ::
   RequestDefFormState ->
   FormFieldState RequestDefFormState CustomEvent Name
 urlField vars s =
-  let validate :: [T.Text] -> Maybe Url
+  let validate :: [Text] -> Maybe Url
       validate ts = headMay ts >>= \u -> if T.null u then Nothing else Just (Url u)
-      readOnlyRender :: [T.Text] -> Widget Name
+      readOnlyRender :: [Text] -> Widget Name
       readOnlyRender ts = maybe emptyWidget (colorizedUrl vars) (Url <$> headMay ts)
    in focusAwareEditField
         url

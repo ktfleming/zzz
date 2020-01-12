@@ -10,6 +10,7 @@ import Brick.Widgets.Center (hCenter)
 import Control.Lens (Lens')
 import Data.Maybe (mapMaybe)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Safe (headMay)
 import Types.Brick.CustomEvent
 import Types.Brick.Name
@@ -26,7 +27,7 @@ instance Show a => Show (AppForm a) where
 
 -- Just a simple way to render multi-line Text as a widget,
 -- taken from Brick's code
-renderText :: [T.Text] -> Widget Name
+renderText :: [Text] -> Widget Name
 renderText = txt . T.intercalate "\n"
 
 -- Custom concat function for rendering forms so that each field
@@ -35,9 +36,9 @@ spacedConcat :: [Widget Name] -> Widget Name
 spacedConcat = vBox . fmap (padBottom (Pad 1))
 
 -- Text field with an included validation function that ensures the text is non-empty
-nonEmptyTextField :: Lens' a T.Text -> Name -> a -> FormFieldState a CustomEvent Name
+nonEmptyTextField :: Lens' a Text -> Name -> a -> FormFieldState a CustomEvent Name
 nonEmptyTextField lens name s =
-  let validate :: [T.Text] -> Maybe T.Text
+  let validate :: [Text] -> Maybe T.Text
       validate ts = headMay ts >>= \h -> if T.null h then Nothing else Just h
    in editField
         lens

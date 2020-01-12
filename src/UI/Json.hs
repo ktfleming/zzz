@@ -9,6 +9,7 @@ import Brick
 import Data.Either.Combinators (rightToMaybe)
 import Data.Maybe (fromMaybe)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Parsing.JsonParser
 import Text.Megaparsec (runParser)
 import Types.Brick.Name (Name)
@@ -53,7 +54,7 @@ colorizedJsonLine (JustRSB i comma) = indent i <+> txt "]" <+> renderComma comma
 -- parser made for colorizing, 4. assign attributes based on the results of (3).
 -- If (1) or (2) fails, just display the plain text. If (3) fails, display the non-colorized
 -- but pretty-printed JSON.
-readOnlyJson :: T.Text -> Widget Name
+readOnlyJson :: Text -> Widget Name
 readOnlyJson t = case tryPretty t of
   Nothing -> txtWrap t
   Just json -> fromMaybe (txtWrap json) $ do

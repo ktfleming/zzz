@@ -23,6 +23,7 @@ import Brick.Widgets.Edit
   )
 import Control.Lens
 import qualified Data.Text as T
+import Data.Text (Text)
 import qualified Data.Text.Zipper as Z
 
 -- This is copied from Brick's `editField`, but takes an extra function that
@@ -37,11 +38,11 @@ focusAwareEditField ::
   Lens' s a ->
   n ->
   Maybe Int ->
-  (a -> T.Text) ->
-  ([T.Text] -> Maybe a) ->
-  ([T.Text] -> Widget n) ->
+  (a -> Text) ->
+  ([Text] -> Maybe a) ->
+  ([Text] -> Widget n) ->
   (Widget n -> Widget n) ->
-  Maybe ([T.Text] -> Widget n) -> -- This is the `readOnlyRender` function that I added
+  Maybe ([Text] -> Widget n) -> -- This is the `readOnlyRender` function that I added
   s ->
   FormFieldState s e n
 focusAwareEditField stLens n limit ini val renderText wrapEditor readOnlyRender initialState =

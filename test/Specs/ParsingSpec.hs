@@ -2,7 +2,7 @@
 
 module Specs.ParsingSpec where
 
-import qualified Data.Text as T
+import Data.Text (Text)
 import Parsing.TemplatedTextParser
 import Test.Hspec
 import Text.Megaparsec (parse)
@@ -33,13 +33,13 @@ parsingSpec = do
           [ Variable (VariableName "host") (VariableValue "http://www.example.com"),
             Variable (VariableName "port") (VariableValue "8080")
           ]
-    substitute vars "{{host}}:{{port}}/test" `shouldBe` ("http://www.example.com:8080/test" :: T.Text)
-    substitute vars "{{port}}{{port}}" `shouldBe` ("80808080" :: T.Text)
-    substitute vars "no_vars" `shouldBe` ("no_vars" :: T.Text)
-    substitute vars "{port}" `shouldBe` ("{port}" :: T.Text)
-    substitute vars "{{{port}}}" `shouldBe` ("{8080}" :: T.Text)
+    substitute vars "{{host}}:{{port}}/test" `shouldBe` ("http://www.example.com:8080/test" :: Text)
+    substitute vars "{{port}}{{port}}" `shouldBe` ("80808080" :: Text)
+    substitute vars "no_vars" `shouldBe` ("no_vars" :: Text)
+    substitute vars "{port}" `shouldBe` ("{port}" :: Text)
+    substitute vars "{{{port}}}" `shouldBe` ("{8080}" :: Text)
   describe "TemplatedTextParser" $ it "should parse correctly" $ do
-    let go :: T.Text -> [TemplatedTextPart] -> Expectation
+    let go :: Text -> [TemplatedTextPart] -> Expectation
         go t parts = parse parseTemplatedText "" t `shouldBe` Right (TemplatedText parts)
     go "just a string" [TextPart "just a string"]
     go "{{variable}}" [TemplateVariable "variable"]

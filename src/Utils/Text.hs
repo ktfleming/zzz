@@ -9,18 +9,19 @@ import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.Coerce
 import Data.String.Conversions (cs)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Types.Classes.Fields
 import Types.Models.Environment (Variable, VariableName (..), VariableValue (..))
 import Types.Models.Header
 
 -- If the provided text is valid JSON, return the prettified version.
-tryPretty :: T.Text -> Maybe T.Text
+tryPretty :: Text -> Maybe Text
 tryPretty t = do
   decoded <- (decode . cs) t :: Maybe Value
   pure . (cs . encodePretty) $ decoded
 
 -- Substitutes any variables like {{this}} inside the provided text
-substitute :: Coercible T.Text a => [Variable] -> a -> a
+substitute :: Coercible Text a => [Variable] -> a -> a
 substitute vars t =
   coerce $
     foldr

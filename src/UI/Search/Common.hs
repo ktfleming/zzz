@@ -29,6 +29,7 @@ import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import Data.Singletons
 import qualified Data.Text as T
+import Data.Text (Text)
 import Graphics.Vty.Input.Events
   ( Event (..),
     Key (..),
@@ -108,7 +109,7 @@ makeResultList cands =
   case cands of
     OneCandidateSet cands' -> AppList $ list SearchResultsList (SelectableResult <$> cands') 1
     AllCandidateSets (envs, ps, rds) ->
-      let makeSection :: T.Text -> Seq SearchResult -> Bool -> Seq SearchListItem
+      let makeSection :: Text -> Seq SearchResult -> Bool -> Seq SearchListItem
           makeSection header results addBottomPadding
             | Seq.null results =
               Seq.empty
@@ -161,9 +162,9 @@ handleEventSearch key mods chan s = do
           updatedList = if hasHeaders st then listMoveDown zl else zl
       pure . wrap . (screen . searchTools .~ SearchTools (ZZZEditor updatedEditor) (AppList updatedList) allResults) $ s
 
-searchWidget :: SearchTools -> T.Text -> Widget Name
+searchWidget :: SearchTools -> Text -> Widget Name
 searchWidget st@(SearchTools (ZZZEditor edt) (AppList results) _) emptyMessage =
-  let contents :: T.Text = fromMaybe "" (headMay (getEditContents edt))
+  let contents :: Text = fromMaybe "" (headMay (getEditContents edt))
       fieldWidget =
         withAttr searchPlaceholderAttr (txt "> ")
           <+> if T.null contents

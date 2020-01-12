@@ -11,7 +11,8 @@ import Brick.Widgets.Center (hCenterWith)
 import Control.Lens
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
-import Data.Text as T
+import qualified Data.Text as T
+import Data.Text (Text)
 import Data.Time
 import Data.Time.Format.ISO8601
 import Numeric (showFFloat)
@@ -28,14 +29,14 @@ import Types.Models.Url
 import UI.Forms.KeyValueList (readOnlyKeyValues)
 import UI.Json (readOnlyJson)
 
-centerSection :: T.Text -> Widget Name
+centerSection :: Text -> Widget Name
 centerSection t = hCenterWith (Just '-') (txt (" " <> t <> " "))
 
 -- Response body plus URL, request body, and headers
 responseDetails :: TimeZone -> Response -> Widget Name
 responseDetails tz r =
-  let u :: T.Text = r ^. url . coerced
-      sentBody :: T.Text = r ^. requestBody . coerced
+  let u :: Text = r ^. url . coerced
+      sentBody :: Text = r ^. requestBody . coerced
       keyValues :: Seq KeyValue = fmap (view keyValueIso) (r ^. headers)
       elapsedMillis :: Double = realToFrac (r ^. elapsedTime) * 1000
       elapsedWidget = str $ showFFloat (Just 0) elapsedMillis " ms"

@@ -10,6 +10,7 @@ module Config where
 import Control.Lens
 import Data.Char (toLower)
 import Data.Coerce
+import Data.Text (Text)
 import qualified Data.Text as T
 import Data.Time
 import Data.Validation

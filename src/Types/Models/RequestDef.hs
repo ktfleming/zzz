@@ -27,6 +27,7 @@ import Data.Foldable (toList)
 import Data.Maybe (catMaybes)
 import Data.Sequence (Seq)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Data.Time.Format.ISO8601
 import Parsing.TemplatedTextParser
   ( TemplatedText (..),
@@ -45,16 +46,16 @@ import Types.Models.Id
 import Types.Models.Url (Url (..))
 import Types.Time
 
-newtype RequestDefName = RequestDefName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
+newtype RequestDefName = RequestDefName Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 
-newtype RequestBody = RequestBody T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype RequestBody = RequestBody Text deriving (FromJSON, ToJSON, Show, Eq)
 
 data RequestError
-  = RequestFailed AppTime T.Text -- tried to sent request, but failed (could not parse URL, etc)
+  = RequestFailed AppTime Text -- tried to sent request, but failed (could not parse URL, etc)
   | UnmatchedVariables [VariableName] -- URL/headers/body contains {{variables}} that aren't defined in the current environment
   deriving (Show, Eq)
 
-errorDescription :: RequestError -> T.Text
+errorDescription :: RequestError -> Text
 errorDescription (RequestFailed (AppTime errorTime) msg) =
   "The request sent at " <> (T.pack . iso8601Show) errorTime <> " failed: " <> msg
 errorDescription (UnmatchedVariables vars) =
@@ -99,7 +100,7 @@ allVariables r =
       collectVariables :: TemplatedText -> [VariableName]
       collectVariables (TemplatedText ps) = catMaybes $ transformPart <$> ps
       -- Run the parser on the URL, headers, and body to extract variables that are used inside it
-      extractVariables :: T.Text -> [VariableName]
+      extractVariables :: Text -> [VariableName]
       extractVariables t = either (const []) collectVariables (runParser parseTemplatedText "Templated text" t)
       urlVariables = extractVariables $ r ^. url . coerced
       bodyVariables = extractVariables $ r ^. body . coerced
@@ -109,8 +110,8 @@ allVariables r =
 instance ToJSON RequestDef where
   toJSON r =
     object
-      [ "name" .= (r ^. name . coerced :: T.Text),
-        "url" .= (r ^. url . coerced :: T.Text),
+      [ "name" .= (r ^. name . coerced :: Text),
+        "url" .= (r ^. url . coerced :: Text),
         "method" .= (r ^. method),
         "body" .= (r ^. body),
         "headers" .= (r ^. headers)

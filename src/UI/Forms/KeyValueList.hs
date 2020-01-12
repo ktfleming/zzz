@@ -17,6 +17,7 @@ import Data.Foldable (toList)
 import Data.Sequence as Seq
 import Data.Sequence (Seq)
 import Data.Text as T
+import Data.Text (Text)
 import Types.Brick.CustomEvent (CustomEvent)
 import Types.Brick.Name (Name (..))
 import Types.Classes.Fields
@@ -32,7 +33,7 @@ import UI.Forms.FocusAwareEditor (focusAwareEditField)
 -- Splits a Text into everything before the first '=', and everything after it
 -- Also returns whether or not a '=' was actually present in the original text,
 -- in order to distinguish between texts like 'a=' and 'a'.
-parseKeyValue :: T.Text -> (T.Text, T.Text, Bool)
+parseKeyValue :: Text -> (Text, Text, Bool)
 parseKeyValue t =
   let (left, right) = T.breakOn "=" t
       -- `left` is done, but now right is either empty, or it starts with a '=' character.
@@ -48,15 +49,15 @@ makeKeyValueForm ::
   a ->
   FormFieldState a CustomEvent Name
 makeKeyValueForm modelLens n s =
-  let initFn :: Seq KeyValue -> T.Text
+  let initFn :: Seq KeyValue -> Text
       initFn =
-        let oneKeyValueText :: KeyValue -> T.Text
+        let oneKeyValueText :: KeyValue -> Text
             oneKeyValueText (KeyValue k v) = k <> "=" <> v
          in T.intercalate "\n" . toList . fmap oneKeyValueText
       -- Validation: each line must contain at least one '=' character;
       -- this will be used to separate the line into the key and value
       -- (at the first such character, if more than one are present)
-      validate :: [T.Text] -> Maybe (Seq KeyValue)
+      validate :: [Text] -> Maybe (Seq KeyValue)
       validate [] = Just Seq.empty
       validate ts =
         let textToKeyValue :: Text -> Maybe KeyValue
@@ -66,9 +67,9 @@ makeKeyValueForm modelLens n s =
                     then Nothing -- either no '=', or '=' is the last character
                     else Just $ KeyValue left right
          in (sequence . Seq.fromList . fmap textToKeyValue) (Prelude.filter (not . T.null) ts)
-      readOnlyRender :: [T.Text] -> Widget name
+      readOnlyRender :: [Text] -> Widget name
       readOnlyRender = vLimit 10 . vBox . fmap readOnlyRenderOneLine
-      readOnlyRenderOneLine :: T.Text -> Widget name
+      readOnlyRenderOneLine :: Text -> Widget name
       readOnlyRenderOneLine t
         | (not . isTextEnabled) t = withAttr disabledAttr $ txt (t <> " (disabled)")
         | hasEquals = leftWidget <+> equalsWidget <+> rightWidget

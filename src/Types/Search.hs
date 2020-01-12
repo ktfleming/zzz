@@ -14,6 +14,7 @@ import Control.Lens
 import Data.Coerce (coerce)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
+import Data.Text (Text)
 import qualified Data.Text as T
 import Types.Brick.Name
 import Types.Models.Environment
@@ -32,7 +33,7 @@ data SearchResult
   deriving (Eq, Show)
 
 -- Items that are translated to Widgets inside the displayed search lists
-data SearchListItem = SelectableResult SearchResult | SearchSection T.Text | SearchBlankLine deriving (Eq, Show)
+data SearchListItem = SelectableResult SearchResult | SearchSection Text | SearchBlankLine deriving (Eq, Show)
 
 -- The fixed set of candidates that can be searched through on a screen that supports searching. Once initialized,
 -- this will never change
@@ -63,7 +64,7 @@ displaySearchListItem _ (SearchSection t) = withAttr searchSectionAttr $ txt t
 displaySearchListItem _ SearchBlankLine = txt " "
 
 -- Check if all of the provided needles appear, in that order, in the haystack
-matchAll :: [T.Text] -> T.Text -> Bool
+matchAll :: [Text] -> Text -> Bool
 matchAll (needle : rest) haystack = case matchOne needle haystack of
   Nothing -> False
   Just remainder -> matchAll rest remainder
@@ -71,7 +72,7 @@ matchAll [] _ = True
 
 -- Check if needle is contained in haystack. If so, return the portion
 -- of haystack after the first needle. If not, return Nothing
-matchOne :: T.Text -> T.Text -> Maybe T.Text
+matchOne :: Text -> Text -> Maybe Text
 matchOne needle haystack =
   let (_, remainder) = T.breakOn needle haystack
    in case remainder of
@@ -79,21 +80,21 @@ matchOne needle haystack =
         _ -> Just $ T.drop (T.length needle) remainder -- the second element of `breakOn` will start with `needle`
 
 -- Split needle on whitespace and see if all the "words" appear in haystack in that order
-matchSearchText :: T.Text -> T.Text -> Bool
+matchSearchText :: Text -> Text -> Bool
 matchSearchText = matchAll . T.words
 
-searchResultToText :: Bool -> SearchResult -> T.Text
+searchResultToText :: Bool -> SearchResult -> Text
 searchResultToText _ (ProjectResult _ n) = coerce n
 searchResultToText fullName (RequestDefResult _ pn rn) = if fullName then coerce pn <> " > " <> coerce rn else coerce rn
 searchResultToText _ NoEnvironmentResult = "(No environment)"
 searchResultToText _ (AnEnvironmentResult _ n) = coerce n
 
 -- Filters on just one piece of the partitioned results (only environments, or only projects, etc)
-filterResults' :: Bool -> T.Text -> Seq SearchResult -> Seq SearchResult
+filterResults' :: Bool -> Text -> Seq SearchResult -> Seq SearchResult
 filterResults' fullName t = Seq.filter (matchSearchText (T.toCaseFold t) . T.toCaseFold . searchResultToText fullName)
 
 -- Filters on all search candidates, retaining the partitioning in the case of AllCandidateSets
-filterResults :: Bool -> T.Text -> SearchCandidates -> SearchCandidates
+filterResults :: Bool -> Text -> SearchCandidates -> SearchCandidates
 filterResults fullName t sc = case sc of
   OneCandidateSet cands -> OneCandidateSet $ filterResults' fullName t cands
   AllCandidateSets cands -> AllCandidateSets $ over each (filterResults' fullName t) cands

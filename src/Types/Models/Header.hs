@@ -19,13 +19,13 @@ import Data.Aeson
     parseJSON,
     toJSON,
   )
-import qualified Data.Text as T
+import Data.Text (Text)
 import Types.Classes.Fields
 import Types.Models.KeyValue
 
-newtype HeaderName = HeaderName T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype HeaderName = HeaderName Text deriving (FromJSON, ToJSON, Show, Eq)
 
-newtype HeaderValue = HeaderValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype HeaderValue = HeaderValue Text deriving (FromJSON, ToJSON, Show, Eq)
 
 data Header = Header {headerName :: HeaderName, headerValue :: HeaderValue} deriving (Show, Eq)
 

@@ -32,6 +32,7 @@ import Data.Aeson
   )
 import Data.Sequence (Seq)
 import qualified Data.Text as T
+import Data.Text (Text)
 import Data.Time
 import Formatting
 import Formatting.Time
@@ -48,7 +49,7 @@ import Types.Models.Url (Url (..))
 import UI.Attr
 
 -- TODO: should this be ByteString?
-newtype ResponseBody = ResponseBody T.Text deriving (Eq, Show, FromJSON, ToJSON)
+newtype ResponseBody = ResponseBody Text deriving (Eq, Show, FromJSON, ToJSON)
 
 newtype StatusCode = StatusCode Int deriving (Eq, Show, FromJSON, ToJSON)
 
@@ -73,13 +74,13 @@ makeFields ''Response
 instance ToJSON Response where
   toJSON r =
     object
-      [ "body" .= (r ^. body . coerced :: T.Text),
+      [ "body" .= (r ^. body . coerced :: Text),
         "status_code" .= (r ^. statusCode . coerced :: Int),
         "date_time" .= (r ^. dateTime),
         "method" .= (r ^. method),
-        "url" .= (r ^. url . coerced :: T.Text),
+        "url" .= (r ^. url . coerced :: Text),
         "headers" .= (r ^. headers),
-        "request_body" .= (r ^. requestBody . coerced :: T.Text),
+        "request_body" .= (r ^. requestBody . coerced :: Text),
         "elapsed_time" .= (r ^. elapsedTime)
       ]
 

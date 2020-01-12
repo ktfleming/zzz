@@ -22,7 +22,7 @@ import Data.Aeson
     withObject,
   )
 import Data.HashMap.Strict (HashMap)
-import qualified Data.Text as T
+import Data.Text (Text)
 import Types.Classes.Fields
 import Types.Models.Id
   ( ProjectId,
@@ -30,7 +30,7 @@ import Types.Models.Id
   )
 import Types.Models.RequestDef
 
-newtype ProjectName = ProjectName T.Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
+newtype ProjectName = ProjectName Text deriving (FromJSON, ToJSON, Show, Eq, Ord)
 
 data Project
   = Project
@@ -49,7 +49,7 @@ makeFields ''ProjectFormState
 
 instance ToJSON Project where
   toJSON p =
-    object ["name" .= (p ^. name . coerced :: T.Text), "request_definitions" .= (p ^. requestDefs)]
+    object ["name" .= (p ^. name . coerced :: Text), "request_definitions" .= (p ^. requestDefs)]
 
 instance FromJSON Project where
   parseJSON =

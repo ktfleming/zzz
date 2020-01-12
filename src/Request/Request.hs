@@ -27,7 +27,7 @@ import Data.HashSet (HashSet)
 import qualified Data.HashSet as HashSet
 import qualified Data.Sequence as Seq
 import Data.String.Conversions (cs)
-import qualified Data.Text as T
+import Data.Text (Text)
 import Data.Text.Encoding
   ( decodeUtf8,
     encodeUtf8,
@@ -121,7 +121,7 @@ constructResponse :: AnyReq -> RequestDef -> Url -> UTCTime -> [Variable] -> Exc
 constructResponse anyReq r u startTime vars = do
   bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r vars)
   now <- lift getCurrentTime :: ExceptT String IO UTCTime
-  let responseMsg :: T.Text = (decodeUtf8 . Req.responseBody) bsResponse
+  let responseMsg :: Text = (decodeUtf8 . Req.responseBody) bsResponse
   pure Response
     { responseBody = ResponseBody responseMsg,
       responseStatusCode = StatusCode $ Req.responseStatusCode bsResponse,
@@ -143,7 +143,7 @@ doHttpRequest (AnyReq u opts) r vars =
       headerOpts :: Req.Option scheme
       headerOpts = (mconcat . toList) (headerToOpt <$> Seq.filter isEnabled (r ^. headers))
       allOpts = opts <> headerOpts
-      reqBody = Req.ReqBodyBs $ cs (substitute vars (r ^. body . coerced) :: T.Text)
+      reqBody = Req.ReqBodyBs $ cs (substitute vars (r ^. body . coerced) :: Text)
    in Req.runReq httpConfig $ case r ^. method of
         Get -> Req.req Req.GET u Req.NoReqBody Req.bsResponse allOpts
         Post -> Req.req Req.POST u reqBody Req.bsResponse allOpts

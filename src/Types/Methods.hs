@@ -15,7 +15,7 @@ import Data.Sequence
   ( Seq,
     fromList,
   )
-import qualified Data.Text as T
+import Data.Text (Text)
 import GHC.Generics (Generic)
 import Types.Brick.Name
 import Types.Classes.Displayable
@@ -33,7 +33,7 @@ instance FromJSON Method
 allMethods :: Seq Method
 allMethods = fromList [Get, Post, Put, Patch]
 
-allMethodsRadio :: [(Method, Name, T.Text)]
+allMethodsRadio :: [(Method, Name, Text)]
 allMethodsRadio =
   [ (Get, GetRadioField, "GET"),
     (Post, PostRadioField, "POST"),
@@ -42,7 +42,7 @@ allMethodsRadio =
     (Delete, DeleteRadioField, "DELETE")
   ]
 
-methodToText :: Method -> T.Text
+methodToText :: Method -> Text
 methodToText Get = "GET"
 methodToText Post = "POST"
 methodToText Put = "PUT"

@@ -4,11 +4,11 @@ module UI.Text where
 
 import Brick
 import Brick.Widgets.Center (hCenter)
-import qualified Data.Text as T
+import Data.Text (Text)
 import Types.Brick.Name (Name)
 
 -- Displays a centered and highlighted "explanation" message
-explanationWithAttr :: AttrName -> T.Text -> Widget Name
+explanationWithAttr :: AttrName -> Text -> Widget Name
 explanationWithAttr attr t =
   let leftArrows = withAttr attr $ txt ">> "
       rightArrows = withAttr attr $ txt " <<"

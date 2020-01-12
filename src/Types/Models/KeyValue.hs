@@ -15,10 +15,11 @@ import Data.Aeson
     toJSON,
     withObject,
   )
-import Data.Text as T
+import qualified Data.Text as T
+import Data.Text (Text)
 import Types.Classes.Fields
 
-data KeyValue = KeyValue {keyValueName :: T.Text, keyValueValue :: T.Text}
+data KeyValue = KeyValue {keyValueName :: Text, keyValueValue :: Text}
 
 makeFields ''KeyValue
 
@@ -27,7 +28,7 @@ isKeyValueEnabled kv = isTextEnabled $ kv ^. name . coerced
 
 -- If a key/value pair's name starts with "--", this means that it should be disabled ("commented
 -- out", so to speak).
-isTextEnabled :: T.Text -> Bool
+isTextEnabled :: Text -> Bool
 isTextEnabled t = T.take 2 t /= "--"
 
 class KeyValueIso a where

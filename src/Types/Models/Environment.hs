@@ -29,7 +29,7 @@ import Data.Aeson
   )
 import Data.Hashable (Hashable)
 import Data.Sequence (Seq)
-import qualified Data.Text as T
+import Data.Text (Text)
 import Types.Classes.Fields
 import Types.Models.Id (EnvironmentId)
 import Types.Models.KeyValue
@@ -38,11 +38,11 @@ import Types.Models.KeyValue
     keyValueIso,
   )
 
-newtype EnvironmentName = EnvironmentName T.Text deriving (FromJSON, ToJSON, Eq, Ord, Show)
+newtype EnvironmentName = EnvironmentName Text deriving (FromJSON, ToJSON, Eq, Ord, Show)
 
-newtype VariableName = VariableName T.Text deriving (FromJSON, ToJSON, Show, Eq, Hashable)
+newtype VariableName = VariableName Text deriving (FromJSON, ToJSON, Show, Eq, Hashable)
 
-newtype VariableValue = VariableValue T.Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype VariableValue = VariableValue Text deriving (FromJSON, ToJSON, Show, Eq)
 
 data Variable = Variable {variableName :: VariableName, variableValue :: VariableValue} deriving (Show, Eq)
 
@@ -75,7 +75,7 @@ instance KeyValueIso Variable where
       (\(KeyValue k v) -> Variable {variableName = VariableName k, variableValue = VariableValue v})
 
 instance ToJSON Environment where
-  toJSON e = object ["name" .= (e ^. name . coerced :: T.Text), "variables" .= (e ^. variables)]
+  toJSON e = object ["name" .= (e ^. name . coerced :: Text), "variables" .= (e ^. variables)]
 
 instance FromJSON Environment where
   parseJSON = withObject "Environment" $ \o -> Environment <$> (o .: "name") <*> (o .: "variables")

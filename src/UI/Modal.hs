@@ -16,7 +16,7 @@ import Brick.Widgets.Center
     centerLayer,
   )
 import Control.Lens
-import qualified Data.Text as T
+import Data.Text (Text)
 import Types.AppState
   ( AnyAppState (..),
     AppState,
@@ -35,7 +35,7 @@ import UI.Projects.List (showProjectListScreen)
 import UI.RequestDefs.Delete
 import UI.Responses.Delete
 
-renderModalText :: T.Text -> Widget Name
+renderModalText :: Text -> Widget Name
 renderModalText = centerLayer . border . hLimitPercent 50 . vLimitPercent 30 . center . txtWrap
 
 renderModal :: AppState a -> Modal -> Widget Name
