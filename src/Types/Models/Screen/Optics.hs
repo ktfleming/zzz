@@ -29,19 +29,16 @@ import UI.Form (AppForm (..))
 import UI.List (AppList (..))
 
 class HasBrickForm a where
-
   type FormState a
 
   formLens :: Lens' a (AppForm (FormState a))
 
 instance HasBrickForm (Screen 'ProjectAddTag) where
-
   type FormState (Screen 'ProjectAddTag) = ProjectFormState
 
   formLens = lens (\(ProjectAddScreen form) -> form) (\_ f -> ProjectAddScreen f)
 
 instance HasBrickForm (Screen 'ProjectEditTag) where
-
   type FormState (Screen 'ProjectEditTag) = ProjectFormState
 
   formLens =
@@ -50,7 +47,6 @@ instance HasBrickForm (Screen 'ProjectEditTag) where
       (\(ProjectEditScreen c _) form -> ProjectEditScreen c form)
 
 instance HasBrickForm (Screen 'RequestDefAddTag) where
-
   type FormState (Screen 'RequestDefAddTag) = RequestDefFormState
 
   formLens =
@@ -59,7 +55,6 @@ instance HasBrickForm (Screen 'RequestDefAddTag) where
       (\(RequestDefAddScreen c _) form -> RequestDefAddScreen c form)
 
 instance HasBrickForm (Screen 'RequestDefEditTag) where
-
   type FormState (Screen 'RequestDefEditTag) = RequestDefFormState
 
   formLens =
@@ -68,7 +63,6 @@ instance HasBrickForm (Screen 'RequestDefEditTag) where
       (\(RequestDefEditScreen c _) form -> RequestDefEditScreen c form)
 
 instance HasBrickForm (Screen 'EnvironmentEditTag) where
-
   type FormState (Screen 'EnvironmentEditTag) = EnvironmentFormState
 
   formLens =
@@ -77,14 +71,12 @@ instance HasBrickForm (Screen 'EnvironmentEditTag) where
       (\(EnvironmentEditScreen c _) form -> EnvironmentEditScreen c form)
 
 instance HasBrickForm (Screen 'EnvironmentAddTag) where
-
   type FormState (Screen 'EnvironmentAddTag) = EnvironmentFormState
 
   formLens = lens (\(EnvironmentAddScreen form) -> form) (\_ f -> EnvironmentAddScreen f)
 
 -- For getting a form out of an AppState that contains a Screen that contains a form
 instance HasBrickForm (Screen a) => HasBrickForm (AppState a) where
-
   type FormState (AppState a) = FormState (Screen a)
 
   formLens =
@@ -100,13 +92,11 @@ updateBrickForm key model = do
   pure $ model & formLens .~ updatedForm
 
 class HasBrickList a where
-
   type ListItem a
 
   listLens :: Lens' a (AppList (ListItem a))
 
 instance HasBrickList (Screen 'RequestDefDetailsTag) where
-
   type ListItem (Screen 'RequestDefDetailsTag) = Response
 
   listLens =
@@ -116,7 +106,6 @@ instance HasBrickList (Screen 'RequestDefDetailsTag) where
 
 -- For getting a list out of an AppState that contains a Screen that contains a list
 instance HasBrickList (Screen a) => HasBrickList (AppState a) where
-
   type ListItem (AppState a) = ListItem (Screen a)
 
   listLens =

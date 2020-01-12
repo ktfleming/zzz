@@ -31,8 +31,9 @@ showEnvironmentEditScreen ::
   EnvironmentContext -> AppState a -> AppState 'EnvironmentEditTag
 showEnvironmentEditScreen c s =
   let e = model s c
-      fs = EnvironmentFormState
-        { environmentFormStateName = e ^. name,
-          environmentFormStateVariables = e ^. variables
-        }
+      fs =
+        EnvironmentFormState
+          { environmentFormStateName = e ^. name,
+            environmentFormStateVariables = e ^. variables
+          }
    in s & screen .~ EnvironmentEditScreen c (makeEnvironmentForm fs)

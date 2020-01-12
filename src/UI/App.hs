@@ -38,13 +38,14 @@ import UI.Modal (renderModal)
 import UI.StatusBar (statusBar)
 
 uiApp :: Config.AppConfig -> BChan CustomEvent -> App AnyAppState CustomEvent Name
-uiApp config chan = App
-  { appDraw = drawUI config,
-    appChooseCursor = showFirstCursor,
-    appHandleEvent = brickHandleEvent config chan,
-    appStartEvent = startEvent,
-    appAttrMap = const myMap
-  }
+uiApp config chan =
+  App
+    { appDraw = drawUI config,
+      appChooseCursor = showFirstCursor,
+      appHandleEvent = brickHandleEvent config chan,
+      appStartEvent = startEvent,
+      appAttrMap = const myMap
+    }
 
 drawUI :: Config.AppConfig -> AnyAppState -> [Widget Name]
 drawUI config wrapper@(AnyAppState tag s) =

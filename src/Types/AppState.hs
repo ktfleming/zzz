@@ -101,18 +101,19 @@ screen = lens getter setter
     setter appState newScreen = appState {appStateScreen = newScreen}
 
 emptyAppState :: AppState 'HelpTag
-emptyAppState = AppState
-  { appStateScreen = HelpScreen,
-    _appStateProjects = Map.empty,
-    _appStateEnvironments = Map.empty,
-    _appStateEnvironmentContext = Nothing,
-    _appStateModal = Nothing,
-    _appStateResponses = Map.empty,
-    _appStateHelpPanelVisible = HelpPanelVisible False,
-    _appStateActiveRequests = Map.empty,
-    _appStateStashedScreen = Nothing,
-    _appStateCurrentTime = UTCTime (ModifiedJulianDay 0) 0 -- Will be immediately overwritten on app startup
-  }
+emptyAppState =
+  AppState
+    { appStateScreen = HelpScreen,
+      _appStateProjects = Map.empty,
+      _appStateEnvironments = Map.empty,
+      _appStateEnvironmentContext = Nothing,
+      _appStateModal = Nothing,
+      _appStateResponses = Map.empty,
+      _appStateHelpPanelVisible = HelpPanelVisible False,
+      _appStateActiveRequests = Map.empty,
+      _appStateStashedScreen = Nothing,
+      _appStateCurrentTime = UTCTime (ModifiedJulianDay 0) 0 -- Will be immediately overwritten on app startup
+    }
 
 data AnyAppState where
   AnyAppState :: Sing a -> AppState a -> AnyAppState

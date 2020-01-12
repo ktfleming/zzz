@@ -116,30 +116,29 @@ handleEvent ::
 handleEvent _ (AnyAppState tag s) (AppEvent customEvent) = AnyAppState tag <$> handleCustomEvent customEvent s
 handleEvent chan outer@(AnyAppState tag s) (VtyEvent (EvKey key mods)) = do
   km <- asks (view keymap)
-  if
-    | matchKey (km ^. showHelp) key mods ->
-      pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
-    | matchKey (km ^. searchAll) key mods ->
-      -- Have to stash the screen before giving the user the chance to select an Environment (either via the
-      -- global search or the environment list screen) since that necessitates a screen unstash.
-      pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
-    | matchKey (km ^. showEnvironments) key mods ->
-      pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
-    | otherwise -> case (s ^. modal, key) of
-      (Just _, KChar 'n') -> pure . dismissModal $ outer
-      (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
-      (Just _, _) -> pure outer
-      (Nothing, _) -> case s ^. screen of
-        ProjectAddScreen {} -> handleEventProjectAdd key mods chan s
-        ProjectEditScreen {} -> handleEventProjectEdit key mods chan s
-        ProjectListScreen {} -> handleEventProjectList key mods chan s
-        ProjectDetailsScreen {} -> handleEventProjectDetails key mods chan s
-        RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan s
-        RequestDefEditScreen {} -> handleEventRequestEdit key mods chan s
-        RequestDefAddScreen {} -> handleEventRequestAdd key mods chan s
-        EnvironmentListScreen {} -> handleEventEnvironmentList key mods chan s
-        EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan s
-        EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
-        SearchScreen {} -> handleEventSearch key mods chan s
-        HelpScreen -> pure outer
+  if  | matchKey (km ^. showHelp) key mods ->
+        pure . AnyAppState tag . (helpPanelVisible . coerced %~ not) $ s
+      | matchKey (km ^. searchAll) key mods ->
+        -- Have to stash the screen before giving the user the chance to select an Environment (either via the
+        -- global search or the environment list screen) since that necessitates a screen unstash.
+        pure . wrap . showSearchScreen . withSingI tag stashScreen $ s
+      | matchKey (km ^. showEnvironments) key mods ->
+        pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
+      | otherwise -> case (s ^. modal, key) of
+        (Just _, KChar 'n') -> pure . dismissModal $ outer
+        (Just m, KChar 'y') -> saveAfter chan . pure . dismissModal . handleConfirm m $ outer
+        (Just _, _) -> pure outer
+        (Nothing, _) -> case s ^. screen of
+          ProjectAddScreen {} -> handleEventProjectAdd key mods chan s
+          ProjectEditScreen {} -> handleEventProjectEdit key mods chan s
+          ProjectListScreen {} -> handleEventProjectList key mods chan s
+          ProjectDetailsScreen {} -> handleEventProjectDetails key mods chan s
+          RequestDefDetailsScreen {} -> handleEventRequestDetails key mods chan s
+          RequestDefEditScreen {} -> handleEventRequestEdit key mods chan s
+          RequestDefAddScreen {} -> handleEventRequestAdd key mods chan s
+          EnvironmentListScreen {} -> handleEventEnvironmentList key mods chan s
+          EnvironmentEditScreen {} -> handleEventEnvironmentEdit key mods chan s
+          EnvironmentAddScreen {} -> handleEventEnvironmentAdd key mods chan s
+          SearchScreen {} -> handleEventSearch key mods chan s
+          HelpScreen -> pure outer
 handleEvent _ s _ = pure s

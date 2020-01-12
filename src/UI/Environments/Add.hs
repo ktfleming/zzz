@@ -29,16 +29,18 @@ finishAddingEnvironment ::
   AppState 'EnvironmentAddTag
 finishAddingEnvironment eid s =
   let EnvironmentAddScreen (AppForm form) = s ^. screen
-      e = Environment
-        { environmentName = formState form ^. name,
-          environmentVariables = formState form ^. variables
-        }
+      e =
+        Environment
+          { environmentName = formState form ^. name,
+            environmentVariables = formState form ^. variables
+          }
    in s & environments . at eid ?~ e
 
 showEnvironmentAddScreen :: AppState a -> AppState 'EnvironmentAddTag
 showEnvironmentAddScreen s =
-  let fs = EnvironmentFormState
-        { environmentFormStateName = EnvironmentName "",
-          environmentFormStateVariables = Seq.empty
-        }
+  let fs =
+        EnvironmentFormState
+          { environmentFormStateName = EnvironmentName "",
+            environmentFormStateVariables = Seq.empty
+          }
    in s & screen .~ EnvironmentAddScreen (makeEnvironmentForm fs)

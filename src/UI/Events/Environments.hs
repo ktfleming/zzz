@@ -42,10 +42,9 @@ handleEventEnvironmentAdd key mods chan s = do
   let doAdd s' = do
         eid <- liftIO $ EnvironmentId <$> nextRandom
         saveAfter chan $ pure . wrap . showEnvironmentListScreen . finishAddingEnvironment eid $ s'
-  if
-    | matchKey (km ^. save) key mods -> ifValid doAdd s
-    | matchKey (km ^. back) key mods -> pure . wrap . showEnvironmentListScreen $ s
-    | otherwise -> pure . wrap <=< updateBrickForm key $ s
+  if  | matchKey (km ^. save) key mods -> ifValid doAdd s
+      | matchKey (km ^. back) key mods -> pure . wrap . showEnvironmentListScreen $ s
+      | otherwise -> pure . wrap <=< updateBrickForm key $ s
 
 handleEventEnvironmentList ::
   (MonadEvent m, MonadReader Config.AppConfig m) =>
@@ -58,15 +57,14 @@ handleEventEnvironmentList key mods chan s = do
   km <- asks (view keymap)
   let AppList list = s ^. screen ^. searchTools ^. appList
       selectedEnv = snd <$> listSelectedElement list
-  if
-    | matchKey (km ^. delete) key mods -> case selectedEnv of
-      Just (SelectableResult (AnEnvironmentResult c _)) -> pure . wrap . (modal ?~ DeleteEnvironmentModal c) $ s
-      _ -> pure . wrap $ s
-    | matchKey (km ^. edit) key mods -> case selectedEnv of
-      Just (SelectableResult (AnEnvironmentResult c _)) -> pure . wrap . showEnvironmentEditScreen c $ s
-      _ -> pure . wrap $ s
-    | matchKey (km ^. add) key mods -> pure . wrap . showEnvironmentAddScreen $ s
-    | otherwise -> handleEventSearch key mods chan s
+  if  | matchKey (km ^. delete) key mods -> case selectedEnv of
+        Just (SelectableResult (AnEnvironmentResult c _)) -> pure . wrap . (modal ?~ DeleteEnvironmentModal c) $ s
+        _ -> pure . wrap $ s
+      | matchKey (km ^. edit) key mods -> case selectedEnv of
+        Just (SelectableResult (AnEnvironmentResult c _)) -> pure . wrap . showEnvironmentEditScreen c $ s
+        _ -> pure . wrap $ s
+      | matchKey (km ^. add) key mods -> pure . wrap . showEnvironmentAddScreen $ s
+      | otherwise -> handleEventSearch key mods chan s
 
 handleEventEnvironmentEdit ::
   (MonadEvent m, MonadReader Config.AppConfig m) =>
@@ -78,7 +76,6 @@ handleEventEnvironmentEdit ::
 handleEventEnvironmentEdit key mods chan s = do
   km <- asks (view keymap)
   let doEdit = saveAfter chan . pure . wrap . showEnvironmentListScreen . finishEditingEnvironment
-  if
-    | matchKey (km ^. save) key mods -> ifValid doEdit s
-    | matchKey (km ^. back) key mods -> pure . wrap . showEnvironmentListScreen $ s
-    | otherwise -> pure . wrap <=< updateBrickForm key $ s
+  if  | matchKey (km ^. save) key mods -> ifValid doEdit s
+      | matchKey (km ^. back) key mods -> pure . wrap . showEnvironmentListScreen $ s
+      | otherwise -> pure . wrap <=< updateBrickForm key $ s

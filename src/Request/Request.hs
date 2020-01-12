@@ -122,16 +122,17 @@ constructResponse anyReq r u startTime vars = do
   bsResponse <- handleExceptT (\(e :: Req.HttpException) -> show e) (doHttpRequest anyReq r vars)
   now <- lift getCurrentTime :: ExceptT String IO UTCTime
   let responseMsg :: Text = (decodeUtf8 . Req.responseBody) bsResponse
-  pure Response
-    { responseBody = ResponseBody responseMsg,
-      responseStatusCode = StatusCode $ Req.responseStatusCode bsResponse,
-      responseDateTime = now,
-      responseMethod = r ^. method,
-      responseUrl = u,
-      responseHeaders = fmap (substituteHeader vars) . Seq.filter isEnabled $ r ^. headers,
-      responseRequestBody = substitute vars (r ^. body),
-      responseElapsedTime = diffUTCTime now startTime
-    }
+  pure
+    Response
+      { responseBody = ResponseBody responseMsg,
+        responseStatusCode = StatusCode $ Req.responseStatusCode bsResponse,
+        responseDateTime = now,
+        responseMethod = r ^. method,
+        responseUrl = u,
+        responseHeaders = fmap (substituteHeader vars) . Seq.filter isEnabled $ r ^. headers,
+        responseRequestBody = substitute vars (r ^. body),
+        responseElapsedTime = diffUTCTime now startTime
+      }
 
 -- This performs the actual request via the req library's `runReq`. Should be run on a background thread.
 doHttpRequest :: AnyReq -> RequestDef -> [Variable] -> IO Req.BsResponse

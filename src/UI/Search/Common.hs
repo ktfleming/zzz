@@ -139,28 +139,27 @@ handleEventSearch key mods chan s = do
         updatedList <- AppList <$> liftEvent resultList (handleListEvent (EvKey key' []) resultList)
         let updatedScreen = (s ^. screen) & searchTools . appList .~ updatedList
         pure . wrap . (screen .~ scrollPastSection direction updatedScreen) $ s
-  if
-    | matchKey (km ^. scrollUp) key mods -> forwardToList key Up
-    | matchKey (km ^. scrollDown) key mods -> forwardToList key Down
-    | matchKey (km ^. submit) key mods -> case listSelectedElement resultList of
-      Just (_, SelectableResult selected) -> searchSelect selected chan s
-      _ -> pure . wrap $ s
-    | matchKey (km ^. back) key mods -> pure . unstashScreen $ s
-    | otherwise -> do
-      updatedEditor <- liftEvent edt $ handleEditorEvent (EvKey key mods) edt
-      let contents = getEditContents updatedEditor
-          searchString = fromMaybe "" (headMay contents)
-          -- Right now I'm always filtering on full list of all possible search results;
-          -- it's possible to make this more efficient by, for example, only filtering
-          -- on the already-filtered list of results if the new search string contains
-          -- the previous search string as a prefix. Let's see how the naive version performs
-          -- for now, and possibly return to this if it becomes a problem.
-          updatedResults = filterResults (hasHeaders st) searchString allResults
-          AppList zl = makeResultList updatedResults
-          -- Have to use listMoveDown to select the _second_ element in the results, since the first result (if there
-          -- are any) will be the section header (only if section headers are being shown)
-          updatedList = if hasHeaders st then listMoveDown zl else zl
-      pure . wrap . (screen . searchTools .~ SearchTools (ZZZEditor updatedEditor) (AppList updatedList) allResults) $ s
+  if  | matchKey (km ^. scrollUp) key mods -> forwardToList key Up
+      | matchKey (km ^. scrollDown) key mods -> forwardToList key Down
+      | matchKey (km ^. submit) key mods -> case listSelectedElement resultList of
+        Just (_, SelectableResult selected) -> searchSelect selected chan s
+        _ -> pure . wrap $ s
+      | matchKey (km ^. back) key mods -> pure . unstashScreen $ s
+      | otherwise -> do
+        updatedEditor <- liftEvent edt $ handleEditorEvent (EvKey key mods) edt
+        let contents = getEditContents updatedEditor
+            searchString = fromMaybe "" (headMay contents)
+            -- Right now I'm always filtering on full list of all possible search results;
+            -- it's possible to make this more efficient by, for example, only filtering
+            -- on the already-filtered list of results if the new search string contains
+            -- the previous search string as a prefix. Let's see how the naive version performs
+            -- for now, and possibly return to this if it becomes a problem.
+            updatedResults = filterResults (hasHeaders st) searchString allResults
+            AppList zl = makeResultList updatedResults
+            -- Have to use listMoveDown to select the _second_ element in the results, since the first result (if there
+            -- are any) will be the section header (only if section headers are being shown)
+            updatedList = if hasHeaders st then listMoveDown zl else zl
+        pure . wrap . (screen . searchTools .~ SearchTools (ZZZEditor updatedEditor) (AppList updatedList) allResults) $ s
 
 searchWidget :: SearchTools -> Text -> Widget Name
 searchWidget st@(SearchTools (ZZZEditor edt) (AppList results) _) emptyMessage =

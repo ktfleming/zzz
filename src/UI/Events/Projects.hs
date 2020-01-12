@@ -51,10 +51,9 @@ handleEventProjectAdd key mods chan s = do
   let doAdd s' = do
         pid <- liftIO $ ProjectId <$> nextRandom
         saveAfter chan . pure . wrap . showProjectListScreen . finishAddingProject pid $ s'
-  if
-    | matchKey (km ^. save) key mods -> ifValid doAdd s
-    | matchKey (km ^. back) key mods -> pure . wrap . showProjectListScreen $ s
-    | otherwise -> pure . wrap <=< updateBrickForm key $ s
+  if  | matchKey (km ^. save) key mods -> ifValid doAdd s
+      | matchKey (km ^. back) key mods -> pure . wrap . showProjectListScreen $ s
+      | otherwise -> pure . wrap <=< updateBrickForm key $ s
 
 handleEventProjectEdit ::
   (MonadEvent m, MonadReader Config.AppConfig m) =>
@@ -67,10 +66,9 @@ handleEventProjectEdit key mods chan s = do
   km <- asks (view keymap)
   let c = s ^. screen ^. context
       doEdit = saveAfter chan . pure . wrap . showProjectDetails c . finishEditingProject
-  if
-    | matchKey (km ^. save) key mods -> ifValid doEdit s
-    | matchKey (km ^. back) key mods -> pure . wrap . showProjectDetails c $ s
-    | otherwise -> pure . wrap <=< updateBrickForm key $ s
+  if  | matchKey (km ^. save) key mods -> ifValid doEdit s
+      | matchKey (km ^. back) key mods -> pure . wrap . showProjectDetails c $ s
+      | otherwise -> pure . wrap <=< updateBrickForm key $ s
 
 handleEventProjectDetails ::
   (MonadEvent m, MonadReader Config.AppConfig m) =>
@@ -82,12 +80,11 @@ handleEventProjectDetails ::
 handleEventProjectDetails key mods chan s = do
   km <- asks (view keymap)
   let c = s ^. screen ^. context
-  if
-    | matchKey (km ^. edit) key mods -> pure . wrap . showEditProjectScreen c $ s
-    | matchKey (km ^. add) key mods -> pure . wrap . showAddRequestDefScreen c $ s
-    | matchKey (km ^. delete) key mods -> pure . wrap . (modal ?~ DeleteProjectModal c) $ s
-    | matchKey (km ^. back) key mods -> pure . wrap . showProjectListScreen $ s
-    | otherwise -> handleEventSearch key mods chan s
+  if  | matchKey (km ^. edit) key mods -> pure . wrap . showEditProjectScreen c $ s
+      | matchKey (km ^. add) key mods -> pure . wrap . showAddRequestDefScreen c $ s
+      | matchKey (km ^. delete) key mods -> pure . wrap . (modal ?~ DeleteProjectModal c) $ s
+      | matchKey (km ^. back) key mods -> pure . wrap . showProjectListScreen $ s
+      | otherwise -> handleEventSearch key mods chan s
 
 handleEventProjectList ::
   (MonadEvent m, MonadReader Config.AppConfig m) =>
@@ -98,6 +95,5 @@ handleEventProjectList ::
   m AnyAppState
 handleEventProjectList key mods chan s = do
   km <- asks (view keymap)
-  if
-    | matchKey (km ^. add) key mods -> pure . wrap . showProjectAddScreen $ s
-    | otherwise -> handleEventSearch key mods chan s
+  if  | matchKey (km ^. add) key mods -> pure . wrap . showProjectAddScreen $ s
+      | otherwise -> handleEventSearch key mods chan s

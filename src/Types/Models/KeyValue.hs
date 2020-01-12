@@ -32,7 +32,6 @@ isTextEnabled :: Text -> Bool
 isTextEnabled t = T.take 2 t /= "--"
 
 class KeyValueIso a where
-
   keyValueIso :: Iso' a KeyValue
 
   isEnabled :: a -> Bool

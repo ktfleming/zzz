@@ -45,11 +45,12 @@ showEditRequestDefScreen ::
 showEditRequestDefScreen c s =
   let r = model s c
       vars = currentVariables s
-      fs = RequestDefFormState
-        { requestDefFormStateName = r ^. name,
-          requestDefFormStateUrl = r ^. url,
-          requestDefFormStateMethod = r ^. method,
-          requestDefFormStateBody = r ^. body,
-          requestDefFormStateHeaders = r ^. headers
-        }
+      fs =
+        RequestDefFormState
+          { requestDefFormStateName = r ^. name,
+            requestDefFormStateUrl = r ^. url,
+            requestDefFormStateMethod = r ^. method,
+            requestDefFormStateBody = r ^. body,
+            requestDefFormStateHeaders = r ^. headers
+          }
    in s & screen .~ RequestDefEditScreen c (makeRequestDefForm vars fs)

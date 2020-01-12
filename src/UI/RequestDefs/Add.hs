@@ -27,24 +27,26 @@ finishAddingRequestDef ::
   AppState 'RequestDefAddTag
 finishAddingRequestDef rid s =
   let RequestDefAddScreen (ProjectContext pid) (AppForm form) = s ^. screen
-      req = RequestDef
-        { requestDefName = formState form ^. name,
-          requestDefUrl = formState form ^. url,
-          requestDefMethod = formState form ^. method,
-          requestDefBody = formState form ^. body,
-          requestDefHeaders = formState form ^. headers
-        }
+      req =
+        RequestDef
+          { requestDefName = formState form ^. name,
+            requestDefUrl = formState form ^. url,
+            requestDefMethod = formState form ^. method,
+            requestDefBody = formState form ^. body,
+            requestDefHeaders = formState form ^. headers
+          }
    in s & projects . at pid . _Just . requestDefs . at rid ?~ req
 
 showAddRequestDefScreen ::
   ProjectContext -> AppState a -> AppState 'RequestDefAddTag
 showAddRequestDefScreen c s =
-  let fs = RequestDefFormState
-        { requestDefFormStateName = RequestDefName "",
-          requestDefFormStateUrl = Url "",
-          requestDefFormStateMethod = Get,
-          requestDefFormStateBody = RequestBody "",
-          requestDefFormStateHeaders = Seq.empty
-        }
+  let fs =
+        RequestDefFormState
+          { requestDefFormStateName = RequestDefName "",
+            requestDefFormStateUrl = Url "",
+            requestDefFormStateMethod = Get,
+            requestDefFormStateBody = RequestBody "",
+            requestDefFormStateHeaders = Seq.empty
+          }
       vars = currentVariables s
    in s & screen .~ RequestDefAddScreen c (makeRequestDefForm vars fs)

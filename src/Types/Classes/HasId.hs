@@ -14,7 +14,6 @@ import Types.Models.RequestDef
 -- A type for a model that has an internal ID, as well as a "context", which is
 -- the set of IDs necessary to traverse the state and obtain the model
 class HasId a where
-
   -- All these type families are injective, so that, for example, only one type can have an ID of type `ProjectId`
   -- (in this case, `Project`)
   type ID a = b | b -> a
@@ -24,7 +23,6 @@ class HasId a where
   model :: AppState x -> Context a -> a
 
 instance HasId Project where
-
   type ID Project = ProjectId
 
   type Context Project = ProjectContext
@@ -32,7 +30,6 @@ instance HasId Project where
   model = lookupProject
 
 instance HasId RequestDef where
-
   type ID RequestDef = RequestDefId
 
   type Context RequestDef = RequestDefContext
@@ -40,7 +37,6 @@ instance HasId RequestDef where
   model = lookupRequestDef
 
 instance HasId Environment where
-
   type ID Environment = EnvironmentId
 
   type Context Environment = EnvironmentContext

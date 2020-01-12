@@ -249,20 +249,21 @@ genAppState tag = do
         (6, genScreenTag >>= \stashedTag -> Just <$> genScreen stashedTag projects env envs Nothing responses)
       ]
   AnyScreen stag scr <- genScreen tag projects env envs stashedScreen responses
-  pure $ AnyAppState
-    stag
-    AppState
-      { appStateScreen = scr,
-        _appStateProjects = projects,
-        _appStateEnvironments = envs,
-        _appStateEnvironmentContext = envContext,
-        _appStateModal = Nothing,
-        _appStateResponses = responses,
-        _appStateHelpPanelVisible = HelpPanelVisible False,
-        _appStateActiveRequests = Map.empty,
-        _appStateStashedScreen = stashedScreen,
-        _appStateCurrentTime = UTCTime (ModifiedJulianDay 0) 0
-      }
+  pure $
+    AnyAppState
+      stag
+      AppState
+        { appStateScreen = scr,
+          _appStateProjects = projects,
+          _appStateEnvironments = envs,
+          _appStateEnvironmentContext = envContext,
+          _appStateModal = Nothing,
+          _appStateResponses = responses,
+          _appStateHelpPanelVisible = HelpPanelVisible False,
+          _appStateActiveRequests = Map.empty,
+          _appStateStashedScreen = stashedScreen,
+          _appStateCurrentTime = UTCTime (ModifiedJulianDay 0) 0
+        }
 
 genKeyWithMods :: Gen (Key, [Modifier])
 genKeyWithMods = do
