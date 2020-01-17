@@ -38,6 +38,8 @@ data Name
   | -- Search screen
     SearchField
   | SearchResultsList
+  | -- Variable prompt modal
+    VariableValueField
   deriving (Eq, Ord, Show)
 
 -- The label to display for a Name that's used as as form input

@@ -7,6 +7,7 @@
 module Request.Request
   ( sendRequest,
     cancelRequest,
+    unsetVariables,
   )
 where
 
@@ -42,16 +43,12 @@ import Types.Classes.Fields
 import Types.Classes.HasId (model)
 import Types.Methods (Method (..))
 import Types.Models.Environment
-  ( Environment,
-    Variable,
-    VariableName (..),
-  )
 import Types.Models.Header
 import Types.Models.KeyValue (isEnabled)
 import Types.Models.RequestDef
 import Types.Models.Response
 import Types.Models.Screen
-import Types.Models.Screen.Optics (lastError)
+import Types.Models.Screen.Optics
 import Types.Models.Url (Url (..))
 import Types.Time
 import Utils.Text
@@ -82,7 +79,9 @@ sendRequest ::
 sendRequest c@(RequestDefContext _ rid) chan s = do
   let r :: RequestDef = model s c
       e :: Maybe Environment = model s <$> s ^. environmentContext
-      vars :: [Variable] = maybe [] (toList . view variables) e
+      envVars :: [Variable] = maybe [] (toList . view variables) e
+      localVars :: [Variable] = HashSet.toList $ s ^. screen ^. rdVariables
+      vars = envVars <> localVars
       finalUrl :: Url = substitute vars (r ^. url)
       -- Handling an error means logging it and updating the `lastError` field on the Screen
       errorHandler :: (MonadReader Config.AppConfig m, MonadIO m) => RequestError -> m (AppState 'RequestDefDetailsTag)
@@ -90,15 +89,11 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
         logMessage (errorDescription er)
         pure $ s & screen . lastError ?~ er
   now <- liftIO getCurrentTime
-  -- Doing this kind of error handling instead of trying to use ExceptT / MonadError at least for now,
-  -- since the two validations are independent so it's only one level of indentation. Could
-  -- revisit this at some point.
-  case (validateVariables s r, (Req.parseUrl . encodeUtf8 . coerce) finalUrl) of
-    (Left er, _) -> errorHandler er
-    (_, Nothing) -> do
+  case (Req.parseUrl . encodeUtf8 . coerce) finalUrl of
+    Nothing -> do
       tz <- asks (view Config.timeZone)
       errorHandler $ RequestFailed (AppTime (utcToZonedTime tz now)) "Error parsing URL"
-    (Right _, Just validatedUrl) -> do
+    Just validatedUrl -> do
       let asyncRequest :: IO (Async ()) =
             Async.async $ backgroundSend (eitherReqToAnyReq validatedUrl) c r finalUrl chan now vars
       asyncResult <- liftIO $ AppAsync <$> asyncRequest
@@ -167,13 +162,15 @@ cancelRequest (RequestDefContext _ rid) target s = do
 httpConfig :: Req.HttpConfig
 httpConfig = Req.defaultHttpConfig {Req.httpConfigCheckResponse = \_ _ _ -> Nothing}
 
--- Make sure that all variables in the RequestDef's URL, headers, and body are all defined in the
--- current environment; if not, update the RequestDef's most recent error.
-validateVariables :: AppState 'RequestDefDetailsTag -> RequestDef -> Either RequestError ()
-validateVariables s r =
-  let varsInEnvironment :: HashSet VariableName =
+-- Get all variables used in the request def's url, body, and headers that
+-- don't have a value in the environment or the local state
+unsetVariables :: AppState 'RequestDefDetailsTag -> HashSet VariableName
+unsetVariables s =
+  let rd = model s (s ^. screen ^. context)
+      getName (Variable n _) = n
+      varsInLocalState :: HashSet VariableName = foldr (HashSet.insert . getName) HashSet.empty (s ^. screen ^. rdVariables)
+      varsInEnvironment :: HashSet VariableName =
         (HashSet.fromList . toList) $
           maybe Seq.empty (\e -> view name <$> e ^. variables) (currentEnvironment s)
-      unmatchedVariables :: [VariableName] =
-        filter (not . flip HashSet.member varsInEnvironment) (allVariables r)
-   in if null unmatchedVariables then Right () else Left (UnmatchedVariables unmatchedVariables)
+      definedVars = HashSet.union varsInEnvironment varsInLocalState
+   in HashSet.difference (allVariables rd) definedVars

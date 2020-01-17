@@ -26,6 +26,7 @@ import Brick.Widgets.List
 import Control.Lens
 import Data.Coerce (coerce)
 import qualified Data.HashMap.Strict as Map
+import qualified Data.HashSet as HashSet
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
 import qualified Data.Text as T
@@ -64,7 +65,7 @@ showRequestDefDetails ::
 showRequestDefDetails c s =
   let ring = AppFocusRing $ focusRing [RequestDetails, ResponseList, ResponseBodyDetails]
       ekey = currentEnvironmentKey s
-   in s & screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing
+   in s & screen .~ RequestDefDetailsScreen c (makeResponseList (lookupResponses s c ekey)) ring Nothing HashSet.empty
 
 refreshResponseList ::
   AppState 'RequestDefDetailsTag -> AppState 'RequestDefDetailsTag
@@ -124,7 +125,7 @@ responseHistoryWidget outerList@(AppList innerList) focused showSelection =
 
 requestDefDetailsWidget :: TimeZone -> AppState 'RequestDefDetailsTag -> Widget Name
 requestDefDetailsWidget tz s =
-  let (RequestDefDetailsScreen c (AppList zl) (AppFocusRing ring) maybeError) = s ^. screen
+  let (RequestDefDetailsScreen c (AppList zl) (AppFocusRing ring) maybeError _) = s ^. screen
       focused = focusGetCurrent ring
       showResponse = focused == Just ResponseBodyDetails || focused == Just ResponseList
       bodyWidget = case (showResponse, listSelectedElement zl) of

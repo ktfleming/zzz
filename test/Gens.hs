@@ -8,6 +8,7 @@ module Gens where
 import Brick.Focus (focusRing, focusSetCurrent)
 import Control.Lens
 import Data.HashMap.Strict as Map
+import qualified Data.HashSet as HashSet
 import Data.Maybe (fromMaybe, isNothing)
 import qualified Data.Sequence as Seq
 import Data.Sequence (Seq)
@@ -203,7 +204,7 @@ genScreen tag projects env envs stashedScreen responses =
               localResponses = fromMaybe Seq.empty (Map.lookup env localResponseMap)
           -- If no responses exist then the top section must be selected; otherwise randomly select one of the three sections
           modifiedRing <- if Seq.null localResponses then Gen.constant ring else fmap (`focusSetCurrent` ring) (Gen.element choices)
-          pure $ AnyScreen sing $ RequestDefDetailsScreen (RequestDefContext pid rid) (makeResponseList localResponses) (AppFocusRing modifiedRing) Nothing
+          pure $ AnyScreen sing $ RequestDefDetailsScreen (RequestDefContext pid rid) (makeResponseList localResponses) (AppFocusRing modifiedRing) Nothing HashSet.empty
         EnvironmentAddTag ->
           AnyScreen sing . EnvironmentAddScreen . makeEnvironmentForm <$> genEnvironmentFormState
         EnvironmentListTag ->

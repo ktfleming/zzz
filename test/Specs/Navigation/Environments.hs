@@ -85,11 +85,11 @@ environmentNavTree =
             -- have to be refreshed
             let newScreen = AnyScreen newTag (newState ^. screen)
                 expectedScreen = case initialStashedScreen of
-                  RequestDefDetailsScreen c _ ring err ->
+                  RequestDefDetailsScreen c _ ring err vs ->
                     -- Look up the environment that was selected, the request def that is being displayed, and
                     -- the responses that belong to that pair
                     let newResponses = lookupResponses newState c (currentEnvironmentKey newState)
-                     in RequestDefDetailsScreen c (makeResponseList newResponses) ring err
+                     in RequestDefDetailsScreen c (makeResponseList newResponses) ring err vs
                   _ -> initialStashedScreen
             newScreen === AnyScreen initialStashedTag expectedScreen,
           prop "Pressing CTRL+d" $ do

@@ -12,6 +12,7 @@ where
 
 import Brick
 import Brick.BChan (BChan)
+import Brick.Forms (handleFormEvent)
 import qualified Config
 import Control.Lens
 import Control.Monad ((<=<))
@@ -19,6 +20,7 @@ import Control.Monad.Reader
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (writeFile)
 import qualified Data.HashMap.Strict as Map
+import qualified Data.HashSet as HashSet
 import qualified Data.Sequence as Seq
 import Data.Singletons (withSingI)
 import qualified Data.Text as T
@@ -34,6 +36,7 @@ import Types.Constants
   ( mainSettingsFile,
     responseHistoryFile,
   )
+import Types.Modal
 import Types.Models.RequestDef
   ( RequestDefContext (..),
     RequestError (..),
@@ -47,6 +50,7 @@ import UI.Events.Environments
 import UI.Events.Keys (matchKey)
 import UI.Events.Projects
 import UI.Events.RequestDefs
+import UI.Form
 import UI.Modal
   ( dismissModal,
     handleConfirm,
@@ -105,7 +109,9 @@ handleCustomEvent chan (SendRequest c) s =
   -- (no chance for the user to move to another screen first). Would like to figure out how
   -- to make this check unnecessary.
   case s ^. screen of
-    RequestDefDetailsScreen {} -> sendRequest c chan s
+    RequestDefDetailsScreen {} ->
+      -- Have to clear the local variables after sending the request
+      fmap (screen . rdVariables .~ HashSet.empty) (sendRequest c chan s)
     _ -> pure s
 
 saveState :: (MonadReader Config.AppConfig m, MonadIO m) => AppState a -> m (AppState a)
@@ -134,8 +140,17 @@ handleEvent chan outer@(AnyAppState tag s) (VtyEvent (EvKey key mods)) = do
       | matchKey (km ^. showEnvironments) key mods ->
         pure . wrap . showEnvironmentListScreen . withSingI tag stashScreen $ s
       | otherwise -> case (s ^. modal, key) of
-        (Just _, KChar 'n') -> pure . dismissModal $ outer
-        (Just m, KChar 'y') -> saveAfter chan . fmap dismissModal . handleConfirm m chan $ outer
+        (Just mdl@(VariablePromptModal c (AppForm fs) needsPrompt), _) ->
+          -- This modal has custom handling since it's a form. You can submit, cancel, or
+          -- type into the text field.
+          if  | matchKey (km ^. submit) key mods ->
+                fmap (modal .~ nextModal mdl) . handleConfirm mdl chan $ outer
+              | matchKey (km ^. back) key mods -> pure $ dismissModal mdl outer
+              | otherwise -> do
+                updatedForm <- AppForm <$> liftEvent fs (handleFormEvent (VtyEvent (EvKey key [])) fs)
+                pure $ outer & modal ?~ VariablePromptModal c updatedForm needsPrompt
+        (Just mdl, KChar 'n') -> pure . dismissModal mdl $ outer
+        (Just mdl, KChar 'y') -> saveAfter chan . fmap (modal .~ nextModal mdl) . handleConfirm mdl chan $ outer
         (Just _, _) -> pure outer
         (Nothing, _) -> case s ^. screen of
           ProjectAddScreen {} -> handleEventProjectAdd key mods chan s

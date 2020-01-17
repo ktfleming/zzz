@@ -24,6 +24,8 @@ import Data.Aeson
   )
 import Data.Coerce (coerce)
 import Data.Foldable (toList)
+import Data.HashSet (HashSet)
+import qualified Data.HashSet as HashSet
 import Data.Maybe (catMaybes)
 import Data.Sequence (Seq)
 import qualified Data.Text as T
@@ -90,7 +92,7 @@ makeFields ''RequestDefFormState
 
 -- Extract all of the template variables used within a RequestDef, including in the URL,
 -- headers, body, etc.
-allVariables :: RequestDef -> [VariableName]
+allVariables :: RequestDef -> HashSet VariableName
 allVariables r =
   let transformPart :: TemplatedTextPart -> Maybe VariableName
       transformPart (TemplateVariable n) = Just (VariableName n)
@@ -105,7 +107,7 @@ allVariables r =
       urlVariables = extractVariables $ r ^. url . coerced
       bodyVariables = extractVariables $ r ^. body . coerced
       headerVariables = toList (r ^. headers) >>= (\(Header n v) -> join [extractVariables (coerce n), extractVariables (coerce v)])
-   in join [urlVariables, bodyVariables, headerVariables]
+   in HashSet.fromList $ join [urlVariables, bodyVariables, headerVariables]
 
 instance ToJSON RequestDef where
   toJSON r =

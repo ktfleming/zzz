@@ -38,6 +38,7 @@ import Types.Models.Project (ProjectContext (..), requestDefs)
 import Types.Models.RequestDef
 import Types.Models.Response (ResponseIndex (..))
 import Types.Models.Screen
+import Types.Models.Screen.Optics
 import Types.Models.Url
 import UI.FocusRing (AppFocusRing (..))
 import UI.Form (AppForm (..))
@@ -95,19 +96,19 @@ requestDefNavTree =
               else n === i,
           propN 1 "Pressing ESC" $ do
             i@(AnyAppState SRequestDefEditTag initial@AppState {appStateScreen = RequestDefEditScreen c _}) <- with RequestDefEditTag
-            n@(AnyAppState SRequestDefDetailsTag AppState {appStateScreen = RequestDefDetailsScreen newC _ _ _}) <- getNextState initial KEsc []
-            newC === c
+            n@(AnyAppState SRequestDefDetailsTag newState) <- getNextState initial KEsc []
+            newState ^. screen ^. context === c
             n ^. projects === i ^. projects
         ],
       testGroup
         "RequestDefDetailsScreen"
         [ prop "Pressing CTRL+e" $ do
-            i@(AnyAppState SRequestDefDetailsTag initial@AppState {appStateScreen = RequestDefDetailsScreen c _ _ _}) <- with RequestDefDetailsTag
-            n@(AnyAppState SRequestDefEditTag AppState {appStateScreen = RequestDefEditScreen newC _}) <- getNextState initial (KChar 'e') [MCtrl]
-            newC === c
+            (AnyAppState SRequestDefDetailsTag i) <- with RequestDefDetailsTag
+            (AnyAppState SRequestDefEditTag n) <- getNextState i (KChar 'e') [MCtrl]
+            n ^. screen ^. context === i ^. screen ^. context
             n ^. projects === i ^. projects,
           prop "Pressing CTRL+d" $ do
-            i@(AnyAppState SRequestDefDetailsTag AppState {appStateScreen = RequestDefDetailsScreen c (AppList list) (AppFocusRing ring) _}) <- with RequestDefDetailsTag
+            i@(AnyAppState SRequestDefDetailsTag AppState {appStateScreen = RequestDefDetailsScreen c (AppList list) (AppFocusRing ring) _ _}) <- with RequestDefDetailsTag
             cover 10 "RequestDetails selected" $ focusGetCurrent ring == Just RequestDetails
             cover 10 "ResponseList selected" $ focusGetCurrent ring == Just ResponseList
             cover 10 "ResponseBodyDetails selected" $ focusGetCurrent ring == Just ResponseBodyDetails
@@ -119,7 +120,7 @@ requestDefNavTree =
               _ -> failure
             n ^. projects === i ^. projects,
           prop "Pressing the escape key" $ do
-            i@(AnyAppState SRequestDefDetailsTag initial@AppState {appStateScreen = RequestDefDetailsScreen (RequestDefContext pid _) _ _ _}) <- with RequestDefDetailsTag
+            i@(AnyAppState SRequestDefDetailsTag initial@AppState {appStateScreen = RequestDefDetailsScreen (RequestDefContext pid _) _ _ _ _}) <- with RequestDefDetailsTag
             n@(AnyAppState SProjectDetailsTag AppState {appStateScreen = ProjectDetailsScreen (ProjectContext newPid) _}) <- getNextState initial KEsc []
             pid === newPid
             n ^. projects === i ^. projects

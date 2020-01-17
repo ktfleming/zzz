@@ -12,6 +12,7 @@
 
 module Types.Models.Screen where
 
+import Data.HashSet (HashSet)
 import Data.Singletons (Sing)
 import Data.Singletons.Decide
   ( (%~),
@@ -81,6 +82,7 @@ data Screen (a :: ScreenTag) where
     AppList Response ->
     AppFocusRing Name ->
     Maybe RequestError ->
+    HashSet Variable ->
     Screen 'RequestDefDetailsTag
   EnvironmentListScreen ::
     SearchTools ->

@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiWayIf #-}
+{-# LANGUAGE OverloadedStrings #-}
 
 module UI.Events.RequestDefs where
 
@@ -23,11 +24,14 @@ import Control.Monad ((<=<))
 import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
 import qualified Data.HashMap.Strict as Map
+import qualified Data.HashSet as HashSet
+import Data.List (sort)
 import Data.Maybe (isNothing)
 import Data.UUID.V4 (nextRandom)
 import Graphics.Vty.Input.Events
 import Request.Request
   ( cancelRequest,
+    unsetVariables,
   )
 import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
@@ -35,6 +39,8 @@ import Types.Brick.Name
 import Types.Classes.Fields
 import Types.Classes.HasId
 import Types.Modal (Modal (..))
+import Types.Modal
+import Types.Models.Environment
 import Types.Models.Id (RequestDefId (..))
 import Types.Models.Project (ProjectContext (..))
 import Types.Models.RequestDef (RequestDefContext (..))
@@ -96,7 +102,7 @@ handleEventRequestDetails ::
 handleEventRequestDetails key mods chan s = do
   globalSafetyLevel <- asks (view safetyLevel)
   km <- asks (view keymap)
-  let RequestDefDetailsScreen c@(RequestDefContext _ rid) (AppList list) (AppFocusRing ring) _ = s ^. screen
+  let RequestDefDetailsScreen c@(RequestDefContext _ rid) (AppList list) (AppFocusRing ring) _ _ = s ^. screen
       focused = focusGetCurrent ring
       activeRequest = Map.lookup rid (s ^. activeRequests . coerced)
       selectedResponse = ResponseIndex <$> listSelected list
@@ -119,9 +125,12 @@ handleEventRequestDetails key mods chan s = do
         (Just ResponseBodyDetails, Just i) -> pure . wrap . (modal ?~ DeleteResponseModal c i) $ s
         _ -> pure . wrap . (modal ?~ DeleteRequestDefModal c) $ s
       | matchKey (km ^. submit) key mods ->
-        case (focused, isNothing activeRequest, shouldPrompt activeSafetyLevel (model s c ^. method)) of
-          (Just RequestDetails, True, True) -> pure . wrap . (modal ?~ ConfirmRequestModal c) $ s
-          (Just RequestDetails, True, False) -> sendEvent (SendRequest c) chan >> (pure . wrap) s
+        case (sort . HashSet.toList $ unsetVariables s, focused, isNothing activeRequest, shouldPrompt activeSafetyLevel (model s c ^. method)) of
+          ((first : rest), Just RequestDetails, True, needsPrompt) ->
+            let fs = variablePromptForm $ VariablePromptFormState first (VariableValue "") rest
+             in pure . wrap . (modal ?~ VariablePromptModal c fs needsPrompt) $ s
+          ([], Just RequestDetails, True, True) -> pure . wrap . (modal ?~ ConfirmRequestModal c) $ s
+          ([], Just RequestDetails, True, False) -> sendEvent (SendRequest c) chan >> (pure . wrap) s
           _ -> pure . wrap $ s
       | matchKey (km ^. Types.Classes.Fields.focusNext) key mods ->
         fmap wrap . modifyFocus Brick.Focus.focusNext $ s

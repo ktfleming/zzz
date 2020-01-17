@@ -12,6 +12,7 @@ import Brick (BrickEvent (..))
 import Brick.Forms (allFieldsValid, handleFormEvent)
 import Brick.Widgets.List (handleListEvent)
 import Control.Lens
+import Data.HashSet (HashSet)
 import Data.Singletons (SingI)
 import Graphics.Vty.Input.Events
   ( Event (..),
@@ -103,8 +104,8 @@ instance HasBrickList (Screen 'RequestDefDetailsTag) where
 
   listLens =
     lens
-      (\(RequestDefDetailsScreen _ l _ _) -> l)
-      (\(RequestDefDetailsScreen c _ ring e) l -> RequestDefDetailsScreen c l ring e)
+      (\(RequestDefDetailsScreen _ l _ _ _) -> l)
+      (\(RequestDefDetailsScreen c _ ring e vs) l -> RequestDefDetailsScreen c l ring e vs)
 
 -- For getting a list out of an AppState that contains a Screen that contains a list
 instance HasBrickList (Screen a) => HasBrickList (AppState a) where
@@ -128,14 +129,20 @@ updateBrickList key model = do
 lastError :: Lens' (Screen 'RequestDefDetailsTag) (Maybe RequestError)
 lastError =
   lens
-    (\(RequestDefDetailsScreen _ _ _ e) -> e)
-    (\(RequestDefDetailsScreen c l ring _) e -> RequestDefDetailsScreen c l ring e)
+    (\(RequestDefDetailsScreen _ _ _ e _) -> e)
+    (\(RequestDefDetailsScreen c l ring _ vs) e -> RequestDefDetailsScreen c l ring e vs)
 
 rdRing :: Lens' (Screen 'RequestDefDetailsTag) (AppFocusRing Name)
 rdRing =
   lens
-    (\(RequestDefDetailsScreen _ _ ring _) -> ring)
-    (\(RequestDefDetailsScreen c l _ e) ring -> RequestDefDetailsScreen c l ring e)
+    (\(RequestDefDetailsScreen _ _ ring _ _) -> ring)
+    (\(RequestDefDetailsScreen c l _ e vs) ring -> RequestDefDetailsScreen c l ring e vs)
+
+rdVariables :: Lens' (Screen 'RequestDefDetailsTag) (HashSet Variable)
+rdVariables =
+  lens
+    (\(RequestDefDetailsScreen _ _ _ _ vs) -> vs)
+    (\(RequestDefDetailsScreen c l r e _) vs -> RequestDefDetailsScreen c l r e vs)
 
 -- Starting with an AppState that has a form, check if the form is valid. If so, run the provided action; if not, just wrap the state.
 ifValid :: (Monad m, SingI i, HasBrickForm (AppState i)) => (AppState i -> m AnyAppState) -> AppState i -> m AnyAppState
@@ -159,7 +166,7 @@ instance HasContext (Screen 'RequestDefEditTag) RequestDefContext where
   context = to $ \(RequestDefEditScreen c _) -> c
 
 instance HasContext (Screen 'RequestDefDetailsTag) RequestDefContext where
-  context = to $ \(RequestDefDetailsScreen c _ _ _) -> c
+  context = to $ \(RequestDefDetailsScreen c _ _ _ _) -> c
 
 class HasSearchTools a where
   searchTools :: Lens' a SearchTools

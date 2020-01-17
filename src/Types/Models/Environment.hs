@@ -1,4 +1,5 @@
 {-# LANGUAGE DataKinds #-}
+{-# LANGUAGE DeriveGeneric #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
@@ -30,6 +31,7 @@ import Data.Aeson
 import Data.Hashable (Hashable)
 import Data.Sequence (Seq)
 import Data.Text (Text)
+import GHC.Generics (Generic)
 import Types.Classes.Fields
 import Types.Models.Id (EnvironmentId)
 import Types.Models.KeyValue
@@ -41,11 +43,17 @@ import Types.SafetyLevel
 
 newtype EnvironmentName = EnvironmentName Text deriving (FromJSON, ToJSON, Eq, Ord, Show)
 
-newtype VariableName = VariableName Text deriving (FromJSON, ToJSON, Show, Eq, Hashable)
+newtype VariableName = VariableName Text deriving (FromJSON, ToJSON, Show, Eq, Ord, Generic)
 
-newtype VariableValue = VariableValue Text deriving (FromJSON, ToJSON, Show, Eq)
+newtype VariableValue = VariableValue Text deriving (FromJSON, ToJSON, Show, Eq, Generic)
 
-data Variable = Variable {variableName :: VariableName, variableValue :: VariableValue} deriving (Show, Eq)
+data Variable = Variable {variableName :: VariableName, variableValue :: VariableValue} deriving (Show, Eq, Generic)
+
+instance Hashable VariableName
+
+instance Hashable VariableValue
+
+instance Hashable Variable
 
 makeFields ''Variable
 

@@ -65,7 +65,7 @@ title s = case s ^. screen of
   ProjectDetailsScreen c _ -> projectBaseTitle s c
   ProjectEditScreen c _ -> projectBaseTitle s c <> " (Editing)"
   RequestDefAddScreen _ _ -> "New Request Definition"
-  RequestDefDetailsScreen c _ _ _ -> requestDefBaseTitle s c
+  RequestDefDetailsScreen c _ _ _ _ -> requestDefBaseTitle s c
   RequestDefEditScreen c _ -> requestDefBaseTitle s c <> " (Editing)"
   EnvironmentListScreen {} -> "Environments"
   EnvironmentEditScreen c _ -> environmentBaseTitle s c <> " (Editing)"
