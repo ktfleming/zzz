@@ -9,7 +9,6 @@ module UI.Search.Common where
 
 import Brick
   ( Widget (..),
-    padRight,
   )
 import Brick.BChan (BChan)
 import Brick.Types

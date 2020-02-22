@@ -8,8 +8,6 @@ module UI.Events.Projects where
 import Brick.BChan (BChan)
 import qualified Config
 import Control.Lens
-import Control.Monad ((<=<))
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
 import Data.UUID.V4 (nextRandom)
 import Graphics.Vty.Input.Events

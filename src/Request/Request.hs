@@ -21,7 +21,6 @@ import qualified Control.Concurrent.Async as Async
 import Control.Error
 import Control.Lens
 import Control.Monad.Reader
-import Control.Monad.Trans.Class (lift)
 import Data.Coerce (coerce)
 import Data.Foldable (toList)
 import Data.HashSet (HashSet)
@@ -34,9 +33,9 @@ import Data.Text.Encoding
     encodeUtf8,
   )
 import Data.Time
-import Data.Time.Clock (UTCTime)
 import Messages.Messages (logMessage)
 import qualified Network.HTTP.Req as Req
+import Text.URI (mkURI)
 import Types.AppState
 import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Classes.Fields
@@ -89,7 +88,7 @@ sendRequest c@(RequestDefContext _ rid) chan s = do
         logMessage (errorDescription er)
         pure $ s & screen . lastError ?~ er
   now <- liftIO getCurrentTime
-  case (Req.parseUrl . encodeUtf8 . coerce) finalUrl of
+  case mkURI (coerce finalUrl) >>= Req.useURI of
     Nothing -> do
       tz <- asks (view Config.timeZone)
       errorHandler $ RequestFailed (AppTime (utcToZonedTime tz now)) "Error parsing URL"

@@ -13,19 +13,21 @@ dependencies:
   - aeson-pretty
   - async
   - base
-  - brick == 0.50.1
+  - brick
   - bytestring
   - containers
-  - dhall == 1.28.0
+  - dhall
   - directory
   - either
   - errors
+  - exceptions
   - formatting
   - hashable
   - hedgehog
   - hspec
   - lens
   - megaparsec
+  - modern-uri
   - mtl
   - req
   - safe
@@ -36,7 +38,7 @@ dependencies:
   - tasty-hspec
   - text
   - text-zipper
-  - time == 1.9.3
+  - time
   - transformers
   - unordered-containers
   - uuid

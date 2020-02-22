@@ -42,6 +42,7 @@ import Data.Hashable (Hashable)
 import Data.Maybe (fromMaybe)
 import Data.Sequence (Seq)
 import qualified Data.Sequence as Seq
+import Data.Singletons (Sing)
 import Data.Singletons.Decide
   ( (%~),
     Decision (..),

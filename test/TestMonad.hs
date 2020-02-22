@@ -6,9 +6,7 @@
 module TestMonad where
 
 import Config
-import Control.Monad.IO.Class
-  ( MonadIO,
-  )
+import Control.Monad.Catch (MonadThrow)
 import Control.Monad.Reader
 import Types.Monads
 
@@ -30,3 +28,5 @@ instance MonadEvent TestM where
   liftEvent x _ = pure x
 
 deriving instance MonadReader AppConfig TestM
+
+deriving instance MonadThrow TestM

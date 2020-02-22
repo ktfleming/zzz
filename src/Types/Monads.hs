@@ -15,10 +15,7 @@ import Brick.BChan
   )
 import Config
 import Control.Lens
-import Control.Monad.IO.Class
-  ( MonadIO,
-    liftIO,
-  )
+import Control.Monad.Catch (MonadThrow)
 import Control.Monad.Reader
 import Data.Singletons
   ( SingI,
@@ -51,6 +48,8 @@ instance MonadEvent AppM where
   liftEvent _ = AppM . lift
 
 deriving instance MonadReader AppConfig AppM
+
+deriving instance MonadThrow AppM
 
 -- Wraps the tagged output state into an AnyAppState. This is necessary for
 -- interacting with Brick's top-level event handler.

@@ -15,9 +15,7 @@ import Brick.Widgets.Border.Style (unicodeRounded)
 import Control.Lens
 import Data.Foldable (toList)
 import Data.Sequence as Seq
-import Data.Sequence (Seq)
 import Data.Text as T
-import Data.Text (Text)
 import Types.Brick.CustomEvent (CustomEvent)
 import Types.Brick.Name (Name (..))
 import Types.Classes.Fields

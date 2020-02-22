@@ -7,11 +7,6 @@ import Brick.BChan (BChan)
 import Brick.Forms
   ( focusedFormInputAttr,
   )
-import Brick.Types (Padding (Max))
-import Brick.Util
-  ( fg,
-    on,
-  )
 import Brick.Widgets.Border (hBorder)
 import Brick.Widgets.Edit (editFocusedAttr)
 import Brick.Widgets.List (listSelectedFocusedAttr)

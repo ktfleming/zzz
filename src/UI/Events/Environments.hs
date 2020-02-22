@@ -9,7 +9,6 @@ import Brick.BChan (BChan)
 import Brick.Widgets.List (listSelectedElement)
 import qualified Config
 import Control.Lens
-import Control.Monad ((<=<))
 import Control.Monad.IO.Class
 import Control.Monad.Reader
 import Data.UUID.V4 (nextRandom)

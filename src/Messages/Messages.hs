@@ -9,7 +9,6 @@ import Control.Monad.Reader
 import qualified Data.Text as T
 import Data.Text (Text)
 import Data.Time
-import Data.Time.Clock (getCurrentTime)
 import Data.Time.Format.ISO8601
 import Types.Constants
 

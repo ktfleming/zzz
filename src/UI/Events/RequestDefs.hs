@@ -20,8 +20,6 @@ import Brick.Focus
 import Brick.Widgets.List (listSelected)
 import qualified Config
 import Control.Lens
-import Control.Monad ((<=<))
-import Control.Monad.IO.Class (liftIO)
 import Control.Monad.Reader
 import qualified Data.HashMap.Strict as Map
 import qualified Data.HashSet as HashSet
@@ -38,7 +36,6 @@ import Types.Brick.CustomEvent (CustomEvent (..))
 import Types.Brick.Name
 import Types.Classes.Fields
 import Types.Classes.HasId
-import Types.Modal (Modal (..))
 import Types.Modal
 import Types.Models.Environment
 import Types.Models.Id (RequestDefId (..))

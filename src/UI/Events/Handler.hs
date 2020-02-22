@@ -15,7 +15,6 @@ import Brick.BChan (BChan)
 import Brick.Forms (handleFormEvent)
 import qualified Config
 import Control.Lens
-import Control.Monad ((<=<))
 import Control.Monad.Reader
 import Data.Aeson.Encode.Pretty (encodePretty)
 import Data.ByteString.Lazy (writeFile)

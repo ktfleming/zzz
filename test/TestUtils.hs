@@ -9,7 +9,6 @@ import Brick.Types (BrickEvent (VtyEvent))
 import Brick.Widgets.List (listSelected)
 import qualified Config
 import Control.Lens
-import Control.Monad.IO.Class (MonadIO, liftIO)
 import Control.Monad.Reader
 import Data.Either.Combinators (fromRight')
 import qualified Data.HashMap.Strict as Map
@@ -18,7 +17,6 @@ import Data.Singletons (SingI, fromSing, sing, withSingI)
 import qualified Data.Validation as Validation
 import Dhall
 import Gens
-import Graphics.Vty (Key, Modifier)
 import Graphics.Vty.Input.Events
 import Hedgehog
 import Test.Tasty (TestTree)
